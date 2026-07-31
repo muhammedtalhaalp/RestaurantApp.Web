@@ -1,0 +1,105 @@
+﻿@{
+    ViewBag.Title = "POS & Sipariş Ekranı";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/pos.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+}
+
+<div class="row g-0">
+    <!-- SOL TARAF: Menü ve Kategoriler (8 Kolon) -->
+    <div class="col-md-8 p-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="m-0"><i class="fa-solid fa-utensils me-2"></i>Menü</h4>
+        </div>
+
+        <!-- Kategoriler -->
+        <div id="category-list" class="d-flex flex-wrap mb-3">
+            <button class="btn btn-primary category-btn active" data-id="0">
+                <i class="fa-solid fa-list me-1"></i>Tüm Ürünler
+            </button>
+        </div>
+
+        <hr />
+
+        <!-- Ürünler Izgarası -->
+        <div id="product-list" class="row g-3">
+            <!-- AJAX ile dinamik yüklenecek -->
+        </div>
+    </div>
+
+    <!-- SAĞ TARAF: Sepet ve Sipariş Detayları (4 Kolon) -->
+    <div class="col-md-4 cart-container p-4 d-flex flex-column">
+        <h4 class="mb-3"><i class="fa-solid fa-cart-shopping me-2"></i>Aktif Sepet</h4>
+        <hr />
+
+        <!-- Sipariş Türü Seçimi -->
+        <div class="mb-3">
+            <label class="form-label fw-bold">Sipariş Türü:</label>
+            <select id="orderType" class="form-select">
+                <option value="Masa">Masa Siparişi</option>
+                <option value="PaketServis">Paket Servis (Teslimat)</option>
+            </select>
+        </div>
+
+        <!-- Masa Seçimi (Masa Siparişi Seçiliyken Görünür) -->
+        <div class="mb-3" id="tableSelectGroup">
+            <label class="form-label fw-bold">Masa Seçin:</label>
+            <select id="tableId" class="form-select">
+                <!-- AJAX ile dolacak -->
+            </select>
+        </div>
+
+        <!-- PAKET SERVİS ALANI (Paket Servis Seçildiğinde Açılacak - Varsayılan Gizli) -->
+        <div id="deliveryGroup" style="display: none;" class="mb-3">
+            <div class="mb-2">
+                <label class="form-label fw-bold">Açık Adres:</label>
+                <textarea id="txtDeliveryAddress" class="form-control" rows="2" placeholder="Sokak, bina no, daire..."></textarea>
+            </div>
+
+            <!-- Google Maps Harita Kutusu -->
+            <label class="form-label fw-bold">Teslimat Konumu (Pin Sürükleyin veya Tıklayın):</label>
+            <div id="map"></div>
+
+            <!-- Seçilen Enlem/Boylam Bilgilerinin Tutulacağı Gizli Input'lar -->
+            <input type="hidden" id="latitude" />
+            <input type="hidden" id="longitude" />
+        </div>
+
+        <!-- Sepet Tablosu -->
+        <div class="flex-grow-1 overflow-auto mb-3" style="max-height: 250px;">
+            <table class="table table-hover table-sm align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Ürün</th>
+                        <th style="width: 80px;">Adet</th>
+                        <th>Fiyat</th>
+                        <th style="width: 40px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="cart-items">
+                    <!-- Sepete eklenenler -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Toplam Tutar ve Onay Butonu -->
+        <div class="pt-3 border-top mt-auto">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="fs-5 fw-bold">Toplam Tutar:</span>
+                <span id="total-price" class="fs-4 fw-bold text-success">0.00 ₺</span>
+            </div>
+            <button id="btn-submit-order" class="btn btn-success w-100 btn-lg fw-bold">
+                <i class="fa-solid fa-check me-2"></i>Siparişi Onayla
+            </button>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="~/Library/scripts/pos.js"></script>
+}

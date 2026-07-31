@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+ <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <edmx:Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <!-- Diagram content (shape and connector positions) -->
+    <edmx:Diagrams>
+      <Diagram DiagramId="1dd342aa97ea402a8cb77015f05eef28" Name="Diagram1" >
+        <EntityTypeShape EntityType="RestaurantAppDBModel.AppCategories" Width="1.5" PointX="0.75" PointY="9.875" />
+        <EntityTypeShape EntityType="RestaurantAppDBModel.AppOrderDetails" Width="1.5" PointX="5.25" PointY="1.625" />
+        <EntityTypeShape EntityType="RestaurantAppDBModel.AppOrders" Width="1.5" PointX="3" PointY="1" />
+        <EntityTypeShape EntityType="RestaurantAppDBModel.AppProducts" Width="1.5" PointX="3" PointY="9.5" />
+        <EntityTypeShape EntityType="RestaurantAppDBModel.AppTables" Width="1.5" PointX="0.75" PointY="1.75" />
+        <EntityTypeShape EntityType="RestaurantAppDBModel.AppUsers" Width="1.5" PointX="0.75" PointY="5.5" />
+        <AssociationConnector Association="RestaurantAppDBModel.FK_AppProducts_AppCategories" />
+        <AssociationConnector Association="RestaurantAppDBModel.FK_AppOrderDetails_AppOrders" />
+        <AssociationConnector Association="RestaurantAppDBModel.FK_AppOrderDetails_AppProducts" />
+        <AssociationConnector Association="RestaurantAppDBModel.FK_AppOrders_AppTables" />
+        <AssociationConnector Association="RestaurantAppDBModel.FK_AppOrders_AppUsers" />
+        <EntityTypeShape EntityType="RestaurantAppDBModel.Companies" Width="1.5" PointX="0.75" PointY="13.25" />
+        <AssociationConnector Association="RestaurantAppDBModel.FK_AppUsers_Companies" />
+      </Diagram>
+    </edmx:Diagrams>
+  </edmx:Designer>
+</edmx:Edmx>

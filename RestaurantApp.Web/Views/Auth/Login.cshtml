@@ -1,0 +1,52 @@
+﻿@{
+    ViewBag.Title = "LezzetPOS - Giriş Yap";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/login.css" rel="stylesheet" />
+}
+
+<div class="login-container">
+    <div class="auth-card">
+        <div class="row g-0">
+            <!-- Sol Taraf: Yemek Görseli -->
+            <div class="col-md-6 d-none d-md-block auth-image-side"></div>
+
+            <!-- Sağ Taraf: Giriş Formu -->
+            <div class="col-md-6 auth-form-side">
+                <div class="brand-logo">
+                    <i class="fa-solid fa-leaf me-2"></i>LezzetPOS
+                </div>
+                <h4 class="auth-title">LezzetPOS'a Giriş Yap</h4>
+
+                <form id="loginForm">
+                    <div class="mb-3">
+                        <input type="email" id="txtUsername" class="form-control custom-input" placeholder="E-posta adresiniz..." required />
+                    </div>
+
+                    <div class="mb-3 position-relative">
+                        <input type="password" id="txtPassword" class="form-control custom-input" placeholder="Şifreniz..." required />
+                    </div>
+
+                    <div class="text-end mb-3">
+                        <a href="#" class="text-muted small text-decoration-none"><i class="fa-solid fa-key me-1"></i>Şifremi Unuttum?</a>
+                    </div>
+
+                    <button type="submit" id="btnLogin" class="btn btn-green w-100 mb-3">
+                        Devam Et
+                    </button>
+                </form>
+
+                <div class="text-center mt-3">
+                    <span class="text-muted small">Hesabınız yok mu?</span>
+                    <a href="/Auth/Register" class="auth-link small ms-1">Kayıt Ol</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Library/scripts/login.js"></script>
+}

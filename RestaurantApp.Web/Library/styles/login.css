@@ -1,0 +1,108 @@
+﻿/* --- Açık Yeşil Restoran Teması --- */
+:root {
+    --primary-green: #2ecc71; /* Canlı Açık Yeşil */
+    --primary-hover: #27ae60; /* Koyu Yeşil (Hover için) */
+    --bg-light: #f4f9f5; /* Ferah Yeşilimsi Arka Plan */
+    --input-bg: #edf7f0; /* Yumuşak Yeşil Input Arka Planı */
+    --text-dark: #2c3e50;
+}
+
+body {
+    background-color: var(--bg-light);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Sayfayı Ortala */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+/* Ana Kart */
+.auth-card {
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(46, 204, 113, 0.15);
+    overflow: hidden;
+    width: 100%;
+    max-width: 900px;
+}
+
+/* Sol Taraf Görsel Alanı */
+.auth-image-side {
+    background: url('https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=1000&auto=format&fit=crop') center/cover no-repeat;
+    min-height: 480px;
+}
+
+/* Sağ Taraf Form Alanı */
+.auth-form-side {
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Logo ve Başlık */
+.brand-logo {
+    color: var(--primary-green);
+    font-size: 28px;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+.auth-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-dark);
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+/* Form Elemanları */
+.custom-input {
+    background-color: var(--input-bg);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+    .custom-input:focus {
+        background-color: #ffffff;
+        border-color: var(--primary-green);
+        box-shadow: 0 0 0 0.2rem rgba(46, 204, 113, 0.25);
+    }
+
+/* Buton */
+.btn-green {
+    background-color: var(--primary-green);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+    .btn-green:hover {
+        background-color: var(--primary-hover);
+        color: white;
+    }
+
+/* Bağlantılar */
+.auth-link {
+    color: var(--primary-green);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+    .auth-link:hover {
+        color: var(--primary-hover);
+        text-decoration: underline;
+    }

@@ -1,0 +1,57 @@
+﻿@{
+    ViewBag.Title = "LezzetPOS - Admin & Şirket Kaydı";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/login.css" rel="stylesheet" />
+}
+
+<div class="login-container">
+    <div class="auth-card">
+        <div class="row g-0">
+            <!-- Sol Taraf: Yemek Görseli -->
+            <div class="col-md-6 d-none d-md-block auth-image-side"></div>
+
+            <!-- Sağ Taraf: Kayıt Formu -->
+            <div class="col-md-6 auth-form-side">
+                <div class="brand-logo">
+                    <i class="fa-solid fa-leaf me-2"></i>LezzetPOS
+                </div>
+                <h4 class="auth-title">Admin & Şirket Kaydı</h4>
+
+                <form id="registerForm">
+                    <div class="mb-3">
+                        <input type="text" id="txtCompanyName" class="form-control custom-input" placeholder="Şirketinizin / Restoranınızın Adı" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <input type="text" id="txtFullName" class="form-control custom-input" placeholder="Admin Adınız ve Soyadınız" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <!-- ID DÜZELTİLDİ: txtEmail yapıldı -->
+                        <input type="email" id="txtEmail" class="form-control custom-input" placeholder="E-posta Adresiniz" required />
+                    </div>
+
+                    <div class="mb-3">
+                        <input type="password" id="txtRegisterPassword" class="form-control custom-input" placeholder="Şifreniz (En az 6 karakter)" required />
+                    </div>
+
+                    <button type="submit" id="btnRegister" class="btn btn-green w-100 mb-3">
+                        Şirketi & Admini Kaydet
+                    </button>
+                </form>
+
+                <div class="text-center mt-2">
+                    <span class="text-muted small">Zaten üye misiniz?</span>
+                    <a href="/Auth/Login" class="auth-link small ms-1">Giriş Yap</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Library/scripts/login.js"></script>
+}
