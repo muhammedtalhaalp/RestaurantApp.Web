@@ -18,6 +18,8 @@ namespace RestaurantApp.Web.Data
         public Companies()
         {
             this.AppUsers = new HashSet<AppUsers>();
+            this.AppCategories = new HashSet<AppCategories>();
+            this.AppProducts = new HashSet<AppProducts>();
         }
     
         public int Id { get; set; }
@@ -26,5 +28,9 @@ namespace RestaurantApp.Web.Data
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<AppUsers> AppUsers { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<AppCategories> AppCategories { get; set; }
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
+        public virtual ICollection<AppProducts> AppProducts { get; set; }
     }
 }

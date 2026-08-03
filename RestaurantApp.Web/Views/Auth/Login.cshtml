@@ -1,52 +1,520 @@
 ﻿@{
-    ViewBag.Title = "LezzetPOS - Giriş Yap";
-    Layout = "~/Views/Shared/_Layout.cshtml";
+    Layout = null;
 }
 
-@section styles {
-    <link href="~/Library/styles/login.css" rel="stylesheet" />
-}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Giriş Yap / Kayıt Ol - LezzetPOS</title>
 
-<div class="login-container">
-    <div class="auth-card">
-        <div class="row g-0">
-            <!-- Sol Taraf: Yemek Görseli -->
-            <div class="col-md-6 d-none d-md-block auth-image-side"></div>
+    <!-- FontAwesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
-            <!-- Sağ Taraf: Giriş Formu -->
-            <div class="col-md-6 auth-form-side">
-                <div class="brand-logo">
-                    <i class="fa-solid fa-leaf me-2"></i>LezzetPOS
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <style>
+        :root {
+            --color-primary: #4a154b; /* Projemizin Mor Rengi */
+            --color-primary-hover: #381039;
+            --color-accent: #d63384;
+            --color-dark: #2d3748;
+            --color-muted: #747b92;
+            --bg-light: #f4f6f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Ana Kart Yapısı */
+        .card {
+            display: flex;
+            align-content: stretch;
+            width: 780px;
+            height: 520px; /* Kayıt formundaki Ad Soyad alanı için yükseklik hafif artırıldı */
+            border-radius: 24px;
+            background: #ffffff;
+            box-shadow: 0 20px 40px rgba(74, 21, 75, 0.08);
+            position: relative;
+        }
+
+        /* Sol Navigasyon Menüsü */
+        .card-nav {
+            position: relative;
+            align-self: stretch;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            width: 148px;
+            list-style: none;
+            z-index: 2;
+        }
+
+            .card-nav li {
+                flex: 1 1 auto;
+                display: grid;
+                place-items: center;
+            }
+
+            .card-nav button {
+                background: transparent;
+                border: 0;
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+                cursor: pointer;
+                transition: 0.3s;
+                color: var(--color-muted);
+                font-weight: 500;
+                font-size: 0.85rem;
+            }
+
+                .card-nav button i {
+                    font-size: 1.4rem;
+                }
+
+                .card-nav button:not(.active):hover {
+                    opacity: 0.75;
+                    color: var(--color-dark);
+                }
+
+                .card-nav button.active {
+                    color: var(--color-primary);
+                    font-weight: 600;
+                }
+
+        /* Sol Taraftaki Aktif Çizgi */
+        .active-bar {
+            position: absolute;
+            top: 33.33%;
+            left: 0;
+            height: 33.33%;
+            width: 100%;
+            transition: 0.4s ease-in-out;
+            pointer-events: none;
+        }
+
+            .active-bar::after {
+                content: "";
+                position: absolute;
+                top: 50%;
+                left: 0;
+                translate: 0 -50%;
+                width: 6px;
+                height: 50px;
+                border-top-right-radius: 8px;
+                border-bottom-right-radius: 8px;
+                background: var(--color-primary);
+            }
+
+        /* Ortadaki Kayan Banner */
+        .card-hero {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            margin: -20px 0;
+            flex: 0 0 310px;
+            border-radius: 24px;
+            overflow: hidden;
+            background: var(--color-primary);
+            box-shadow: 0 12px 30px rgba(74, 21, 75, 0.25);
+            z-index: 3;
+            color: #ffffff;
+        }
+
+        .card-hero-inner {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 200%;
+            transition: 0.5s ease-in-out;
+        }
+
+        .card-hero-content {
+            height: 520px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 35px;
+            box-sizing: border-box;
+        }
+
+            .card-hero-content h2 {
+                font-size: 1.8rem;
+                font-weight: 700;
+                margin-bottom: 12px;
+            }
+
+            .card-hero-content h3 {
+                font-size: 0.95rem;
+                font-weight: 400;
+                opacity: 0.85;
+                line-height: 1.5;
+            }
+
+        /* Sağ Taraf: Form Alanları */
+        .card-form {
+            position: relative;
+            overflow: hidden;
+            padding: 20px 40px;
+            width: 322px;
+            display: flex;
+            align-items: center;
+        }
+
+            .card-form .forms {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 200%;
+                transition: 0.5s ease-in-out;
+            }
+
+        .form-box {
+            height: 520px;
+            padding: 35px 40px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            box-sizing: border-box;
+        }
+
+        .form-title-sub {
+            font-size: 0.82rem;
+            color: var(--color-muted);
+            margin-bottom: 18px;
+        }
+
+            .form-title-sub a {
+                color: var(--color-primary);
+                text-decoration: none;
+                font-weight: 600;
+            }
+
+        .input-group-custom {
+            margin-bottom: 14px;
+        }
+
+            .input-group-custom label {
+                display: block;
+                font-size: 0.78rem;
+                font-weight: 600;
+                color: var(--color-dark);
+                margin-bottom: 4px;
+            }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+            .input-wrapper input {
+                width: 100%;
+                padding: 10px 40px 10px 14px;
+                border: 1px solid #e2e8f0;
+                border-radius: 10px;
+                font-size: 0.85rem;
+                background: #f8fafc;
+                color: var(--color-dark);
+                outline: none;
+                transition: 0.2s;
+            }
+
+                .input-wrapper input:focus {
+                    background: #ffffff;
+                    border-color: var(--color-primary);
+                    box-shadow: 0 0 0 3px rgba(74, 21, 75, 0.1);
+                }
+
+            .input-wrapper i {
+                position: absolute;
+                right: 14px;
+                color: var(--color-muted);
+                font-size: 0.9rem;
+            }
+
+        .btn-submit {
+            width: 100%;
+            padding: 11px;
+            background: var(--color-primary);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: 0.2s;
+            box-shadow: 0 4px 12px rgba(74, 21, 75, 0.2);
+        }
+
+            .btn-submit:hover {
+                background: var(--color-primary-hover);
+                transform: translateY(-1px);
+            }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <!-- Sol Menü -->
+        <ul class="card-nav">
+            <li>
+                <i class="fa-solid fa-leaf" style="font-size: 1.8rem; color: var(--color-primary);"></i>
+            </li>
+            <div class="active-bar"></div>
+            <li>
+                <button type="button" class="signin active" onclick="selectView('signin')">
+                    <i class="fa-solid fa-user-check"></i>
+                    <span>Giriş Yap</span>
+                </button>
+            </li>
+            <li>
+                <button type="button" class="signup" onclick="selectView('signup')">
+                    <i class="fa-solid fa-user-plus"></i>
+                    <span>Kayıt Ol</span>
+                </button>
+            </li>
+        </ul>
+
+        <!-- Ortadaki Banner -->
+        <div class="card-hero">
+            <div class="card-hero-inner">
+                <div class="card-hero-content signin">
+                    <h2>Tekrar Hoş Geldiniz!</h2>
+                    <h3>Sisteme erişmek için bilgilerinizi giriniz.</h3>
                 </div>
-                <h4 class="auth-title">LezzetPOS'a Giriş Yap</h4>
+                <div class="card-hero-content signup">
+                    <h2>Aramıza Katılın.</h2>
+                    <h3>Restoranınızı hemen yönetmeye başlamak için kaydolun.</h3>
+                </div>
+            </div>
+        </div>
 
-                <form id="loginForm">
-                    <div class="mb-3">
-                        <input type="email" id="txtUsername" class="form-control custom-input" placeholder="E-posta adresiniz..." required />
-                    </div>
+        <!-- Sağ Taraf: Formlar -->
+        <div class="card-form">
+            <div class="forms">
+                <!-- 1. GİRİŞ YAP FORMU -->
+                <div class="form-box">
+                    <p class="form-title-sub">Hesabınız yok mu? <a href="#" onclick="selectView('signup')">Kayıt Ol</a></p>
 
-                    <div class="mb-3 position-relative">
-                        <input type="password" id="txtPassword" class="form-control custom-input" placeholder="Şifreniz..." required />
-                    </div>
+                    <form id="formSignIn">
+                        <div class="input-group-custom">
+                            <label>E-Posta Adresi</label>
+                            <div class="input-wrapper">
+                                <input type="email" id="loginEmail" placeholder="ornek@lezzetpos.com" required />
+                                <i class="fa-regular fa-envelope"></i>
+                            </div>
+                        </div>
 
-                    <div class="text-end mb-3">
-                        <a href="#" class="text-muted small text-decoration-none"><i class="fa-solid fa-key me-1"></i>Şifremi Unuttum?</a>
-                    </div>
+                        <div class="input-group-custom">
+                            <label>Şifre</label>
+                            <div class="input-wrapper">
+                                <input type="password" id="loginPassword" placeholder="••••••••" required />
+                                <i class="fa-solid fa-lock"></i>
+                            </div>
+                        </div>
 
-                    <button type="submit" id="btnLogin" class="btn btn-green w-100 mb-3">
-                        Devam Et
-                    </button>
-                </form>
+                        <button type="submit" class="btn-submit" id="btnSignInSubmit">
+                            Giriş Yap <i class="fa-solid fa-arrow-right ms-1"></i>
+                        </button>
+                    </form>
+                </div>
 
-                <div class="text-center mt-3">
-                    <span class="text-muted small">Hesabınız yok mu?</span>
-                    <a href="/Auth/Register" class="auth-link small ms-1">Kayıt Ol</a>
+                <!-- 2. KAYIT OL FORMU (Ad Soyad Eklendi) -->
+                <div class="form-box">
+                    <p class="form-title-sub">Zaten hesabınız var mı? <a href="#" onclick="selectView('signin')">Giriş Yap</a></p>
+
+                    <form id="formSignUp">
+                        <div class="input-group-custom">
+                            <label>Ad Soyad</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="regFullName" placeholder="Ahmet Yılmaz" required />
+                                <i class="fa-solid fa-user"></i>
+                            </div>
+                        </div>
+
+                        <div class="input-group-custom">
+                            <label>Restoran / Şirket Adı</label>
+                            <div class="input-wrapper">
+                                <input type="text" id="regCompanyName" placeholder="Lezzet Restoran" required />
+                                <i class="fa-solid fa-building"></i>
+                            </div>
+                        </div>
+
+                        <div class="input-group-custom">
+                            <label>E-Posta Adresi</label>
+                            <div class="input-wrapper">
+                                <input type="email" id="regEmail" placeholder="ornek@lezzetpos.com" required />
+                                <i class="fa-regular fa-envelope"></i>
+                            </div>
+                        </div>
+
+                        <div class="input-group-custom">
+                            <label>Şifre</label>
+                            <div class="input-wrapper">
+                                <input type="password" id="regPassword" placeholder="••••••••" required />
+                                <i class="fa-solid fa-lock"></i>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-submit" id="btnSignUpSubmit">
+                            Kayıt Ol <i class="fa-solid fa-user-check ms-1"></i>
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-@section scripts {
-    <script src="~/Library/scripts/login.js"></script>
-}
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+        // Görünüm Değiştirme Animasyonu
+        const navButtons = document.querySelectorAll(".card-nav button"),
+            cardForms = document.querySelector(".card-form .forms"),
+            activeBar = document.querySelector(".active-bar"),
+            cardHeroInner = document.querySelector(".card-hero-inner");
+
+        const selectView = (view) => {
+            for (let button of navButtons) {
+                button.classList.remove("active");
+                if (button.classList.contains(view)) {
+                    button.classList.add("active");
+                }
+            }
+
+            if (view === "signin") {
+                cardForms.style.top = "0";
+                activeBar.style.top = "33.33%";
+                cardHeroInner.style.top = "0";
+            } else {
+                cardForms.style.top = "-100%";
+                activeBar.style.top = "66.66%";
+                cardHeroInner.style.top = "-100%";
+            }
+        };
+
+        $(document).ready(function () {
+            // GİRİŞ YAP AJAX (ApiLogin Metodu İle Tam Uyumlu)
+            $("#formSignIn").on("submit", function (e) {
+                e.preventDefault();
+
+                var email = $("#loginEmail").val().trim();
+                var password = $("#loginPassword").val().trim();
+
+                var $btn = $("#btnSignInSubmit");
+                $btn.prop("disabled", true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i>Giriş Yapılıyor...');
+
+                $.ajax({
+                    url: "/Auth/ApiLogin", // Backend Controller Metodu
+                    type: "POST",
+                    data: {
+                        Username: email,  // Controller'ın beklediği LoginViewModel alanı
+                        Password: password
+                    },
+                    success: function (response) {
+                        $btn.prop("disabled", false).html('Giriş Yap <i class="fa-solid fa-arrow-right ms-1"></i>');
+
+                        if (response.success) {
+                            // Kullanıcı tam adını localStorage üzerine kaydet
+                            if (response.fullName) {
+                                localStorage.setItem("FullName", response.fullName);
+                            }
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Giriş Başarılı',
+                                text: 'Yönlendiriliyorsunuz...',
+                                timer: 1200,
+                                showConfirmButton: false
+                            }).then(() => {
+                                // Controller'dan gelen yönlendirme adresi
+                                window.location.href = response.redirectUrl;
+                            });
+                        } else {
+                            Swal.fire("Giriş Başarısız", response.message || "Hatalı e-posta veya şifre.", "error");
+                        }
+                    },
+                    error: function () {
+                        $btn.prop("disabled", false).html('Giriş Yap <i class="fa-solid fa-arrow-right ms-1"></i>');
+                        Swal.fire("Hata", "Sunucuya bağlanırken bir sorun oluştu.", "error");
+                    }
+                });
+            });
+
+            // KAYIT OL AJAX (ApiRegister Metodu İle Tam Uyumlu)
+            $("#formSignUp").on("submit", function (e) {
+                e.preventDefault();
+
+                var fullName = $("#regFullName").val().trim();
+                var companyName = $("#regCompanyName").val().trim();
+                var email = $("#regEmail").val().trim();
+                var password = $("#regPassword").val().trim();
+
+                var $btn = $("#btnSignUpSubmit");
+                $btn.prop("disabled", true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i>Kaydediliyor...');
+
+                $.ajax({
+                    url: "/Auth/ApiRegister", // Backend Controller Metodu
+                    type: "POST",
+                    data: {
+                        FullName: fullName,
+                        CompanyName: companyName,
+                        Email: email,
+                        Password: password
+                    },
+                    success: function (response) {
+                        $btn.prop("disabled", false).html('Kayıt Ol <i class="fa-solid fa-user-check ms-1"></i>');
+
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Kayıt Başarılı!',
+                                text: response.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            });
+                            // Formu temizle ve Giriş ekranına kaydır
+                            $("#formSignUp")[0].reset();
+                            selectView('signin');
+                        } else {
+                            Swal.fire("Kayıt Başarısız", response.message, "error");
+                        }
+                    },
+                    error: function () {
+                        $btn.prop("disabled", false).html('Kayıt Ol <i class="fa-solid fa-user-check ms-1"></i>');
+                        Swal.fire("Hata", "Sunucuya bağlanırken bir sorun oluştu.", "error");
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

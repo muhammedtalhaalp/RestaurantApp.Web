@@ -1,0 +1,155 @@
+﻿@{
+    ViewBag.Title = "Profil Ayarları - LezzetPOS";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/profile-settings.css" rel="stylesheet" />
+}
+
+<div class="container-fluid mt-2">
+    <div class="mb-4">
+        <h4 class="fw-bold text-dark mb-1">
+            <i class="fa-solid fa-user-gear me-2" style="color: #4a154b;"></i>Profil Ayarları
+        </h4>
+        <p class="text-muted small mb-0">Kişisel bilgilerinizi ve hesap şifrenizi buradan güncelleyebilirsiniz.</p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card profile-card text-center p-4 shadow-sm border-0 rounded-4">
+                <div class="profile-avatar-circle mx-auto mb-3">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-1" id="lblProfileName">Yükleniyor...</h5>
+                <p class="text-muted small mb-3" id="lblProfileRole">-</p>
+                <div class="d-flex justify-content-center">
+                    <span class="badge bg-light text-dark border py-2 px-3 rounded-pill fw-semibold">
+                        <i class="fa-solid fa-shield-halved me-1" style="color: #4a154b;"></i> Aktif Hesap
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card profile-card shadow-sm border-0 rounded-4">
+                <div class="profile-card-header d-flex align-items-center p-3 border-bottom fw-bold text-dark">
+                    <i class="fa-solid fa-pen-to-square me-2" style="color: #4a154b;"></i>Profil Bilgilerini Düzenle
+                </div>
+                <div class="card-body p-4">
+                    <form id="formProfileSettings">
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="fw-semibold text-secondary mb-1 small">Ad Soyad</label>
+                                <input type="text" id="txtFullName" class="form-control input-clean" placeholder="Ad Soyad" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="fw-semibold text-secondary mb-1 small">Restoran / Şirket Adı</label>
+                                <input type="text" id="txtCompanyName" class="form-control input-clean bg-light" readonly />
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="fw-semibold text-secondary mb-1 small">E-Posta Adresi (Kullanıcı Adı)</label>
+                                <input type="email" id="txtEmail" class="form-control input-clean" placeholder="ornek@domain.com" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="fw-semibold text-secondary mb-1 small">Sistem Rolü</label>
+                                <input type="text" id="txtRole" class="form-control input-clean bg-light" readonly />
+                            </div>
+                        </div>
+
+                        <hr class="my-4 opacity-50" />
+
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <div>
+                                <h6 class="fw-bold text-dark mb-1">
+                                    <i class="fa-solid fa-key me-2" style="color: #4a154b;"></i>Şifre Değiştir (İsteğe Bağlı)
+                                </h6>
+                                <p class="text-muted small mb-0">Güvenliğiniz için şifre değişikliği e-posta doğrulama kodu ile yapılır.</p>
+                            </div>
+                            <button type="button" class="btn btn-outline-purple btn-sm rounded-pill px-3" id="btnOpenOtpModal">
+                                <i class="fa-solid fa-paper-plane me-1"></i>Doğrulama Kodu İle Şifre Değiştir
+                            </button>
+                        </div>
+
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-purple px-4 py-2 rounded-3 fw-semibold" id="btnSaveProfile">
+                                <i class="fa-solid fa-check me-1"></i>Değişiklikleri Kaydet
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="otpModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-content border-0 rounded-4 shadow-lg">
+            <div class="modal-body p-4 text-center">
+                <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                <!-- ADIM 1: GİRDİ ALANI VE ANİMASYON KAPSAYICISI -->
+                <div id="otpStep1">
+                    <div id="otpFormContent">
+                        <div class="otp-icon-wrapper">
+                            <i class="fa-solid fa-lock"></i>
+                        </div>
+                        <h4 class="fw-bold text-dark mb-1">Kimlik Doğrulama</h4>
+                        <p class="text-muted small mb-4">Lütfen e-postanıza gönderilen 4 haneli güvenlik kodunu giriniz.</p>
+
+                        <div class="otp-inputs-container" id="otpInputsContainer">
+                            <input type="text" class="otp-field" maxlength="1" autofocus />
+                            <input type="text" class="otp-field" maxlength="1" />
+                            <input type="text" class="otp-field" maxlength="1" />
+                            <input type="text" class="otp-field" maxlength="1" />
+                        </div>
+
+                        <button type="button" class="btn-otp-verify" id="btnVerifyOtp">
+                            Kodu Doğrula
+                        </button>
+
+                        <p class="otp-resend-text mb-0 mt-3">
+                            Kod gelmedi mi? <span id="timerText">Yeniden Gönder (<strong id="countdown">60</strong>s)</span>
+                            <button type="button" class="otp-resend-btn d-none" id="btnResendOtp">Yeniden Gönder</button>
+                        </p>
+                    </div>
+
+                    <!-- ANİMASYONLU DOĞRULANDI ALANI -->
+                    <div id="otpSuccessState" class="otp-success-state d-none">
+                        <div class="otp-success-icon">
+                            <i class="fa-solid fa-check"></i>
+                        </div>
+                        <h4 class="fw-bold text-dark mb-1">Kod Doğrulandı!</h4>
+                        <p class="text-muted small mb-0">Şifre yenileme ekranına yönlendiriliyorsunuz...</p>
+                    </div>
+                </div>
+
+                <!-- ADIM 2: YENİ ŞİFRE ALANI -->
+                <div id="otpStep2" class="d-none">
+                    <div class="otp-icon-wrapper" style="background: #e6fffa; color: #319795;">
+                        <i class="fa-solid fa-key"></i>
+                    </div>
+                    <h4 class="fw-bold text-dark mb-1">Yeni Şifre Belirle</h4>
+                    <p class="text-muted small mb-3">Doğrulama başarılı! Lütfen yeni şifrenizi giriniz.</p>
+
+                    <div class="mb-3 text-start">
+                        <label class="fw-semibold text-secondary mb-1 small">Yeni Şifre</label>
+                        <input type="password" id="txtNewPasswordInput" class="form-control input-clean" placeholder="••••••••" required />
+                    </div>
+
+                    <button type="button" class="btn-otp-verify" id="btnSaveNewPassword">
+                        Şifreyi Güncelle
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Library/scripts/profileSettings.js"></script>
+}

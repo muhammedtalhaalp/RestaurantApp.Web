@@ -23,8 +23,10 @@ namespace RestaurantApp.Web.Data
         public int CategoryId { get; set; }
         public string CategoryName { get; set; }
         public bool IsActive { get; set; }
+        public Nullable<int> CompanyId { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<AppProducts> AppProducts { get; set; }
+        public virtual Companies Companies { get; set; }
     }
 }

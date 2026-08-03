@@ -74,7 +74,6 @@ namespace RestaurantApp.Web.Controllers
                 return Json(new { success = false, message = "Lütfen bilgilerinizi eksiksiz girin." });
             }
 
-            // DÜZELTME: Kullanıcı hem Email hem Username ile giriş yapabilir hale getirildi
             var user = db.AppUsers.FirstOrDefault(u =>
                 (u.Username == model.Username || u.Email == model.Username) &&
                 u.PasswordHash == model.Password &&
@@ -87,17 +86,23 @@ namespace RestaurantApp.Web.Controllers
 
             string token = JwtHelper.GenerateToken(user.UserId, user.Username, user.Role);
 
+            // Oturum ve Profil İşlemleri İçin Session Kayıtları
+            Session["JWToken"] = token;
+            Session["UserId"] = user.UserId;
+            Session["UserRole"] = user.Role;
+            Session["FullName"] = user.FullName;
+
             string redirectUrl = "/Order/POS";
 
             if (user.Role == "Admin")
             {
                 redirectUrl = "/Admin/Dashboard";
             }
-            else if (user.Role == "Mutfak")
+            else if (user.Role == "Mutfak" || user.Role == "Mutfak Şefi")
             {
                 redirectUrl = "/Kitchen/Index";
             }
-            else if (user.Role == "Garson" || user.Role == "Kasiyer")
+            else if (user.Role == "Garson" || user.Role == "Kasiyer" || user.Role == "Garson/Kasiyer")
             {
                 redirectUrl = "/Order/POS";
             }
@@ -111,6 +116,202 @@ namespace RestaurantApp.Web.Controllers
                 role = user.Role,
                 redirectUrl = redirectUrl
             });
+        }
+
+        #region ORTAK PROFİL AYARLARI (TÜM ROLLER İÇİN)
+
+        // 1. Profil Ayarları Sayfasının Açılmasını Sağlayan Metod
+        [HttpGet]
+        public ActionResult ProfileSettings()
+        {
+            return View();
+        }
+
+        // 2. Aktif Giriş Yapan Kullanıcının Profil Bilgilerini Getirir
+        [HttpGet]
+        public JsonResult GetUserProfile()
+        {
+            try
+            {
+                int currentUserId = Session["UserId"] != null ? Convert.ToInt32(Session["UserId"]) : 0;
+
+                AppUsers user = null;
+                if (currentUserId > 0)
+                {
+                    user = db.AppUsers.FirstOrDefault(u => u.UserId == currentUserId);
+                }
+                else
+                {
+                    user = db.AppUsers.FirstOrDefault(u => u.IsActive == true);
+                }
+
+                if (user == null)
+                {
+                    return Json(new { success = false, message = "Kullanıcı oturumu bulunamadı." }, JsonRequestBehavior.AllowGet);
+                }
+
+                return Json(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        userId = user.UserId,
+                        fullName = user.FullName,
+                        companyName = user.CompanyName,
+                        email = user.Email,
+                        role = user.Role
+                    }
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // 1. Doğrulama Kodu Gönderen Metod
+        [HttpPost]
+        public JsonResult SendPasswordResetCode()
+        {
+            try
+            {
+                int currentUserId = Session["UserId"] != null ? Convert.ToInt32(Session["UserId"]) : 0;
+                var user = db.AppUsers.FirstOrDefault(u => u.UserId == currentUserId || u.IsActive == true);
+
+                if (user == null || string.IsNullOrEmpty(user.Email))
+                {
+                    return Json(new { success = false, message = "Kullanıcı e-postası bulunamadı." });
+                }
+
+                // 4 haneli rastgele kod üret (1000 - 9999)
+                Random random = new Random();
+                string code = random.Next(1000, 9999).ToString();
+
+                // Kodu ve maili Session'da geçici olarak saklayalım
+                Session["ResetCode"] = code;
+                Session["ResetCodeUserEmail"] = user.Email;
+
+                // E-posta gönderimi
+                bool mailSent = EmailHelper.SendVerificationCode(user.Email, code);
+
+                if (mailSent)
+                {
+                    return Json(new { success = true, message = $"4 haneli doğrulama kodu {user.Email} adresinize gönderildi." });
+                }
+                else
+                {
+                    return Json(new { success = false, message = "E-posta gönderilirken bir hata oluştu. Lütfen SMTP ayarlarını kontrol edin." });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+        // 1. Kutucuklara Girilen 4 Haneli Kodu Doğrulayan Metod
+        [HttpPost]
+        public JsonResult VerifyOtpCode(string code)
+        {
+            string sessionCode = Session["ResetCode"] as string;
+
+            if (sessionCode != null && sessionCode == code.Trim())
+            {
+                Session["IsOtpVerified"] = true; // Doğrulandı bayrağı
+                return Json(new { success = true, message = "Kod doğrulandı." });
+            }
+
+            return Json(new { success = false, message = "Girdiğiniz 4 haneli kod hatalı!" });
+        }
+
+        // 2. Doğrulama Sonrası Yeni Şifreyi Kaydeden Metod
+        [HttpPost]
+        public JsonResult ConfirmNewPassword(string newPassword)
+        {
+            bool isVerified = Session["IsOtpVerified"] != null && (bool)Session["IsOtpVerified"];
+
+            if (!isVerified)
+            {
+                return Json(new { success = false, message = "Güvenlik ihlali: Önce doğrulama kodunu onaylamalısınız." });
+            }
+
+            int currentUserId = Session["UserId"] != null ? Convert.ToInt32(Session["UserId"]) : 0;
+            var user = db.AppUsers.FirstOrDefault(u => u.UserId == currentUserId || u.IsActive == true);
+
+            if (user != null)
+            {
+                user.PasswordHash = newPassword;
+                db.SaveChanges();
+
+                // Güvenlik için session'ları temizle
+                Session["ResetCode"] = null;
+                Session["IsOtpVerified"] = null;
+
+                return Json(new { success = true, message = "Şifreniz güncellendi." });
+            }
+
+            return Json(new { success = false, message = "Kullanıcı bulunamadı." });
+        }
+
+        [HttpPost]
+        public JsonResult UpdateUserProfile(string FullName, string Email, string VerificationCode, string NewPassword)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(FullName) || string.IsNullOrWhiteSpace(Email))
+                {
+                    return Json(new { success = false, message = "Ad Soyad ve E-Posta alanları zorunludur." });
+                }
+
+                int currentUserId = Session["UserId"] != null ? Convert.ToInt32(Session["UserId"]) : 0;
+                var user = db.AppUsers.FirstOrDefault(u => u.UserId == currentUserId || u.IsActive == true);
+
+                if (user == null)
+                {
+                    return Json(new { success = false, message = "Kullanıcı bulunamadı." });
+                }
+
+                // Eğer Yeni Şifre girilmişse Kod Kontrolü Yap
+                if (!string.IsNullOrWhiteSpace(NewPassword))
+                {
+                    if (string.IsNullOrWhiteSpace(VerificationCode))
+                    {
+                        return Json(new { success = false, message = "Şifrenizi değiştirmek için lütfen e-postanıza gelen doğrulama kodunu girin." });
+                    }
+
+                    string sessionCode = Session["ResetCode"] as string;
+                    if (sessionCode == null || sessionCode != VerificationCode.Trim())
+                    {
+                        return Json(new { success = false, message = "Girdiğiniz doğrulama kodu hatalı veya süresi dolmuş." });
+                    }
+
+                    // Doğrulama başarılı -> Şifreyi güncelle ve Session'daki kodu temizle
+                    user.PasswordHash = NewPassword;
+                    Session["ResetCode"] = null;
+                }
+
+                user.FullName = FullName;
+                user.Email = Email;
+                user.Username = Email;
+
+                db.SaveChanges();
+                Session["FullName"] = user.FullName;
+
+                return Json(new { success = true, message = "Profil bilgileriniz başarıyla güncellendi.", fullName = user.FullName });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata oluştu: " + ex.Message });
+            }
+        }
+        #endregion
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                db.Dispose();
+            }
+            base.Dispose(disposing);
         }
     }
 }

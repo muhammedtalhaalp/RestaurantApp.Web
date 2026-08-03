@@ -12,6 +12,7 @@
           <Property Name="CategoryId" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
           <Property Name="CategoryName" Type="nvarchar" MaxLength="100" Nullable="false" />
           <Property Name="IsActive" Type="bit" Nullable="false" />
+          <Property Name="CompanyId" Type="int" />
         </EntityType>
         <EntityType Name="AppOrderDetails">
           <Key>
@@ -48,6 +49,9 @@
           <Property Name="Price" Type="decimal" Precision="18" Scale="2" Nullable="false" />
           <Property Name="ImageUrl" Type="nvarchar" MaxLength="250" />
           <Property Name="IsActive" Type="bit" Nullable="false" />
+          <Property Name="CompanyId" Type="int" />
+          <Property Name="IsAvailable" Type="bit" Nullable="false" />
+          <Property Name="Description" Type="nvarchar(max)" />
         </EntityType>
         <EntityType Name="AppTables">
           <Key>
@@ -81,6 +85,18 @@
           <Property Name="Name" Type="nvarchar" MaxLength="100" Nullable="false" />
           <Property Name="CreatedDate" Type="datetime" />
         </EntityType>
+        <Association Name="FK_AppCategories_Companies">
+          <End Role="Companies" Type="Self.Companies" Multiplicity="0..1" />
+          <End Role="AppCategories" Type="Self.AppCategories" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Companies">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="AppCategories">
+              <PropertyRef Name="CompanyId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         <Association Name="FK_AppOrderDetails_AppOrders">
           <End Role="AppOrders" Type="Self.AppOrders" Multiplicity="1" />
           <End Role="AppOrderDetails" Type="Self.AppOrderDetails" Multiplicity="*" />
@@ -129,6 +145,18 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Association Name="FK_AppProducts_Companies">
+          <End Role="Companies" Type="Self.Companies" Multiplicity="0..1" />
+          <End Role="AppProducts" Type="Self.AppProducts" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Companies">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="AppProducts">
+              <PropertyRef Name="CompanyId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
         <Association Name="FK_AppUsers_Companies">
           <End Role="Companies" Type="Self.Companies" Multiplicity="1" />
           <End Role="AppUsers" Type="Self.AppUsers" Multiplicity="*" />
@@ -149,6 +177,10 @@
           <EntitySet Name="AppTables" EntityType="Self.AppTables" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="AppUsers" EntityType="Self.AppUsers" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Companies" EntityType="Self.Companies" Schema="dbo" store:Type="Tables" />
+          <AssociationSet Name="FK_AppCategories_Companies" Association="Self.FK_AppCategories_Companies">
+            <End Role="Companies" EntitySet="Companies" />
+            <End Role="AppCategories" EntitySet="AppCategories" />
+          </AssociationSet>
           <AssociationSet Name="FK_AppOrderDetails_AppOrders" Association="Self.FK_AppOrderDetails_AppOrders">
             <End Role="AppOrders" EntitySet="AppOrders" />
             <End Role="AppOrderDetails" EntitySet="AppOrderDetails" />
@@ -163,6 +195,10 @@
           </AssociationSet>
           <AssociationSet Name="FK_AppProducts_AppCategories" Association="Self.FK_AppProducts_AppCategories">
             <End Role="AppCategories" EntitySet="AppCategories" />
+            <End Role="AppProducts" EntitySet="AppProducts" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AppProducts_Companies" Association="Self.FK_AppProducts_Companies">
+            <End Role="Companies" EntitySet="Companies" />
             <End Role="AppProducts" EntitySet="AppProducts" />
           </AssociationSet>
           <AssociationSet Name="FK_AppUsers_Companies" Association="Self.FK_AppUsers_Companies">
@@ -206,6 +242,14 @@
             <End Role="Companies" EntitySet="Companies" />
             <End Role="AppUsers" EntitySet="AppUsers" />
           </AssociationSet>
+          <AssociationSet Name="FK_AppCategories_Companies" Association="RestaurantAppDBModel.FK_AppCategories_Companies">
+            <End Role="Companies" EntitySet="Companies" />
+            <End Role="AppCategories" EntitySet="AppCategories" />
+          </AssociationSet>
+          <AssociationSet Name="FK_AppProducts_Companies" Association="RestaurantAppDBModel.FK_AppProducts_Companies">
+            <End Role="Companies" EntitySet="Companies" />
+            <End Role="AppProducts" EntitySet="AppProducts" />
+          </AssociationSet>
         </EntityContainer>
         <EntityType Name="AppCategories">
           <Key>
@@ -215,6 +259,8 @@
           <Property Name="CategoryName" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="true" />
           <Property Name="IsActive" Type="Boolean" Nullable="false" />
           <NavigationProperty Name="AppProducts" Relationship="RestaurantAppDBModel.FK_AppProducts_AppCategories" FromRole="AppCategories" ToRole="AppProducts" />
+          <Property Name="CompanyId" Type="Int32" />
+          <NavigationProperty Name="Companies" Relationship="RestaurantAppDBModel.FK_AppCategories_Companies" FromRole="AppCategories" ToRole="Companies" />
         </EntityType>
         <EntityType Name="AppOrderDetails">
           <Key>
@@ -258,6 +304,10 @@
           <Property Name="IsActive" Type="Boolean" Nullable="false" />
           <NavigationProperty Name="AppCategories" Relationship="RestaurantAppDBModel.FK_AppProducts_AppCategories" FromRole="AppProducts" ToRole="AppCategories" />
           <NavigationProperty Name="AppOrderDetails" Relationship="RestaurantAppDBModel.FK_AppOrderDetails_AppProducts" FromRole="AppProducts" ToRole="AppOrderDetails" />
+          <Property Name="CompanyId" Type="Int32" />
+          <Property Name="IsAvailable" Type="Boolean" Nullable="false" />
+          <NavigationProperty Name="Companies" Relationship="RestaurantAppDBModel.FK_AppProducts_Companies" FromRole="AppProducts" ToRole="Companies" />
+          <Property Name="Description" Type="String" MaxLength="Max" FixedLength="false" Unicode="true" />
         </EntityType>
         <EntityType Name="AppTables">
           <Key>
@@ -354,6 +404,8 @@
           <Property Name="Name" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="true" />
           <Property Name="CreatedDate" Type="DateTime" Precision="3" />
           <NavigationProperty Name="AppUsers" Relationship="RestaurantAppDBModel.FK_AppUsers_Companies" FromRole="Companies" ToRole="AppUsers" />
+          <NavigationProperty Name="AppCategories" Relationship="RestaurantAppDBModel.FK_AppCategories_Companies" FromRole="Companies" ToRole="AppCategories" />
+          <NavigationProperty Name="AppProducts" Relationship="RestaurantAppDBModel.FK_AppProducts_Companies" FromRole="Companies" ToRole="AppProducts" />
         </EntityType>
         <Association Name="FK_AppUsers_Companies">
           <End Type="RestaurantAppDBModel.Companies" Role="Companies" Multiplicity="1" />
@@ -367,6 +419,30 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <Association Name="FK_AppCategories_Companies">
+          <End Type="RestaurantAppDBModel.Companies" Role="Companies" Multiplicity="0..1" />
+          <End Type="RestaurantAppDBModel.AppCategories" Role="AppCategories" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Companies">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="AppCategories">
+              <PropertyRef Name="CompanyId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_AppProducts_Companies">
+          <End Type="RestaurantAppDBModel.Companies" Role="Companies" Multiplicity="0..1" />
+          <End Type="RestaurantAppDBModel.AppProducts" Role="AppProducts" Multiplicity="*" />
+          <ReferentialConstraint>
+            <Principal Role="Companies">
+              <PropertyRef Name="Id" />
+            </Principal>
+            <Dependent Role="AppProducts">
+              <PropertyRef Name="CompanyId" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
       </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -376,6 +452,7 @@
           <EntitySetMapping Name="AppCategories">
             <EntityTypeMapping TypeName="RestaurantAppDBModel.AppCategories">
               <MappingFragment StoreEntitySet="AppCategories">
+                <ScalarProperty Name="CompanyId" ColumnName="CompanyId" />
                 <ScalarProperty Name="IsActive" ColumnName="IsActive" />
                 <ScalarProperty Name="CategoryName" ColumnName="CategoryName" />
                 <ScalarProperty Name="CategoryId" ColumnName="CategoryId" />
@@ -412,6 +489,9 @@
           <EntitySetMapping Name="AppProducts">
             <EntityTypeMapping TypeName="RestaurantAppDBModel.AppProducts">
               <MappingFragment StoreEntitySet="AppProducts">
+                <ScalarProperty Name="Description" ColumnName="Description" />
+                <ScalarProperty Name="IsAvailable" ColumnName="IsAvailable" />
+                <ScalarProperty Name="CompanyId" ColumnName="CompanyId" />
                 <ScalarProperty Name="IsActive" ColumnName="IsActive" />
                 <ScalarProperty Name="ImageUrl" ColumnName="ImageUrl" />
                 <ScalarProperty Name="Price" ColumnName="Price" />

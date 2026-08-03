@@ -26,9 +26,13 @@ namespace RestaurantApp.Web.Data
         public decimal Price { get; set; }
         public string ImageUrl { get; set; }
         public bool IsActive { get; set; }
+        public Nullable<int> CompanyId { get; set; }
+        public bool IsAvailable { get; set; }
+        public string Description { get; set; }
     
         public virtual AppCategories AppCategories { get; set; }
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<AppOrderDetails> AppOrderDetails { get; set; }
+        public virtual Companies Companies { get; set; }
     }
 }

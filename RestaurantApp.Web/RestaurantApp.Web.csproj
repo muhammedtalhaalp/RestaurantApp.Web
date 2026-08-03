@@ -154,8 +154,8 @@
     <Compile Include="Data\Companies.cs">
       <DependentUpon>Model1.tt</DependentUpon>
     </Compile>
+    <Compile Include="Helpers\EmailHelper.cs" />
     <Compile Include="Helpers\JwtHelper.cs" />
-    <Compile Include="Controllers\ProductController.cs" />
     <Compile Include="Controllers\TableController.cs" />
     <Compile Include="Data\AppCategories.cs">
       <DependentUpon>Model1.tt</DependentUpon>
@@ -227,11 +227,17 @@
     <Content Include="favicon.ico" />
     <Content Include="Global.asax" />
     <Content Include="Content\Site.css" />
+    <Content Include="Library\scripts\dashboard.js" />
     <Content Include="Library\scripts\login.js" />
     <Content Include="Library\scripts\pos.js" />
+    <Content Include="Library\scripts\profileSettings.js" />
+    <Content Include="Library\scripts\staffManagement.js" />
+    <Content Include="Library\styles\dashboard.css" />
     <Content Include="Library\styles\login.css" />
     <Content Include="Library\styles\my-site.css" />
     <Content Include="Library\styles\pos.css" />
+    <Content Include="Library\styles\profile-settings.css" />
+    <Content Include="Library\styles\staff-management.css" />
     <Content Include="Scripts\bootstrap.bundle.js" />
     <Content Include="Scripts\bootstrap.bundle.min.js" />
     <Content Include="Scripts\bootstrap.esm.js" />
@@ -270,11 +276,14 @@
     <Content Include="Views\Order\Pos.cshtml" />
     <Content Include="Views\Auth\Login.cshtml" />
     <Content Include="Views\Auth\Register.cshtml" />
+    <Content Include="Views\Admin\Dashboard.cshtml" />
+    <Content Include="Views\Admin\Index.cshtml" />
+    <Content Include="Views\Admin\StaffManagement.cshtml" />
+    <Content Include="Views\Auth\ProfileSettings.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
     <Folder Include="Library\assets\" />
-    <Folder Include="Views\Admin\" />
     <Folder Include="Views\Category\" />
     <Folder Include="Views\Kitchen\" />
     <Folder Include="Views\Product\" />

@@ -1,5 +1,4 @@
-﻿using System.Data.Entity;
-using System.Linq;
+﻿using System.Linq;
 using System.Web.Mvc;
 using RestaurantApp.Web.Data;
 using RestaurantApp.Web.Filters; 

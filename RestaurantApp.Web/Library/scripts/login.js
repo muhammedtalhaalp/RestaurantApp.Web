@@ -1,5 +1,47 @@
-﻿$(document).ready(function () {
-    console.log("Login/Register JS yüklendi.");
+﻿window.toggleForm = function (target) {
+    if (target === 'register') {
+        $("#sectionLogin").addClass("d-none");
+        $("#sectionRegister").removeClass("d-none");
+    } else {
+        $("#sectionRegister").addClass("d-none");
+        $("#sectionLogin").removeClass("d-none");
+    }
+};
+
+$(document).ready(function () {
+    console.log("Login/Register JS başarıyla yüklendi.");
+
+    // Form Geçiş Dinleyicileri
+    $(document).on("click", ".btn-switch-to-register", function () {
+        window.toggleForm('register');
+    });
+
+    $(document).on("click", ".btn-switch-to-login", function () {
+        window.toggleForm('login');
+    });
+
+    // Şifre Göster/Gizle Butonu Fonksiyonu
+    $('.btn-toggle-pw').on('mousedown touchstart', function (e) {
+        e.preventDefault();
+        var targetInput = $($(this).data('target'));
+        targetInput.attr('type', 'text');
+        $(this).find('i').removeClass('fa-eye').addClass('fa-eye-slash');
+    });
+
+    $('.btn-toggle-pw').on('mouseup mouseleave touchend touchcancel', function () {
+        var targetInput = $($(this).data('target'));
+        targetInput.attr('type', 'password');
+        $(this).find('i').removeClass('fa-eye-slash').addClass('fa-eye');
+    });
+
+    if (window.loginConfig && window.loginConfig.successMessage) {
+        Swal.fire({
+            icon: 'success',
+            title: 'Tebrikler!',
+            text: window.loginConfig.successMessage,
+            confirmButtonColor: '#d63384'
+        });
+    }
 
     // ==========================================
     // 1. KULLANICI GİRİŞ İŞLEMİ (LOGIN)
@@ -19,7 +61,7 @@
         $btn.prop("disabled", true).html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Giriş Yapılıyor...');
 
         $.ajax({
-            url: "/Auth/ApiLogin",
+            url: window.loginConfig ? window.loginConfig.loginApiUrl : "/Auth/ApiLogin",
             type: "POST",
             data: {
                 Username: username,
@@ -74,12 +116,12 @@
         $btn.prop("disabled", true).html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Kayıt Yapılıyor...');
 
         $.ajax({
-            url: "/Auth/ApiRegister",
+            url: window.loginConfig ? window.loginConfig.registerApiUrl : "/Auth/ApiRegister",
             type: "POST",
             data: {
                 CompanyName: companyName,
                 FullName: fullName,
-                Username: email, // Hem Username hem Email olarak E-posta gönderiyoruz
+                Username: email, // ViewModel Username [Required] hatasını engellemek için
                 Email: email,
                 Password: password
             },
@@ -91,10 +133,10 @@
                         icon: "success",
                         title: "Kayıt Başarılı!",
                         text: response.message,
-                        timer: 2000,
-                        showConfirmButton: false
+                        confirmButtonColor: "#d63384"
                     }).then(function () {
-                        window.location.href = "/Auth/Login";
+                        $('#registerForm')[0].reset();
+                        window.toggleForm('login');
                     });
                 } else {
                     Swal.fire("Hata", response.message, "error");

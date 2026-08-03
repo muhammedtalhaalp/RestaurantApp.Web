@@ -1,0 +1,92 @@
+﻿/* Personel Yönetimi - Sade ve Mor Vurgulu Stil */
+
+/* Kart Yapıları: Beyaz zemin, ince gri sınır, hafif gölge */
+.card-clean {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Sade Kart Başlıkları */
+.card-header-clean {
+    background: #ffffff !important;
+    border-bottom: 1px solid #edf2f7 !important;
+    padding: 18px 22px !important;
+    font-weight: 700 !important;
+    font-size: 1.05rem !important;
+    color: #2d3748 !important;
+    border-top-left-radius: 14px !important;
+    border-top-right-radius: 14px !important;
+}
+
+/* Sitemizin Vurgu Mor Butonu */
+.btn-purple {
+    background-color: #4a154b !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 10px 18px !important;
+    transition: all 0.2s ease !important;
+}
+
+    .btn-purple:hover {
+        background-color: #381039 !important;
+        color: #ffffff !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px rgba(74, 21, 75, 0.2) !important;
+    }
+
+/* Form İnput Alanları */
+.input-clean {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e0 !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+    color: #2d3748 !important;
+    transition: all 0.2s ease !important;
+}
+
+    .input-clean:focus {
+        border-color: #4a154b !important;
+        box-shadow: 0 0 0 3px rgba(74, 21, 75, 0.12) !important;
+    }
+
+/* Tablo Stilleri */
+.table-clean thead th {
+    background-color: #f7fafc !important;
+    color: #4a5568 !important;
+    font-weight: 600 !important;
+    border-bottom: 2px solid #edf2f7 !important;
+    padding: 12px 18px !important;
+}
+
+.table-clean tbody td {
+    padding: 14px 18px !important;
+    color: #2d3748 !important;
+}
+
+/* Rol Rozetleri (Badge) */
+.badge-role {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+}
+
+.badge-garson {
+    background-color: #ebf8ff;
+    color: #2b6cb0;
+}
+
+.badge-kasiyer {
+    background-color: #faf5ff;
+    color: #6b46c1;
+}
+
+.badge-mutfak {
+    background-color: #f0fff4;
+    color: #2f855a;
+}

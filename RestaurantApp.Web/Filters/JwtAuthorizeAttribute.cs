@@ -17,8 +17,17 @@ namespace RestaurantApp.Web.Filters
 
         public override void OnAuthorization(AuthorizationContext filterContext)
         {
-            // 1. Session'da Token var mı kontrol et
+            // 1. Önce Session'dan, yoksa Request Header'dan Token'ı al
             var token = filterContext.HttpContext.Session["JWToken"] as string;
+
+            if (string.IsNullOrEmpty(token))
+            {
+                var authHeader = filterContext.HttpContext.Request.Headers["Authorization"];
+                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
+                {
+                    token = authHeader.Substring(7);
+                }
+            }
 
             if (string.IsNullOrEmpty(token))
             {
@@ -26,8 +35,8 @@ namespace RestaurantApp.Web.Filters
                 filterContext.Result = new RedirectToRouteResult(
                     new System.Web.Routing.RouteValueDictionary
                     {
-                        { "controller", "Auth" },
-                        { "action", "Login" }
+                { "controller", "Auth" },
+                { "action", "Login" }
                     });
                 return;
             }

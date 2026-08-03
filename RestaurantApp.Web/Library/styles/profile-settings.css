@@ -1,0 +1,178 @@
+﻿/* Orijinal Profil Avatar Logosu */
+.profile-avatar-circle {
+    width: 90px;
+    height: 90px;
+    background-color: #f3ecf8;
+    color: #4a154b;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+}
+
+/* Buton ve Input Stilleri */
+.btn-purple {
+    background-color: #4a154b;
+    color: #ffffff;
+    border: none;
+}
+
+    .btn-purple:hover {
+        background-color: #381039;
+        color: #ffffff;
+    }
+
+.btn-outline-purple {
+    border-color: #4a154b;
+    color: #4a154b;
+}
+
+    .btn-outline-purple:hover {
+        background-color: #4a154b;
+        color: #ffffff;
+    }
+
+.input-clean {
+    border-radius: 8px;
+    padding: 10px 14px;
+}
+
+/* VIDEODAKİ OTP POPUP STİLLERİ */
+.otp-icon-wrapper {
+    width: 55px;
+    height: 55px;
+    background: #f4f6f9;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 12px auto;
+    font-size: 1.4rem;
+    color: #4a154b;
+}
+
+.otp-inputs-container {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+    transition: all 0.3s ease;
+}
+
+.otp-field {
+    width: 50px;
+    height: 60px;
+    border: 2px solid #e2e8f0;
+    border-radius: 14px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    text-align: center;
+    color: #2d3748;
+    background: #f8fafc;
+    outline: none;
+    transition: all 0.2s;
+}
+
+    .otp-field:focus {
+        border-color: #4a154b;
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(74, 21, 75, 0.12);
+    }
+
+.btn-otp-verify {
+    width: 100%;
+    padding: 12px;
+    background: #4a154b;
+    color: #ffffff;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.otp-resend-text {
+    font-size: 0.85rem;
+    color: #747b92;
+}
+
+.otp-resend-btn {
+    color: #4a154b;
+    font-weight: 600;
+    text-decoration: underline;
+    border: none;
+    background: none;
+}
+
+/* VIDEODAKİ DÖNÜŞÜM VE EFEKT ANİMASYONLARI */
+.otp-inputs-container.morph-out {
+    animation: otpMorphOut 0.4s ease-in-out forwards;
+}
+
+@keyframes otpMorphOut {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(0.3);
+        opacity: 0;
+        height: 0;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+}
+
+.otp-success-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 15px 0;
+    animation: otpSuccessPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.otp-success-icon {
+    width: 70px;
+    height: 70px;
+    background: #e6fffa;
+    color: #319795;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    margin-bottom: 12px;
+    box-shadow: 0 10px 25px rgba(49, 151, 149, 0.2);
+    animation: pulseCheck 1s infinite alternate;
+}
+
+@keyframes otpSuccessPop {
+    0% {
+        transform: scale(0.3);
+        opacity: 0;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes pulseCheck {
+    0% {
+        transform: scale(1);
+    }
+
+    100% {
+        transform: scale(1.08);
+    }
+}

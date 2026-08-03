@@ -1,0 +1,100 @@
+﻿@{
+    ViewBag.Title = "Personel Yönetimi - LezzetPOS";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/staff-management.css" rel="stylesheet" />
+}
+
+<div class="container-fluid mt-2">
+    <!-- Sayfa Başlığı ve Açıklama -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-users-gear me-2" style="color: #4a154b;"></i>Personel Yönetimi
+            </h4>
+            <p class="text-muted small mb-0">Şirketinizdeki garson, kasiyer ve mutfak personellerini düzenleyin.</p>
+        </div>
+        <button class="btn btn-purple" data-bs-toggle="modal" data-bs-target="#modalAddStaff">
+            <i class="fa-solid fa-user-plus me-1"></i>Yeni Personel Ekle
+        </button>
+    </div>
+
+    <!-- Personel Listesi Tablosu -->
+    <div class="card card-clean">
+        <div class="card-header-clean d-flex justify-content-between align-items-center">
+            <span><i class="fa-solid fa-users me-2" style="color: #4a154b;"></i>Kayıtlı Personel Listesi</span>
+            <button class="btn btn-sm btn-outline-secondary px-3 rounded-2" onclick="loadStaffList()">
+                <i class="fa-solid fa-rotate me-1"></i>Yenile
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-clean table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th>Ad Soyad</th>
+                            <th>E-Posta / Kullanıcı Adı</th>
+                            <th>Rol</th>
+                            <th class="text-center" style="width: 150px;">İşlemler</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tblStaffList">
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted">
+                                <i class="fa-solid fa-spinner fa-spin me-2"></i>Personeller yükleniyor...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Yeni Personel Ekleme Modalı -->
+<div class="modal fade" id="modalAddStaff" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content card-clean border-0">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark">
+                    <i class="fa-solid fa-user-plus me-2" style="color: #4a154b;"></i>Yeni Personel Ekle
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="formAddStaff">
+                    <div class="mb-3">
+                        <label class="fw-semibold text-secondary mb-1 small">Ad Soyad</label>
+                        <input type="text" id="txtStaffFullName" class="form-control input-clean" placeholder="Örn: Ahmet Yılmaz" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-semibold text-secondary mb-1 small">E-Posta (Kullanıcı Adı)</label>
+                        <input type="email" id="txtStaffEmail" class="form-control input-clean" placeholder="ahmet@lezzetpos.com" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-semibold text-secondary mb-1 small">Rol Seçin</label>
+                        <select id="ddlStaffRole" class="form-select input-clean" required>
+                            <option value=""> Rol Seçin </option>
+                            <option value="Mutfak Şefi">Mutfak Şefi</option>
+                            <option value="Garson/Kasiyer">Garson/Kasiyer</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="fw-semibold text-secondary mb-1 small">Şifre</label>
+                        <input type="password" id="txtStaffPassword" class="form-control input-clean" placeholder="******" required />
+                    </div>
+                    <button type="submit" class="btn btn-purple w-100">
+                        <i class="fa-solid fa-check me-1"></i>Personeli Kaydet
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Library/scripts/staffManagement.js"></script>
+}

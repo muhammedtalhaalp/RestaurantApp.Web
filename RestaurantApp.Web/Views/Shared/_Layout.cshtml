@@ -3,9 +3,14 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@ViewBag.Title - Restoran POS</title>
+    <title>@ViewBag.Title - LezzetPOS</title>
 
-    <!-- CDN Kütüphaneleri (YALNIZCA BURADA YÜKLENİR) -->
+    <!-- Modern Font: Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- CDN Kütüphaneleri -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet" />
     <link href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css" rel="stylesheet" />
@@ -13,21 +18,328 @@
     <!-- Proje Ana CSS -->
     <link href="~/Library/styles/my-site.css" rel="stylesheet" />
 
-    <!-- Sayfa Özel CSS Seksiyonu -->
+    <style>
+        :root {
+            --sidebar-width: 250px;
+            --sidebar-collapsed-width: 70px;
+            --sidebar-bg: #1e232a; /* Sade Koyu Gri/Siyah */
+            --sidebar-active-bg: #2b313a; /* Aktif Menü Zemin */
+            --primary-purple: #4a154b; /* Sitemizin Vurgu Mor Rengi */
+            --primary-purple-hover: #381039; /* Mor Hover */
+            --bg-light: #f8f9fa; /* Bembeyaz / Çok Açık Gri Zemin */
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--bg-light);
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        .wrapper {
+            display: flex;
+            width: 100%;
+            min-height: 100vh;
+        }
+
+        /* SOL SIDEBAR (Fixed) */
+        #sidebar {
+            width: var(--sidebar-width);
+            background: var(--sidebar-bg);
+            color: #fff;
+            transition: width 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 1000;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+            #sidebar.collapsed {
+                width: var(--sidebar-collapsed-width);
+            }
+
+            #sidebar .brand-logo {
+                padding: 20px 22px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                color: #fff;
+                text-decoration: none;
+                font-weight: 700;
+                font-size: 1.25rem;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            }
+
+                #sidebar .brand-logo i {
+                    color: var(--primary-purple);
+                    font-size: 1.5rem;
+                    background: #ffffff;
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+            #sidebar.collapsed .brand-text {
+                display: none;
+            }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 15px 0;
+            margin: 0;
+        }
+
+            .sidebar-menu li a {
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                padding: 14px 22px;
+                color: #9aa5b1;
+                text-decoration: none;
+                font-size: 0.95rem;
+                font-weight: 500;
+                transition: all 0.2s;
+            }
+
+                .sidebar-menu li a:hover, .sidebar-menu li.active a {
+                    color: #fff;
+                    background: var(--sidebar-active-bg);
+                    border-left: 4px solid var(--primary-purple);
+                }
+
+        #sidebar.collapsed .link-text {
+            display: none;
+        }
+
+        .sidebar-footer {
+            padding: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-toggle-sidebar {
+            background: transparent;
+            border: none;
+            color: #9aa5b1;
+            width: 100%;
+            text-align: center;
+            padding: 8px;
+            cursor: pointer;
+        }
+
+            .btn-toggle-sidebar:hover {
+                color: #fff;
+            }
+
+        .btn-logout {
+            color: #e53e3e;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            padding: 8px;
+            transition: all 0.2s;
+        }
+
+            .btn-logout:hover {
+                color: #fc8181;
+            }
+
+        #sidebar.collapsed .logout-text {
+            display: none;
+        }
+
+        /* SAĞ İÇERİK ALANI */
+        #content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            margin-left: var(--sidebar-width);
+            transition: margin-left 0.3s ease;
+        }
+
+            #content.expanded {
+                margin-left: var(--sidebar-collapsed-width);
+            }
+
+        .top-navbar {
+            background: #fff;
+            padding: 14px 28px;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 20px;
+            border-bottom: 1px solid #edf2f7;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--primary-purple);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        /* Bootstrap varsayılan dropdown okunu kaldırıyoruz */
+        .user-profile.dropdown-toggle::after {
+            display: none !important;
+        }
+
+        /* Profil Dropdown Stilleri */
+        .dropdown-menu .dropdown-item:active {
+            background-color: var(--primary-purple) !important;
+            color: #fff !important;
+        }
+
+            .dropdown-menu .dropdown-item:active i {
+                color: #fff !important;
+            }
+    </style>
+
     @RenderSection("styles", required: false)
 </head>
 <body>
-    <div class="main-wrapper container-fluid p-0">
-        @RenderBody()
+    <div class="wrapper">
+        <!-- Sol Sidebar -->
+        <nav id="sidebar">
+            <div>
+                <a href="/Admin/Index" class="brand-logo">
+                    <i class="fa-solid fa-leaf"></i>
+                    <span class="brand-text">LezzetPOS</span>
+                </a>
+                <ul class="sidebar-menu">
+                    <li class="@(ViewContext.RouteData.Values["action"].ToString() == "Index" ? "active" : "")">
+                        <a href="/Admin/Index">
+                            <i class="fa-solid fa-house"></i>
+                            <span class="link-text">Ana Sayfa</span>
+                        </a>
+                    </li>
+                    <li class="@(ViewContext.RouteData.Values["action"].ToString() == "Dashboard" ? "active" : "")">
+                        <a href="/Admin/Dashboard">
+                            <i class="fa-solid fa-sliders"></i>
+                            <span class="link-text">Kontrol Paneli</span>
+                        </a>
+                    </li>
+                    <li class="@(ViewContext.RouteData.Values["action"].ToString() == "StaffManagement" ? "active" : "")">
+                        <a href="/Admin/StaffManagement">
+                            <i class="fa-solid fa-users-gear"></i>
+                            <span class="link-text">Personel Yönetimi</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="sidebar-footer">
+                <button class="btn-toggle-sidebar mb-2" id="sidebarToggle">
+                    <i class="fa-solid fa-chevron-left" id="toggleIcon"></i>
+                </button>
+                <a href="/Auth/Login" class="btn-logout">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span class="logout-text">Güvenli Çıkış</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Sağ Taraf İçerik -->
+        <div id="content">
+            <header class="top-navbar">
+                <i class="fa-regular fa-bell text-muted cursor-pointer" style="font-size: 1.2rem;"></i>
+
+                <!-- Tıklanınca Aşağı Açılan Profil Menüsü -->
+                <div class="dropdown" id="profileDropdownContainer">
+                    <div class="user-profile dropdown-toggle" id="userProfileDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
+                        <div class="user-avatar">
+                            <i class="fa-solid fa-user"></i>
+                        </div>
+                        <span id="lblFullName">Admin</span>
+                        <i class="fa-solid fa-chevron-down ms-1 text-muted" id="profileArrowIcon" style="font-size: 0.75rem; transition: transform 0.2s;"></i>
+                    </div>
+
+                    <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" aria-labelledby="userProfileDropdown" style="border-radius: 12px; min-width: 180px;">
+                        <li>
+                            <!-- Link adresi /Auth/ProfileSettings olarak güncellendi -->
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="/Auth/ProfileSettings">
+                                <i class="fa-solid fa-user-gear" style="color: #4a154b;"></i>
+                                <span>Profil Ayarları</span>
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider opacity-50"></li>
+                        <li>
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger fw-semibold" href="/Auth/Login">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                                <span>Güvenli Çıkış</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </header>
+
+            <main class="p-4">
+                @RenderBody()
+            </main>
+        </div>
     </div>
 
-    <!-- CDN JS Kütüphaneleri (YALNIZCA BURADA YÜKLENİR) -->
+    <!-- CDN JS Kütüphaneleri -->
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- Sayfa Özel Script Seksiyonu -->
+    <script>
+        $(document).ready(function () {
+            $('#sidebarToggle').on('click', function () {
+                $('#sidebar').toggleClass('collapsed');
+                $('#content').toggleClass('expanded');
+
+                if ($('#sidebar').hasClass('collapsed')) {
+                    $('#toggleIcon').removeClass('fa-chevron-left').addClass('fa-chevron-right');
+                } else {
+                    $('#toggleIcon').removeClass('fa-chevron-right').addClass('fa-chevron-left');
+                }
+            });
+
+            let fullName = localStorage.getItem("FullName");
+            if (fullName) {
+                $('#lblFullName').text(fullName);
+            }
+
+            // Menü açıldığında oka yukarı, kapandığında aşağı yön veriyoruz
+            const dropdownElement = document.getElementById('profileDropdownContainer');
+            if (dropdownElement) {
+                dropdownElement.addEventListener('show.bs.dropdown', function () {
+                    $('#profileArrowIcon').removeClass('fa-chevron-down').addClass('fa-chevron-up');
+                });
+                dropdownElement.addEventListener('hide.bs.dropdown', function () {
+                    $('#profileArrowIcon').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+                });
+            }
+        });
+    </script>
+
     @RenderSection("scripts", required: false)
 </body>
 </html>
