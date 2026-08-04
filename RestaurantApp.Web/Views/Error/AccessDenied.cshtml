@@ -1,0 +1,134 @@
+﻿@{
+    Layout = null; // Bağımsız tam ekran özel sayfa
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>403 - Yetkisiz Erişim</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;700;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet" />
+
+    <style>
+        @@import url("https://fonts.googleapis.com/css?family=Source+Sans+Pro:400,900");
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Source Sans Pro', sans-serif;
+            background-color: #09334f;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+
+        .error-container {
+            text-align: center;
+            max-width: 650px;
+            padding: 20px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Fener Işığı Efekti Alanı */
+        .spotlight-box {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 280px;
+            margin: 0 auto 20px auto;
+            background: radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.15) 0%, rgba(9, 51, 79, 1) 70%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .error-code {
+            font-size: 8.5rem;
+            font-weight: 900;
+            color: #38bdf8;
+            text-shadow: 0 10px 25px rgba(56, 189, 248, 0.3);
+            margin: 0;
+            letter-spacing: -2px;
+            transform: rotate(-3deg);
+        }
+
+        .yeti-icon {
+            font-size: 4.5rem;
+            color: #e2e8f0;
+            position: absolute;
+            top: 15px;
+            left: 20%;
+            animation: floatYeti 4s ease-in-out infinite;
+        }
+
+        @@keyframes floatYeti {
+            0%, 100% { transform: translateY(0px) rotate(-5deg); }
+            50% { transform: translateY(-12px) rotate(5deg); }
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 900;
+            margin-bottom: 12px;
+            color: #ffffff;
+        }
+
+        p {
+            font-size: 1.1rem;
+            color: #94a3b8;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .btn-go-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background-color: #4a154b; /* Proje Vurgu Mor Rengi */
+            color: #ffffff;
+            padding: 14px 32px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-decoration: none;
+            border-radius: 14px;
+            box-shadow: 0 8px 20px rgba(74, 21, 75, 0.4);
+            transition: all 0.25s ease;
+        }
+
+        .btn-go-back:hover {
+            background-color: #381039;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(74, 21, 75, 0.6);
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="error-container">
+        <div class="spotlight-box">
+            <i class="fa-solid fa-user-ninja yeti-icon"></i>
+            <h1 class="error-code">403</h1>
+        </div>
+
+        <h1>Dur Biraz! Buraya Giriş Yetkiniz Yok 🛑</h1>
+        <p>Görünen o ki bu gizli bölgeye erişim izniniz bulunmuyor.<br />Sayfayı görüntülemek için uygun bir kullanıcı rolüne sahip olmalısınız.</p>
+
+        <a href="javascript:history.back()" class="btn-go-back">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>Geri Dön</span>
+        </a>
+    </div>
+
+</body>
+</html>

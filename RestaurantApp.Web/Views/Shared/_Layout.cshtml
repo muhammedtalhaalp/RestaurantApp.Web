@@ -109,23 +109,23 @@
                 margin-bottom: 4px;
             }
 
-            .sidebar-menu li a {
-                display: flex;
-                align-items: center;
-                gap: 14px;
-                padding: 12px 18px;
-                color: #9aa5b1;
-                text-decoration: none;
-                font-size: 0.95rem;
-                font-weight: 500;
-                border-radius: 14px; /* Görseldeki yuvarlatılmış buton hatları */
-                transition: all 0.2s;
-            }
-
-                .sidebar-menu li a:hover, .sidebar-menu li.active a {
-                    color: #fff;
-                    background: var(--sidebar-active-bg);
+                .sidebar-menu li a {
+                    display: flex;
+                    align-items: center;
+                    gap: 14px;
+                    padding: 12px 18px;
+                    color: #9aa5b1;
+                    text-decoration: none;
+                    font-size: 0.95rem;
+                    font-weight: 500;
+                    border-radius: 14px; /* Görseldeki yuvarlatılmış buton hatları */
+                    transition: all 0.2s;
                 }
+
+                    .sidebar-menu li a:hover, .sidebar-menu li.active a {
+                        color: #fff;
+                        background: var(--sidebar-active-bg);
+                    }
 
         #sidebar.collapsed .link-text {
             display: none;
@@ -238,32 +238,67 @@
 </head>
 <body>
     <div class="wrapper">
-        <!-- Sol Sidebar (Tüm elementlerin ve JS id'lerin birebir korundu) -->
+        <!-- Sol Sidebar -->
         <nav id="sidebar">
             <div>
-                <a href="/Admin/Index" class="brand-logo">
+                <a href="javascript:void(0);" class="brand-logo">
                     <i class="fa-solid fa-leaf"></i>
                     <span class="brand-text">LezzetPOS</span>
                 </a>
-                <ul class="sidebar-menu">
-                    <li class="@(ViewContext.RouteData.Values["action"].ToString() == "Index" ? "active" : "")">
-                        <a href="/Admin/Index">
-                            <i class="fa-solid fa-house"></i>
-                            <span class="link-text">Ana Sayfa</span>
-                        </a>
-                    </li>
-                    <li class="@(ViewContext.RouteData.Values["action"].ToString() == "Dashboard" ? "active" : "")">
-                        <a href="/Admin/Dashboard">
-                            <i class="fa-solid fa-sliders"></i>
-                            <span class="link-text">Kontrol Paneli</span>
-                        </a>
-                    </li>
-                    <li class="@(ViewContext.RouteData.Values["action"].ToString() == "StaffManagement" ? "active" : "")">
-                        <a href="/Admin/StaffManagement">
-                            <i class="fa-solid fa-users-gear"></i>
-                            <span class="link-text">Personel Yönetimi</span>
-                        </a>
-                    </li>
+
+                <!-- DİNAMİK ROL MENÜSÜ -->
+                <ul class="sidebar-menu" id="mainSidebarMenu">
+                    @{
+                        string currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+                        // AuthController'daki Session["UserRole"] ile tam uyumlu hale getirildi:
+                        string userRole = Session["UserRole"] != null ? Session["UserRole"].ToString() : (Session["Role"] != null ? Session["Role"].ToString() : "");
+                    }
+
+                    @if (userRole == "Admin")
+                    {
+                        <li class="@(currentAction == "Index" ? "active" : "")">
+                            <a href="/Admin/Index">
+                                <i class="fa-solid fa-house"></i>
+                                <span class="link-text">Ana Sayfa</span>
+                            </a>
+                        </li>
+                        <li class="@(currentAction == "Dashboard" ? "active" : "")">
+                            <a href="/Admin/Dashboard">
+                                <i class="fa-solid fa-sliders"></i>
+                                <span class="link-text">Kontrol Paneli</span>
+                            </a>
+                        </li>
+                        <li class="@(currentAction == "StaffManagement" ? "active" : "")">
+                            <a href="/Admin/StaffManagement">
+                                <i class="fa-solid fa-users-gear"></i>
+                                <span class="link-text">Personel Yönetimi</span>
+                            </a>
+                        </li>
+                        <li class="@(currentAction == "TableManagement" ? "active" : "")">
+                            <a href="/Admin/TableManagement">
+                                <i class="fa-solid fa-chair"></i>
+                                <span class="link-text">Masa Yönetimi</span>
+                            </a>
+                        </li>
+                    }
+                    else if (userRole == "Garson/Kasiyer" || userRole == "Garson" || userRole == "Kasiyer")
+                    {
+                        <li class="@(currentAction == "Pos" ? "active" : "")">
+                            <a href="/Order/Pos">
+                                <i class="fa-solid fa-cash-register"></i>
+                                <span class="link-text">POS & Sipariş</span>
+                            </a>
+                        </li>
+                    }
+                    else if (userRole == "Mutfak Şefi" || userRole == "Mutfak")
+                    {
+                        <li class="@(currentAction == "Index" ? "active" : "")">
+                            <a href="/Kitchen/Index">
+                                <i class="fa-solid fa-fire-burner"></i>
+                                <span class="link-text">Mutfak Ekranı</span>
+                            </a>
+                        </li>
+                    }
                 </ul>
             </div>
 
@@ -271,7 +306,7 @@
                 <button class="btn-toggle-sidebar mb-2" id="sidebarToggle">
                     <i class="fa-solid fa-chevron-left" id="toggleIcon"></i>
                 </button>
-                <a href="/Auth/Login" class="btn-logout">
+                <a href="/Auth/Login" class="btn-logout" id="btnLogout">
                     <i class="fa-solid fa-right-from-bracket"></i>
                     <span class="logout-text">Güvenli Çıkış</span>
                 </a>
@@ -289,7 +324,7 @@
                         <div class="user-avatar">
                             <i class="fa-solid fa-user"></i>
                         </div>
-                        <span id="lblFullName">Admin</span>
+                        <span id="lblFullName">Kullanıcı</span>
                         <i class="fa-solid fa-chevron-down ms-1 text-muted" id="profileArrowIcon" style="font-size: 0.75rem; transition: transform 0.2s;"></i>
                     </div>
 
@@ -324,7 +359,63 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
+        // Anında çalışan (Self-Executing) JS sidebar render mekanizması
+        (function renderRoleSidebar() {
+            var localRole = localStorage.getItem("Role");
+            var currentPath = window.location.pathname.toLowerCase();
+            var menuHtml = '';
+
+            // 1. Önce Role Göre Çizim
+            if (localRole === 'Admin') {
+                menuHtml = `
+                            <li class="${currentPath.includes('/admin/index') ? 'active' : ''}">
+                                <a href="/Admin/Index"><i class="fa-solid fa-house"></i><span class="link-text">Ana Sayfa</span></a>
+                            </li>
+                            <li class="${currentPath.includes('/admin/dashboard') ? 'active' : ''}">
+                                <a href="/Admin/Dashboard"><i class="fa-solid fa-sliders"></i><span class="link-text">Kontrol Paneli</span></a>
+                            </li>
+                            <li class="${currentPath.includes('/admin/staffmanagement') ? 'active' : ''}">
+                                <a href="/Admin/StaffManagement"><i class="fa-solid fa-users-gear"></i><span class="link-text">Personel Yönetimi</span></a>
+                            </li>
+                            <li class="${currentPath.includes('/admin/tablemanagement') ? 'active' : ''}">
+                                <a href="/Admin/TableManagement"><i class="fa-solid fa-chair"></i><span class="link-text">Masa Yönetimi</span></a>
+                            </li>`;
+            } else if (localRole === 'Garson/Kasiyer' || localRole === 'Garson' || localRole === 'Kasiyer') {
+                menuHtml = `
+                            <li class="${currentPath.includes('/order/pos') ? 'active' : ''}">
+                                <a href="/Order/Pos"><i class="fa-solid fa-cash-register"></i><span class="link-text">POS & Sipariş</span></a>
+                            </li>`;
+            } else if (localRole === 'Mutfak Şefi' || localRole === 'Mutfak') {
+                menuHtml = `
+                            <li class="${currentPath.includes('/kitchen') ? 'active' : ''}">
+                                <a href="/Kitchen/Index"><i class="fa-solid fa-fire-burner"></i><span class="link-text">Mutfak Ekranı</span></a>
+                            </li>`;
+            }
+            // 2. Rol Okunamazsa URL Yoluna Göre Fallback Çizim (Güvenlik Önlemi)
+            else {
+                if (currentPath.includes('/order/pos')) {
+                    menuHtml = `
+                                <li class="active">
+                                    <a href="/Order/Pos"><i class="fa-solid fa-cash-register"></i><span class="link-text">POS & Sipariş</span></a>
+                                </li>`;
+                } else if (currentPath.includes('/kitchen')) {
+                    menuHtml = `
+                                <li class="active">
+                                    <a href="/Kitchen/Index"><i class="fa-solid fa-fire-burner"></i><span class="link-text">Mutfak Ekranı</span></a>
+                                </li>`;
+                }
+            }
+
+            if (menuHtml !== '') {
+                var menuElem = document.getElementById('mainSidebarMenu');
+                if (menuElem) {
+                    menuElem.innerHTML = menuHtml;
+                }
+            }
+        })();
+
         $(document).ready(function () {
+            // Sidebar daraltma/genişletme
             $('#sidebarToggle').on('click', function () {
                 $('#sidebar').toggleClass('collapsed');
                 $('#content').toggleClass('expanded');
@@ -336,11 +427,18 @@
                 }
             });
 
+            // Kullanıcı Ad-Soyad Gösterimi
             let fullName = localStorage.getItem("FullName");
             if (fullName) {
                 $('#lblFullName').text(fullName);
             }
 
+            // Çıkış yapıldığında localStorage temizliği
+            $('#btnLogout, a[href="/Auth/Login"]').on('click', function () {
+                localStorage.clear();
+            });
+
+            // Dropdown Ok Yönü Değişimi
             const dropdownElement = document.getElementById('profileDropdownContainer');
             if (dropdownElement) {
                 dropdownElement.addEventListener('show.bs.dropdown', function () {

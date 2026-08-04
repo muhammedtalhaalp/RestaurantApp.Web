@@ -1,41 +1,34 @@
 ﻿const STAFF_STATE_KEY = 'lezzetpos_staff_filters';
-let rawStaffList = []; // Tüm personelleri saklayan ham dizi
+let rawStaffList = [];
 
 $(document).ready(function () {
     console.log("Personel Yönetimi JS yüklendi.");
 
-    // 1. Önce kaydedilmiş filtre durumunu yükle
     restoreStaffFilterState();
-
-    // 2. Personel Listesini Yükle
     loadStaffList();
 
-    // 3. Filtreleme Dinleyicileri (Yazıldıkça / Seçildikçe Anlık Çalışır)
     $('#filterStaffSearch, #filterStaffRole').on('input change', function () {
         saveStaffFilterState();
         renderStaffTable();
     });
 
-    // 4. Filtreleri Temizle Butonu
     $('#btnClearStaffFilters').on('click', function () {
         clearStaffFilterState();
     });
 
-    // 5. Excel'e Aktar (.xlsx)
     $('#btnExportStaffExcel').on('click', function () {
         exportStaffToExcel();
     });
 
-    // 6. Yeni Personel Kayıt Formu Gönderimi
+    // Yeni Personel Kayıt Formu Gönderimi
     $("#formAddStaff").on("submit", function (e) {
         e.preventDefault();
 
         var fullName = $("#txtStaffFullName").val().trim();
         var email = $("#txtStaffEmail").val().trim();
         var role = $("#ddlStaffRole").val();
-        var password = $("#txtStaffPassword").val().trim();
 
-        if (!fullName || !email || !role || !password) {
+        if (!fullName || !email || !role) {
             Swal.fire("Uyarı", "Lütfen tüm alanları eksiksiz doldurun.", "warning");
             return;
         }
@@ -49,19 +42,17 @@ $(document).ready(function () {
             data: {
                 FullName: fullName,
                 Email: email,
-                Role: role,
-                Password: password
+                Role: role
             },
             success: function (response) {
-                $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-1"></i>Personeli Kaydet');
+                $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-1"></i>Kullanıcıyı Kaydet & Şifre Gönder');
 
                 if (response.success) {
                     Swal.fire({
                         icon: "success",
                         title: "Başarılı!",
-                        text: response.message || "Personel başarıyla eklendi.",
-                        timer: 1500,
-                        showConfirmButton: false
+                        text: response.message || "Personel başarıyla eklendi ve şifresi e-postasına gönderildi.",
+                        confirmButtonColor: "#4a154b"
                     });
 
                     $("#modalAddStaff").modal("hide");
@@ -72,16 +63,13 @@ $(document).ready(function () {
                 }
             },
             error: function () {
-                $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-1"></i>Personeli Kaydet');
+                $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-1"></i>Kullanıcıyı Kaydet & Şifre Gönder');
                 Swal.fire("Hata", "Personel eklenirken sunucu hatası gerçekleşti.", "error");
             }
         });
     });
 });
 
-// ----------------------------------------------------
-// State Save (Filtreleri localStorage'a kaydetme)
-// ----------------------------------------------------
 function saveStaffFilterState() {
     let state = {
         search: $('#filterStaffSearch').val() || '',
@@ -110,9 +98,6 @@ function clearStaffFilterState() {
     renderStaffTable();
 }
 
-// ----------------------------------------------------
-// Personel Listesini Backend'den Çeken Fonksiyon
-// ----------------------------------------------------
 function loadStaffList() {
     var $tbody = $("#tblStaffList");
     $tbody.html('<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin me-2"></i>Personeller yükleniyor...</td></tr>');
@@ -134,9 +119,6 @@ function loadStaffList() {
     });
 }
 
-// ----------------------------------------------------
-// Filtrelere Göre Tabloyu Ekrana Çizen Fonksiyon (Render)
-// ----------------------------------------------------
 function getFilteredStaffList() {
     let searchText = ($('#filterStaffSearch').val() || '').toLowerCase().trim();
     let selectedRole = $('#filterStaffRole').val();
@@ -171,19 +153,24 @@ function renderStaffTable() {
 
     var rows = "";
     $.each(filteredData, function (index, staff) {
-        var badgeClass = "badge-garson";
-        if (staff.role === "Mutfak Şefi" || staff.role === "Mutfak") {
-            badgeClass = "badge-mutfak";
-        } else if (staff.role === "Garson/Kasiyer" || staff.role === "Kasiyer") {
-            badgeClass = "badge-kasiyer";
-        }
+        var roleText = staff.role || '';
+        var isKitchen = roleText.toLowerCase().includes('mutfak');
+
+        // Renkleri doğrudan inline style olarak veriyoruz ki hiçbir CSS ezemesin
+        var badgeStyle = isKitchen
+            ? "background-color: #dcfce7 !important; color: #15803d !important; border: 1px solid #bbf7d0;"
+            : "background-color: #e0f2fe !important; color: #0369a1 !important; border: 1px solid #bae6fd;";
 
         rows += `
             <tr>
                 <td class="fw-bold text-secondary">${index + 1}</td>
                 <td class="fw-semibold text-dark">${staff.fullName}</td>
                 <td>${staff.email}</td>
-                <td><span class="badge ${badgeClass} badge-role">${staff.role}</span></td>
+                <td>
+                    <span class="badge" style="${badgeStyle} font-size: 0.85rem; padding: 6px 14px; border-radius: 8px; font-weight: 600;">
+                        ${roleText}
+                    </span>
+                </td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-outline-danger border-0 rounded-2" onclick="deleteStaff(${staff.id})" title="Sil">
                         <i class="fa-solid fa-trash-can"></i>
@@ -195,9 +182,6 @@ function renderStaffTable() {
     $tbody.html(rows);
 }
 
-// ----------------------------------------------------
-// Excel'e Aktar (.xlsx) Fonksiyonu (SheetJS)
-// ----------------------------------------------------
 function exportStaffToExcel() {
     let filteredData = getFilteredStaffList();
 
@@ -206,7 +190,6 @@ function exportStaffToExcel() {
         return;
     }
 
-    // Excel sütun formatı hazırlama
     let excelRows = filteredData.map(function (staff, index) {
         return {
             "No": index + 1,
@@ -216,12 +199,10 @@ function exportStaffToExcel() {
         };
     });
 
-    // SheetJS ile Workbook oluşturma
     let worksheet = XLSX.utils.json_to_sheet(excelRows);
     let workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Personel Listesi");
 
-    // Sütun genişliklerini otomatik ayarla
     worksheet['!cols'] = [
         { wch: 6 },
         { wch: 25 },
@@ -229,22 +210,18 @@ function exportStaffToExcel() {
         { wch: 20 }
     ];
 
-    // İndirme işlemini başlat
     let fileName = `Personel_Listesi_${new Date().toISOString().slice(0, 10)}.xlsx`;
     XLSX.writeFile(workbook, fileName);
 }
 
-// ----------------------------------------------------
-// Personel Silme Fonksiyonu
-// ----------------------------------------------------
 function deleteStaff(staffId) {
     Swal.fire({
         title: "Emin misiniz?",
         text: "Bu personeli silmek istediğinize emin misiniz?",
         icon: "warning",
         showCancelButton: true,
-        confirmButtonColor: "#e53e3e",
-        cancelButtonColor: "#718096",
+        confirmColor: "#e53e3e",
+        cancelColor: "#718096",
         confirmButtonText: "Evet, Sil",
         cancelButtonText: "Vazgeç"
     }).then((result) => {

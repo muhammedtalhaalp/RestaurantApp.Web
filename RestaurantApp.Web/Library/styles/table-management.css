@@ -1,0 +1,19 @@
+﻿/* Masa Yönetimi Özel Stilleri */
+.table-management-title {
+    color: #4a154b;
+}
+
+.btn-theme-primary {
+    background-color: #4a154b;
+    color: #ffffff;
+    border: none;
+}
+
+    .btn-theme-primary:hover {
+        background-color: #3b113c;
+        color: #ffffff;
+    }
+
+.table-management-card {
+    border-radius: 1rem;
+}

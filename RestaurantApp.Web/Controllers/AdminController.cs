@@ -1,6 +1,6 @@
 ﻿using RestaurantApp.Web.Data;
 using RestaurantApp.Web.Filters;
-using RestaurantApp.Web.Helpers; // CacheHelper kullanımı için
+using RestaurantApp.Web.Helpers;
 using System;
 using System.IO;
 using System.Linq;
@@ -9,30 +9,26 @@ using System.Web.Mvc;
 
 namespace RestaurantApp.Web.Controllers
 {
-    [JwtAuthorize(Roles = "Admin")] // Sadece Yönetici rolündekiler erişebilir
+    [JwtAuthorize(Roles = "Admin")]
     public class AdminController : Controller
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
 
-        // 1. Ana Sayfa
         public ActionResult Index()
         {
             return View();
         }
 
-        // 2. Dashboard View (Kontrol Paneli)
         public ActionResult Dashboard()
         {
             return View();
         }
 
-        // 3. Personel Yönetimi View
         public ActionResult StaffManagement()
         {
             return View();
         }
 
-        // 4. Menü / Ürün Yönetimi View
         public ActionResult MenuManagement()
         {
             return View();
@@ -64,20 +60,24 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpPost]
-        public JsonResult AddStaff(string FullName, string Email, string Role, string Password)
+        public JsonResult AddStaff(string FullName, string Email, string Role)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(FullName) || string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Role) || string.IsNullOrWhiteSpace(Password))
+                if (string.IsNullOrWhiteSpace(FullName) || string.IsNullOrWhiteSpace(Email) || string.IsNullOrWhiteSpace(Role))
                 {
                     return Json(new { success = false, message = "Lütfen tüm alanları eksiksiz doldurun." });
                 }
 
-                bool isExist = db.AppUsers.Any(u => u.Email == Email);
+                bool isExist = db.AppUsers.Any(u => u.Email == Email || u.Username == Email);
                 if (isExist)
                 {
                     return Json(new { success = false, message = "Bu e-posta adresiyle zaten kayıtlı bir personel bulunmaktadır." });
                 }
+
+                // Otomatik 6 Haneli Rastgele Şifre Üret (100000 - 999999)
+                Random random = new Random();
+                string generatedPassword = random.Next(100000, 999999).ToString();
 
                 var adminUser = db.AppUsers.FirstOrDefault(u => u.Role == "Admin");
                 int currentCompanyId = adminUser != null ? adminUser.CompanyId : 1;
@@ -88,7 +88,7 @@ namespace RestaurantApp.Web.Controllers
                     FullName = FullName,
                     Username = Email,
                     Email = Email,
-                    PasswordHash = Password,
+                    PasswordHash = generatedPassword, // Otomatik üretilen şifre kaydedildi
                     Role = Role,
                     IsActive = true,
                     CreatedDate = DateTime.Now,
@@ -99,7 +99,17 @@ namespace RestaurantApp.Web.Controllers
                 db.AppUsers.Add(newStaff);
                 db.SaveChanges();
 
-                return Json(new { success = true, message = "Personel başarıyla kaydedildi." });
+                // Personelin e-posta adresine hoş geldin mesajı ve üretilen şifre gönderiliyor
+                bool mailSent = EmailHelper.SendWelcomeEmail(Email, FullName, generatedPassword, Role);
+
+                if (mailSent)
+                {
+                    return Json(new { success = true, message = "Personel eklendi ve 6 haneli giriş şifresi e-posta adresine gönderildi." });
+                }
+                else
+                {
+                    return Json(new { success = true, message = "Personel kaydedildi fakat e-posta gönderilirken bir sorun oluştu. Geçici Şifre: " + generatedPassword });
+                }
             }
             catch (System.Data.Entity.Validation.DbEntityValidationException dbEx)
             {
@@ -140,6 +150,72 @@ namespace RestaurantApp.Web.Controllers
 
         #endregion
 
+        // 1. Masa Yönetimi Ekranı
+        [HttpGet]
+        public ActionResult TableManagement()
+        {
+            var tables = db.AppTables.Where(t => t.IsActive).ToList();
+            return View(tables);
+        }
+
+        // 2. Yeni Masa Ekle
+        [HttpPost]
+        public JsonResult AddTable(string tableNumber)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(tableNumber))
+                {
+                    return Json(new { success = false, message = "Masa numarası/adı boş olamaz." });
+                }
+
+                var existingTable = db.AppTables.FirstOrDefault(t => t.TableNumber == tableNumber && t.IsActive);
+                if (existingTable != null)
+                {
+                    return Json(new { success = false, message = "Bu masa numarası zaten kayıtlı!" });
+                }
+
+                var newTable = new AppTables
+                {
+                    TableNumber = tableNumber,
+                    Status = "Bos",
+                    IsActive = true
+                };
+
+                db.AppTables.Add(newTable);
+                db.SaveChanges();
+
+                return Json(new { success = true, message = "Masa başarıyla eklendi." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        // 3. Masa Sil / Pasife Al
+        [HttpPost]
+        public JsonResult DeleteTable(int id)
+        {
+            try
+            {
+                var table = db.AppTables.Find(id);
+                if (table == null)
+                {
+                    return Json(new { success = false, message = "Masa bulunamadı." });
+                }
+
+                table.IsActive = false;
+                db.SaveChanges();
+
+                return Json(new { success = true, message = "Masa silindi." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
         #region KATEGORİ İŞLEMLERİ
 
         [HttpGet]
@@ -174,7 +250,6 @@ namespace RestaurantApp.Web.Controllers
             db.AppCategories.Add(category);
             db.SaveChanges();
 
-            // Cache temizle
             CacheHelper.Remove("AllCategories");
 
             return Json(new { success = true, message = "Kategori başarıyla eklendi.", categoryId = category.CategoryId });
@@ -184,7 +259,6 @@ namespace RestaurantApp.Web.Controllers
 
         #region MENÜ / ÜRÜN İŞLEMLERİ (CACHE DESTEKLİ)
 
-        // Şirkete ait ürünleri Cache / DB üzerinden getirir
         [HttpGet]
         public JsonResult GetProducts(int companyId)
         {
@@ -210,7 +284,6 @@ namespace RestaurantApp.Web.Controllers
             return Json(new { success = true, data = products }, JsonRequestBehavior.AllowGet);
         }
 
-        // Tekil Ürün Detayını Getirir (Düzenleme Modalı İçin)
         [HttpGet]
         public JsonResult GetProductById(int productId)
         {
@@ -236,7 +309,6 @@ namespace RestaurantApp.Web.Controllers
             return Json(new { success = true, data = product }, JsonRequestBehavior.AllowGet);
         }
 
-        // Menüye Yeni Ürün Ekleme
         [HttpPost]
         public JsonResult AddProduct(AppProducts product)
         {
@@ -249,7 +321,6 @@ namespace RestaurantApp.Web.Controllers
 
                 if (product.CompanyId == 0)
                 {
-                    // Şirket id yoksa oturumdaki adminden alır
                     var admin = db.AppUsers.FirstOrDefault(u => u.Role == "Admin");
                     product.CompanyId = admin != null ? admin.CompanyId : 1;
                 }
@@ -259,12 +330,11 @@ namespace RestaurantApp.Web.Controllers
                     product.ImageUrl = "/Content/images/default-food.png";
                 }
 
-                product.IsAvailable = true; // Varsayılan aktif
+                product.IsAvailable = true;
 
                 db.AppProducts.Add(product);
                 db.SaveChanges();
 
-                // Cache temizleme
                 CacheHelper.Remove($"Company_Products_{product.CompanyId}");
 
                 return Json(new { success = true, message = "Ürün menüye başarıyla eklendi." });
@@ -275,7 +345,6 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // Ürün Güncelleme
         [HttpPost]
         public JsonResult UpdateProduct(AppProducts updatedProduct)
         {
@@ -301,7 +370,6 @@ namespace RestaurantApp.Web.Controllers
 
                 db.SaveChanges();
 
-                // Cache Temizleme
                 if (product.CompanyId.HasValue)
                 {
                     CacheHelper.Remove($"Company_Products_{product.CompanyId.Value}");
@@ -315,7 +383,6 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // Menüden Ürün Çıkarma / Silme
         [HttpPost]
         public JsonResult DeleteProduct(int productId)
         {
@@ -332,7 +399,6 @@ namespace RestaurantApp.Web.Controllers
                 db.AppProducts.Remove(product);
                 db.SaveChanges();
 
-                // Cache Temizleme
                 if (companyId.HasValue)
                 {
                     CacheHelper.Remove($"Company_Products_{companyId.Value}");
@@ -346,7 +412,6 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // Ürün Görseli Yükleme (Upload)
         [HttpPost]
         public JsonResult UploadProductImage(HttpPostedFileBase imageFile)
         {
@@ -377,7 +442,6 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // Ürün Stok / Aktiflik Durumunu Değiştirme
         [HttpPost]
         public JsonResult ToggleProductStatus(int productId)
         {

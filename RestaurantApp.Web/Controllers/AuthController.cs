@@ -49,7 +49,7 @@ namespace RestaurantApp.Web.Controllers
             // 3. Kullanıcıyı Oluşan newCompany.Id ile Bağlıyoruz
             var adminUser = new AppUsers
             {
-                CompanyId = newCompany.Id, // Foreign Key bağlantısı sağlandı
+                CompanyId = newCompany.Id,
                 CompanyName = model.CompanyName,
                 FullName = model.FullName,
                 Username = model.Email,
@@ -61,7 +61,7 @@ namespace RestaurantApp.Web.Controllers
             };
 
             db.AppUsers.Add(adminUser);
-            db.SaveChanges(); // Artık Foreign Key hatası almayacaksın!
+            db.SaveChanges();
 
             return Json(new { success = true, message = "Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz." });
         }
@@ -96,7 +96,8 @@ namespace RestaurantApp.Web.Controllers
 
             if (user.Role == "Admin")
             {
-                redirectUrl = "/Admin/Dashboard";
+                // YENİ HALİ: Artık direkt Dashboard yerine Ana Sayfa (Index) açılıyor
+                redirectUrl = "/Admin/Index";
             }
             else if (user.Role == "Mutfak" || user.Role == "Mutfak Şefi")
             {
@@ -120,14 +121,12 @@ namespace RestaurantApp.Web.Controllers
 
         #region ORTAK PROFİL AYARLARI (TÜM ROLLER İÇİN)
 
-        // 1. Profil Ayarları Sayfasının Açılmasını Sağlayan Metod
         [HttpGet]
         public ActionResult ProfileSettings()
         {
             return View();
         }
 
-        // 2. Aktif Giriş Yapan Kullanıcının Profil Bilgilerini Getirir
         [HttpGet]
         public JsonResult GetUserProfile()
         {
@@ -169,7 +168,6 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // 1. Doğrulama Kodu Gönderen Metod
         [HttpPost]
         public JsonResult SendPasswordResetCode()
         {
@@ -183,15 +181,12 @@ namespace RestaurantApp.Web.Controllers
                     return Json(new { success = false, message = "Kullanıcı e-postası bulunamadı." });
                 }
 
-                // 4 haneli rastgele kod üret (1000 - 9999)
                 Random random = new Random();
                 string code = random.Next(1000, 9999).ToString();
 
-                // Kodu ve maili Session'da geçici olarak saklayalım
                 Session["ResetCode"] = code;
                 Session["ResetCodeUserEmail"] = user.Email;
 
-                // E-posta gönderimi
                 bool mailSent = EmailHelper.SendVerificationCode(user.Email, code);
 
                 if (mailSent)
@@ -208,7 +203,7 @@ namespace RestaurantApp.Web.Controllers
                 return Json(new { success = false, message = ex.Message });
             }
         }
-        // 1. Kutucuklara Girilen 4 Haneli Kodu Doğrulayan Metod
+
         [HttpPost]
         public JsonResult VerifyOtpCode(string code)
         {
@@ -216,14 +211,13 @@ namespace RestaurantApp.Web.Controllers
 
             if (sessionCode != null && sessionCode == code.Trim())
             {
-                Session["IsOtpVerified"] = true; // Doğrulandı bayrağı
+                Session["IsOtpVerified"] = true;
                 return Json(new { success = true, message = "Kod doğrulandı." });
             }
 
             return Json(new { success = false, message = "Girdiğiniz 4 haneli kod hatalı!" });
         }
 
-        // 2. Doğrulama Sonrası Yeni Şifreyi Kaydeden Metod
         [HttpPost]
         public JsonResult ConfirmNewPassword(string newPassword)
         {
@@ -242,7 +236,6 @@ namespace RestaurantApp.Web.Controllers
                 user.PasswordHash = newPassword;
                 db.SaveChanges();
 
-                // Güvenlik için session'ları temizle
                 Session["ResetCode"] = null;
                 Session["IsOtpVerified"] = null;
 
@@ -270,7 +263,6 @@ namespace RestaurantApp.Web.Controllers
                     return Json(new { success = false, message = "Kullanıcı bulunamadı." });
                 }
 
-                // Eğer Yeni Şifre girilmişse Kod Kontrolü Yap
                 if (!string.IsNullOrWhiteSpace(NewPassword))
                 {
                     if (string.IsNullOrWhiteSpace(VerificationCode))
@@ -284,7 +276,6 @@ namespace RestaurantApp.Web.Controllers
                         return Json(new { success = false, message = "Girdiğiniz doğrulama kodu hatalı veya süresi dolmuş." });
                     }
 
-                    // Doğrulama başarılı -> Şifreyi güncelle ve Session'daki kodu temizle
                     user.PasswordHash = NewPassword;
                     Session["ResetCode"] = null;
                 }

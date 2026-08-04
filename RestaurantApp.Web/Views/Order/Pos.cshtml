@@ -48,7 +48,7 @@
         <div class="mb-3" id="tableSelectGroup">
             <label class="form-label fw-bold">Masa Seçin:</label>
             <select id="tableId" class="form-select">
-                <!-- AJAX ile dolacak -->
+                <option value="">Masalar Yükleniyor...</option>
             </select>
         </div>
 
@@ -101,5 +101,5 @@
 @section scripts {
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="~/Library/scripts/pos.js"></script>
+    <script src="~/Library/scripts/pos.js?v=@DateTime.Now.Ticks"></script>
 }

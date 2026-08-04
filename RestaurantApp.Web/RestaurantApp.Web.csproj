@@ -146,6 +146,7 @@
     <Compile Include="Controllers\AdminController.cs" />
     <Compile Include="Controllers\AuthController.cs" />
     <Compile Include="Controllers\CategoryController.cs" />
+    <Compile Include="Controllers\ErrorController.cs" />
     <Compile Include="Controllers\KitchenController.cs" />
     <Compile Include="Controllers\OrderController.cs" />
     <Compile Include="Data\AppUsers.cs">
@@ -233,6 +234,7 @@
     <Content Include="Library\scripts\pos.js" />
     <Content Include="Library\scripts\profileSettings.js" />
     <Content Include="Library\scripts\staffManagement.js" />
+    <Content Include="Library\scripts\table-management.js" />
     <Content Include="Library\styles\admin-index.css" />
     <Content Include="Library\styles\dashboard.css" />
     <Content Include="Library\styles\login.css" />
@@ -240,6 +242,7 @@
     <Content Include="Library\styles\pos.css" />
     <Content Include="Library\styles\profile-settings.css" />
     <Content Include="Library\styles\staff-management.css" />
+    <Content Include="Library\styles\table-management.css" />
     <Content Include="Scripts\bootstrap.bundle.js" />
     <Content Include="Scripts\bootstrap.bundle.min.js" />
     <Content Include="Scripts\bootstrap.esm.js" />
@@ -282,6 +285,8 @@
     <Content Include="Views\Admin\Index.cshtml" />
     <Content Include="Views\Admin\StaffManagement.cshtml" />
     <Content Include="Views\Auth\ProfileSettings.cshtml" />
+    <Content Include="Views\Error\AccessDenied.cshtml" />
+    <Content Include="Views\Admin\TableManagement.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

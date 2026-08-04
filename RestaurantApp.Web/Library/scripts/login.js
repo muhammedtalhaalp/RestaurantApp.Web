@@ -83,7 +83,8 @@ $(document).ready(function () {
                         timer: 1500,
                         showConfirmButton: false
                     }).then(function () {
-                        window.location.href = response.redirectUrl;
+                        // Eğer backend'den redirectUrl gelirse onu, gelmezse direkt /Admin/Index adresini açar
+                        window.location.href = response.redirectUrl || "/Admin/Index";
                     });
                 } else {
                     Swal.fire("Hata", response.message, "error");
@@ -121,7 +122,7 @@ $(document).ready(function () {
             data: {
                 CompanyName: companyName,
                 FullName: fullName,
-                Username: email, // ViewModel Username [Required] hatasını engellemek için
+                Username: email,
                 Email: email,
                 Password: password
             },

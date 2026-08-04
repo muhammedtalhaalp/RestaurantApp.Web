@@ -67,8 +67,13 @@ namespace RestaurantApp.Web.Filters
 
                     if (userRole == null || !allowedRoles.Contains(userRole))
                     {
-                        // Yetkisi yoksa erişim engellendi sayfasına yönlendir veya hata ver
-                        filterContext.Result = new HttpStatusCodeResult(403, "Bu işlemi yapmaya yetkiniz bulunmamaktadır.");
+                        // Yetkisi yoksa doğrudan Yetkisiz Erişim (AccessDenied) sayfasına yönlendir
+                        filterContext.Result = new RedirectToRouteResult(
+                            new System.Web.Routing.RouteValueDictionary
+                            {
+            { "controller", "Error" },
+            { "action", "AccessDenied" }
+                            });
                         return;
                     }
                 }

@@ -1,62 +1,98 @@
 ﻿@{
-    ViewBag.Title = "Personel Yönetimi - LezzetPOS";
+    ViewBag.Title = "Personel Yönetimi";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 @section styles {
-    <link href="~/Library/styles/staff-management.css" rel="stylesheet" />
+    <style>
+        .badge-role {
+            font-size: 0.85rem !important;
+            padding: 6px 14px !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+            display: inline-block !important;
+        }
+
+        /* Garson/Kasiyer Rozeti: Açık Mavi Zemin, Koyu Mavi Yazı */
+        .badge-garson {
+            background-color: #e0f2fe !important;
+            color: #0369a1 !important;
+            border: 1px solid #bae6fd !important;
+        }
+
+        /* Mutfak Şefi Rozeti: Açık Yeşil Zemin, Koyu Yeşil Yazı */
+        .badge-mutfak {
+            background-color: #dcfce7 !important;
+            color: #15803d !important;
+            border: 1px solid #bbf7d0 !important;
+        }
+
+        .info-box-email {
+            background-color: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-size: 0.85rem;
+            color: #64748b;
+            line-height: 1.5;
+        }
+
+        .btn-purple-main {
+            background-color: #4a154b !important;
+            color: #ffffff !important;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            padding: 12px;
+            transition: all 0.2s ease;
+        }
+
+            .btn-purple-main:hover {
+                background-color: #381039 !important;
+                color: #ffffff !important;
+            }
+    </style>
 }
 
 <div class="container-fluid mt-2">
-    <!-- Sayfa Başlığı ve Açıklama -->
+    <!-- Sayfa Başlığı -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="fw-bold text-dark mb-1">
                 <i class="fa-solid fa-users-gear me-2" style="color: #4a154b;"></i>Personel Yönetimi
             </h4>
-            <p class="text-muted small mb-0">Şirketinizdeki garson, kasiyer ve mutfak personellerini düzenleyin.</p>
+            <p class="text-muted small mb-0">Sistemde kayıtlı mutfak ve garson/kasiyer personellerinizi buradan yönetebilirsiniz.</p>
         </div>
-        <button class="btn btn-purple" data-bs-toggle="modal" data-bs-target="#modalAddStaff">
-            <i class="fa-solid fa-user-plus me-1"></i>Yeni Personel Ekle
+        <button class="btn btn-purple-main px-4" data-bs-toggle="modal" data-bs-target="#modalAddStaff">
+            <i class="fa-solid fa-user-plus me-2"></i>Yeni Personel Ekle
         </button>
     </div>
 
-    <!-- Personel Listesi Tablosu -->
+    <!-- Filtreleme ve Tablo Kartı -->
     <div class="card card-clean">
-        <div class="card-header-clean d-flex justify-content-between align-items-center">
-            <span><i class="fa-solid fa-users me-2" style="color: #4a154b;"></i>Kayıtlı Personel Listesi</span>
-            <button class="btn btn-sm btn-outline-secondary px-3 rounded-2" onclick="loadStaffList()">
-                <i class="fa-solid fa-rotate me-1"></i>Yenile
-            </button>
-        </div>
-
-        <!-- DETAYLI FİLTRELEME & EXCEL BARI -->
         <div class="p-3 border-bottom bg-light">
             <div class="row g-2 align-items-center">
                 <div class="col-md-5">
                     <div class="input-group input-group-sm">
-                        <span class="input-group-text bg-white border-end-0 text-muted">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                        </span>
-                        <input type="text" id="filterStaffSearch" class="form-control border-start-0 input-clean" placeholder="Ad Soyad veya E-Posta ile ara...">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" id="filterStaffSearch" class="form-control border-start-0 input-clean" placeholder="Ad Soyad veya E-Posta ara...">
                     </div>
                 </div>
                 <div class="col-md-3">
                     <select id="filterStaffRole" class="form-select form-select-sm input-clean">
-                        <option value="">Tüm Rolleri Göster</option>
+                        <option value="">Tüm Rollerin Listesi</option>
                         <option value="Mutfak Şefi">Mutfak Şefi</option>
                         <option value="Garson/Kasiyer">Garson/Kasiyer</option>
-                        <option value="Garson">Garson</option>
-                        <option value="Kasiyer">Kasiyer</option>
-                        <option value="Mutfak">Mutfak</option>
                     </select>
                 </div>
-                <div class="col-md-4 text-end d-flex gap-2 justify-content-end">
-                    <button type="button" class="btn btn-sm btn-outline-danger px-3 rounded-2" id="btnClearStaffFilters" title="Filtreleri Temizle">
+                <div class="col-md-2 text-end">
+                    <button type="button" class="btn btn-sm btn-outline-danger w-100" id="btnClearStaffFilters" title="Filtreleri Temizle">
                         <i class="fa-solid fa-filter-circle-xmark me-1"></i>Temizle
                     </button>
-                    <button type="button" class="btn btn-sm btn-success px-3 rounded-2 fw-semibold" id="btnExportStaffExcel">
-                        <i class="fa-solid fa-file-excel me-1"></i>Excel'e Aktar (.xlsx)
+                </div>
+                <div class="col-md-2 text-end">
+                    <button type="button" class="btn btn-sm btn-outline-success w-100" id="btnExportStaffExcel">
+                        <i class="fa-solid fa-file-excel me-1"></i>Excel'e Aktar
                     </button>
                 </div>
             </div>
@@ -67,18 +103,16 @@
                 <table class="table table-clean table-hover align-middle mb-0">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">#</th>
+                            <th style="width: 60px;">#</th>
                             <th>Ad Soyad</th>
-                            <th>E-Posta / Kullanıcı Adı</th>
+                            <th>E-Posta (Kullanıcı Adı)</th>
                             <th>Rol</th>
-                            <th class="text-center" style="width: 150px;">İşlemler</th>
+                            <th class="text-center" style="width: 100px;">İşlemler</th>
                         </tr>
                     </thead>
                     <tbody id="tblStaffList">
                         <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">
-                                <i class="fa-solid fa-spinner fa-spin me-2"></i>Personeller yükleniyor...
-                            </td>
+                            <td colspan="5" class="text-center py-4 text-muted">Personel verileri yükleniyor...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -87,49 +121,54 @@
     </div>
 </div>
 
-<!-- Yeni Personel Ekleme Modalı -->
+<!-- YENİ PERSONEL EKLEME MODALI -->
 <div class="modal fade" id="modalAddStaff" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content card-clean border-0">
-            <div class="modal-header border-bottom-0 pb-0">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header border-bottom p-3">
                 <h5 class="modal-title fw-bold text-dark">
                     <i class="fa-solid fa-user-plus me-2" style="color: #4a154b;"></i>Yeni Personel Ekle
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-4">
-                <form id="formAddStaff">
+            <form id="formAddStaff">
+                <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="fw-semibold text-secondary mb-1 small">Ad Soyad</label>
+                        <label class="form-label fw-semibold text-secondary small">Ad Soyad</label>
                         <input type="text" id="txtStaffFullName" class="form-control input-clean" placeholder="Örn: Ahmet Yılmaz" required />
                     </div>
+
                     <div class="mb-3">
-                        <label class="fw-semibold text-secondary mb-1 small">E-Posta (Kullanıcı Adı)</label>
-                        <input type="email" id="txtStaffEmail" class="form-control input-clean" placeholder="ahmet@lezzetpos.com" required />
+                        <label class="form-label fw-semibold text-secondary small">E-Posta Adresi</label>
+                        <input type="email" id="txtStaffEmail" class="form-control input-clean" placeholder="Örn: ahmet@sirket.com" required />
                     </div>
+
                     <div class="mb-3">
-                        <label class="fw-semibold text-secondary mb-1 small">Rol Seçin</label>
+                        <label class="form-label fw-semibold text-secondary small">Sistem Rolü</label>
                         <select id="ddlStaffRole" class="form-select input-clean" required>
-                            <option value=""> Rol Seçin </option>
+                            <option value="">Rol Seçin</option>
                             <option value="Mutfak Şefi">Mutfak Şefi</option>
                             <option value="Garson/Kasiyer">Garson/Kasiyer</option>
                         </select>
                     </div>
-                    <div class="mb-4">
-                        <label class="fw-semibold text-secondary mb-1 small">Şifre</label>
-                        <input type="password" id="txtStaffPassword" class="form-control input-clean" placeholder="******" required />
+
+                    <div class="info-box-email mb-2">
+                        <i class="fa-solid fa-circle-info me-1" style="color: #4a154b;"></i>
+                        Kaydedilen kullanıcıya otomatik 6 haneli rastgele şifre üretilecek ve e-posta adresine giriş bilgileriyle birlikte gönderilecektir.
                     </div>
-                    <button type="submit" class="btn btn-purple w-100">
-                        <i class="fa-solid fa-check me-1"></i>Personeli Kaydet
+                </div>
+                <div class="modal-footer border-top p-3">
+                    <button type="button" class="btn btn-light px-3" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-purple-main px-4">
+                        <i class="fa-solid fa-paper-plane me-1"></i>Kullanıcıyı Kaydet & Şifre Gönder
                     </button>
-                </form>
-            </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
 @section scripts {
-    <!-- Excel indirmek için SheetJS Kütüphanesi -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="~/Library/scripts/staffManagement.js?v=1.1"></script>
+    <script src="~/Library/scripts/staffManagement.js?v=1.5"></script>
 }
