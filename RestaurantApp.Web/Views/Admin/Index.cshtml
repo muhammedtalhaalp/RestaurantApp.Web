@@ -1,9 +1,62 @@
 ﻿@{
-    ViewBag.Title = "Ana Sayfa";
+    ViewBag.Title = "Ana Sayfa - LezzetPOS";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="card border-0 shadow-sm p-4">
-    <h4 class="fw-bold text-dark mb-2">Hoş Geldiniz!</h4>
-    <p class="text-muted">LezzetPOS yönetim paneline hoş geldiniz. Sol menüyü kullanarak işlemlerinizi gerçekleştirebilirsiniz.</p>
+@section styles {
+    <link href="~/Library/styles/admin-index.css" rel="stylesheet" />
+}
+
+<div class="container-fluid mt-2">
+    <div class="card border-0 shadow-sm p-4 rounded-4 mb-4" style="background: #ffffff;">
+        <div class="d-flex align-items-center gap-3">
+            <div class="p-3 rounded-circle" style="background: #f3ecf8; color: #4a154b;">
+                <i class="fa-solid fa-house fa-2x"></i>
+            </div>
+            <div>
+                <h4 class="fw-bold text-dark mb-1">Hoş Geldiniz!</h4>
+                <p class="text-muted small mb-0">LezzetPOS yönetim paneline hoş geldiniz. Sol menüden veya aşağıdaki kartlardan işlemlerinizi gerçekleştirebilirsiniz.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-md-6 col-lg-4">
+            <a href="/Admin/Dashboard" class="menu-card">
+                <div class="menu-card-icon">
+                    <i class="fa-solid fa-sliders"></i>
+                </div>
+                <h5 class="menu-card-title">Kontrol Paneli</h5>
+                <p class="menu-card-desc">
+                    Günlük satış istatistiklerini, popüler ürünleri ve anlık ciro raporlarını grafiklerle inceleyin.
+                </p>
+                <div class="menu-card-arrow">
+                    <span>Sayfaya Git</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </div>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-4">
+            <a href="/Admin/StaffManagement" class="menu-card">
+                <div class="menu-card-icon">
+                    <i class="fa-solid fa-users-gear"></i>
+                </div>
+                <h5 class="menu-card-title">Personel Yönetimi</h5>
+                <p class="menu-card-desc">
+                    Mutfak şefi, garson ve kasiyer hesaplarını ekleyin, yetkilerini ve aktiflik durumlarını yönetin.
+                </p>
+                <div class="menu-card-arrow">
+                    <span>Sayfaya Git</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </div>
+            </a>
+        </div>
+
+    </div>
 </div>
+
+@section scripts {
+    <script src="~/Library/scripts/adminIndex.js"></script>
+}

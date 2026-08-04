@@ -1,8 +1,9 @@
-﻿using System.Linq;
-using System.Web.Mvc;
-using RestaurantApp.Web.Data;
+﻿using RestaurantApp.Web.Data;
 using RestaurantApp.Web.Filters;
-using RestaurantApp.Web.Helpers;// Rol ve yetki kontrolü için
+using RestaurantApp.Web.Helpers; // CacheHelper için
+using System;
+using System.Linq;
+using System.Web.Mvc;
 
 namespace RestaurantApp.Web.Controllers
 {
@@ -11,56 +12,102 @@ namespace RestaurantApp.Web.Controllers
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
 
-        // 1. Kategorileri Önbellekten Listele
-        public ActionResult Index()
+        // 1. Kategorileri Önbellekten / DB'den Listele
+        [HttpGet]
+        public JsonResult GetCategories()
         {
-            // Veri önce Cache'e bakılır, yoksa DB'den çekilip 30 dakika Cache'e atılır
-            var categories = CacheHelper.GetOrAdd("AllCategories", () =>
+            try
             {
-                return db.AppCategories.Where(c => c.IsActive).ToList();
-            });
+                var categories = CacheHelper.GetOrAdd("AllCategories", () =>
+                {
+                    return db.AppCategories
+                        .Where(c => c.IsActive)
+                        .Select(c => new
+                        {
+                            c.CategoryId,
+                            c.CategoryName,
+                            c.CompanyId,
+                            ProductCount = c.AppProducts.Count()
+                        }).ToList();
+                });
 
-            return View(categories);
+                return Json(new { success = true, data = categories }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Kategoriler yüklenirken hata: " + ex.Message }, JsonRequestBehavior.AllowGet);
+            }
         }
 
-        // 2. Yeni Kategori Ekle (POST)
+        // 2. Yeni Kategori Ekle (AJAX)
         [HttpPost]
-        public ActionResult Create(string categoryName)
+        public JsonResult Create(string categoryName, int? companyId)
         {
-            if (!string.IsNullOrEmpty(categoryName))
+            if (string.IsNullOrWhiteSpace(categoryName))
             {
-                AppCategories category = new AppCategories
-                {
-                    CategoryName = categoryName,
-                    IsActive = true
-                };
-
-                db.AppCategories.Add(category);
-                db.SaveChanges();
-
-                // Veri değiştiği için Önbelleği temizliyoruz
-                CacheHelper.Remove("AllCategories");
+                return Json(new { success = false, message = "Kategori adı boş olamaz." });
             }
 
-            return RedirectToAction("Index");
+            int targetCompanyId = companyId.HasValue && companyId.Value > 0 ? companyId.Value : 1;
+
+            AppCategories category = new AppCategories
+            {
+                CategoryName = categoryName,
+                CompanyId = targetCompanyId,
+                IsActive = true
+            };
+
+            db.AppCategories.Add(category);
+            db.SaveChanges();
+
+            // Cache Temizle
+            CacheHelper.Remove("AllCategories");
+
+            return Json(new { success = true, message = "Kategori başarıyla eklendi.", categoryId = category.CategoryId });
         }
 
-        // 3. Kategori Sil / Pasife Al (POST)
+        // 3. Kategori Güncelle (AJAX)
         [HttpPost]
-        public ActionResult Delete(int id)
+        public JsonResult Update(int categoryId, string categoryName)
         {
-            var category = db.AppCategories.Find(id);
+            if (string.IsNullOrWhiteSpace(categoryName))
+            {
+                return Json(new { success = false, message = "Kategori adı boş olamaz." });
+            }
+
+            var category = db.AppCategories.FirstOrDefault(c => c.CategoryId == categoryId);
+            if (category == null)
+            {
+                return Json(new { success = false, message = "Kategori bulunamadı." });
+            }
+
+            category.CategoryName = categoryName;
+            db.SaveChanges();
+
+            // Cache Temizle
+            CacheHelper.Remove("AllCategories");
+
+            return Json(new { success = true, message = "Kategori güncellendi." });
+        }
+
+        // 4. Kategori Sil / Pasife Al (AJAX)
+        [HttpPost]
+        public JsonResult Delete(int id)
+        {
+            var category = db.AppCategories.FirstOrDefault(c => c.CategoryId == id);
             if (category != null)
             {
-                // Veritabanından tamamen silmek yerine IsActive = false yapıyoruz (Soft Delete)
+                // Soft Delete: Pasife Çekiyoruz
                 category.IsActive = false;
                 db.SaveChanges();
 
-                // Veri değiştiği için Önbelleği temizliyoruz
+                // Cache Temizle
                 CacheHelper.Remove("AllCategories");
+
+                return Json(new { success = true, message = "Kategori başarıyla silindi." });
             }
 
-            return RedirectToAction("Index");
+            return Json(new { success = false, message = "Kategori bulunamadı." });
         }
 
         protected override void Dispose(bool disposing)

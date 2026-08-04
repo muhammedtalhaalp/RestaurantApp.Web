@@ -1,9 +1,17 @@
 ﻿:root {
     --brand-fuchsia: #d63384;
     --brand-fuchsia-hover: #b8226c;
-    --brand-purple: #4a154b; /* Koyu Mor Kart Başlığı */
+    --brand-purple: #4a154b; /* Koyu Mor Tema */
     --brand-purple-hover: #381039;
     --input-bg-fuchsia: #fce7f3;
+}
+
+/* Kart Yapıları: Beyaz zemin, ince gri sınır, hafif gölge */
+.card-clean {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 14px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
 }
 
 .admin-card {
@@ -15,7 +23,18 @@
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* Başlık Kısımları Mor Yapıldı */
+/* Sade Kart Başlıkları */
+.card-header-clean {
+    background: #ffffff !important;
+    border-bottom: 1px solid #edf2f7 !important;
+    padding: 18px 22px !important;
+    font-weight: 700 !important;
+    font-size: 1.05rem !important;
+    color: #2d3748 !important;
+    border-top-left-radius: 14px !important;
+    border-top-right-radius: 14px !important;
+}
+
 .card-header-purple {
     background-color: var(--brand-purple) !important;
     color: #ffffff !important;
@@ -25,6 +44,23 @@
     border-bottom: none;
     letter-spacing: 0.3px;
 }
+
+/* Vurgu Butonları */
+.btn-purple {
+    background-color: var(--brand-purple) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 11px 18px !important;
+    transition: all 0.2s ease !important;
+}
+
+    .btn-purple:hover {
+        background-color: var(--brand-purple-hover) !important;
+        color: #ffffff !important;
+        transform: translateY(-1px) !important;
+    }
 
 .btn-fuchsia {
     background-color: var(--brand-fuchsia) !important;
@@ -44,6 +80,22 @@
         box-shadow: 0 6px 18px rgba(214, 51, 132, 0.35);
     }
 
+/* Form Elemanları */
+.input-clean {
+    background-color: #ffffff !important;
+    border: 1px solid #cbd5e0 !important;
+    border-radius: 8px !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+    color: #2d3748 !important;
+    transition: all 0.2s ease !important;
+}
+
+    .input-clean:focus {
+        border-color: var(--brand-purple) !important;
+        box-shadow: 0 0 0 3px rgba(74, 21, 75, 0.12) !important;
+    }
+
 .custom-fuchsia-input {
     background-color: var(--input-bg-fuchsia) !important;
     border: 1px solid #f9a8d4 !important;
@@ -60,6 +112,34 @@
         box-shadow: 0 0 0 0.25rem rgba(214, 51, 132, 0.2) !important;
     }
 
+/* SÜTUN VE SATIR RENK AYRIMLARI (STRIPED TABLE) */
+.table-clean thead th {
+    background-color: #f1f5f9 !important;
+    color: var(--brand-purple) !important;
+    font-weight: 700 !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+    padding: 14px 18px !important;
+}
+
+.table-clean tbody tr:nth-child(even) {
+    background-color: #f8fafc !important; /* Çift numaralı satırlara hafif renk ayrımı */
+}
+
+.table-clean tbody tr:nth-child(odd) {
+    background-color: #ffffff !important;
+}
+
+.table-clean tbody tr:hover {
+    background-color: #f1e8f3 !important; /* Üzerine gelindiğinde morumsu vurgu */
+    transition: background-color 0.2s ease;
+}
+
+.table-clean tbody td {
+    padding: 14px 18px !important;
+    color: #2d3748 !important;
+    border-bottom: 1px solid #f1f5f9;
+}
+
 .table-purple-head {
     background-color: var(--brand-purple) !important;
     color: #ffffff !important;
@@ -73,6 +153,53 @@
 
 .table img {
     border-radius: 10px;
-    border: 1px solid #f9a8d4;
+    border: 1px solid #cbd5e0;
     object-fit: cover;
 }
+
+/* İŞLEM BUTONLARI (DÜZENLE, STOK, SİL) */
+.btn-action-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.btn-action-edit {
+    background-color: #f3ecf8;
+    color: var(--brand-purple);
+    border-color: #e2d2e9;
+}
+
+    .btn-action-edit:hover {
+        background-color: var(--brand-purple);
+        color: #ffffff;
+    }
+
+.btn-action-status {
+    background-color: #feefc3;
+    color: #b45309;
+    border-color: #fde68a;
+}
+
+    .btn-action-status:hover {
+        background-color: #d97706;
+        color: #ffffff;
+    }
+
+.btn-action-delete {
+    background-color: #fde8e8;
+    color: #e02424;
+    border-color: #fbd5d5;
+}
+
+    .btn-action-delete:hover {
+        background-color: #e02424;
+        color: #ffffff;
+    }

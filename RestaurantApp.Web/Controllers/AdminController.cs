@@ -2,17 +2,19 @@
 using RestaurantApp.Web.Filters;
 using RestaurantApp.Web.Helpers; // CacheHelper kullanımı için
 using System;
+using System.IO;
 using System.Linq;
+using System.Web;
 using System.Web.Mvc;
 
 namespace RestaurantApp.Web.Controllers
 {
-    [JwtAuthorize(Roles = "Admin")] // Görev 2.2: Sadece Yönetici rolündekiler erişebilir
+    [JwtAuthorize(Roles = "Admin")] // Sadece Yönetici rolündekiler erişebilir
     public class AdminController : Controller
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
 
-        // 1. Ana Sayfa (Şimdilik boş beyaz sayfa)
+        // 1. Ana Sayfa
         public ActionResult Index()
         {
             return View();
@@ -30,15 +32,19 @@ namespace RestaurantApp.Web.Controllers
             return View();
         }
 
+        // 4. Menü / Ürün Yönetimi View
+        public ActionResult MenuManagement()
+        {
+            return View();
+        }
+
         #region PERSONEL İŞLEMLERİ
 
-        // Personel Listesini Getirir
         [HttpGet]
         public JsonResult GetStaffList()
         {
             try
             {
-                // Mutfak Şefi ve Garson/Kasiyer rollerindeki kullanıcıları getirir
                 var staffList = db.AppUsers
                     .Where(u => u.Role == "Mutfak Şefi" || u.Role == "Garson/Kasiyer" || u.Role == "Garson" || u.Role == "Kasiyer" || u.Role == "Mutfak")
                     .Select(u => new
@@ -67,21 +73,16 @@ namespace RestaurantApp.Web.Controllers
                     return Json(new { success = false, message = "Lütfen tüm alanları eksiksiz doldurun." });
                 }
 
-                // Aynı e-posta var mı kontrolü
                 bool isExist = db.AppUsers.Any(u => u.Email == Email);
                 if (isExist)
                 {
                     return Json(new { success = false, message = "Bu e-posta adresiyle zaten kayıtlı bir personel bulunmaktadır." });
                 }
 
-                // Admin kullanıcısını alıyoruz
                 var adminUser = db.AppUsers.FirstOrDefault(u => u.Role == "Admin");
-
-                // CompanyId veritabanında doğrudan 'int' olduğu için '.HasValue' kullanılmaz
                 int currentCompanyId = adminUser != null ? adminUser.CompanyId : 1;
                 string currentCompanyName = adminUser != null ? adminUser.CompanyName : "MTA";
 
-                // Yeni Personel Oluşturma
                 var newStaff = new AppUsers
                 {
                     FullName = FullName,
@@ -115,7 +116,6 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // Personel Silme
         [HttpPost]
         public JsonResult DeleteStaff(int id)
         {
@@ -142,12 +142,11 @@ namespace RestaurantApp.Web.Controllers
 
         #region KATEGORİ İŞLEMLERİ
 
-        // Şirkete ait kategorileri getirir
         [HttpGet]
         public JsonResult GetCategories(int companyId)
         {
             var categories = db.AppCategories
-                .Where(c => c.CompanyId == companyId)
+                .Where(c => c.CompanyId == companyId && c.IsActive)
                 .Select(c => new
                 {
                     c.CategoryId,
@@ -157,7 +156,6 @@ namespace RestaurantApp.Web.Controllers
             return Json(new { success = true, data = categories }, JsonRequestBehavior.AllowGet);
         }
 
-        // Yeni Kategori Ekleme
         [HttpPost]
         public JsonResult AddCategory(string categoryName, int companyId)
         {
@@ -169,11 +167,15 @@ namespace RestaurantApp.Web.Controllers
             var category = new AppCategories
             {
                 CategoryName = categoryName,
-                CompanyId = companyId
+                CompanyId = companyId,
+                IsActive = true
             };
 
             db.AppCategories.Add(category);
             db.SaveChanges();
+
+            // Cache temizle
+            CacheHelper.Remove("AllCategories");
 
             return Json(new { success = true, message = "Kategori başarıyla eklendi.", categoryId = category.CategoryId });
         }
@@ -182,7 +184,7 @@ namespace RestaurantApp.Web.Controllers
 
         #region MENÜ / ÜRÜN İŞLEMLERİ (CACHE DESTEKLİ)
 
-        // Görev 2.3: Şirkete ait ürünleri önce Önbellekten (Cache) yoksa DB'den getirir
+        // Şirkete ait ürünleri Cache / DB üzerinden getirir
         [HttpGet]
         public JsonResult GetProducts(int companyId)
         {
@@ -208,93 +210,174 @@ namespace RestaurantApp.Web.Controllers
             return Json(new { success = true, data = products }, JsonRequestBehavior.AllowGet);
         }
 
-        // Menüye Yeni Ürün Ekleme (Doğrudan AppProducts nesnesi alıyor)
+        // Tekil Ürün Detayını Getirir (Düzenleme Modalı İçin)
+        [HttpGet]
+        public JsonResult GetProductById(int productId)
+        {
+            var product = db.AppProducts
+                .Where(p => p.ProductId == productId)
+                .Select(p => new
+                {
+                    p.ProductId,
+                    p.ProductName,
+                    p.Price,
+                    p.CategoryId,
+                    p.Description,
+                    p.ImageUrl,
+                    p.IsAvailable,
+                    p.CompanyId
+                }).FirstOrDefault();
+
+            if (product == null)
+            {
+                return Json(new { success = false, message = "Ürün bulunamadı." }, JsonRequestBehavior.AllowGet);
+            }
+
+            return Json(new { success = true, data = product }, JsonRequestBehavior.AllowGet);
+        }
+
+        // Menüye Yeni Ürün Ekleme
         [HttpPost]
         public JsonResult AddProduct(AppProducts product)
         {
-            if (string.IsNullOrWhiteSpace(product.ProductName))
+            try
             {
-                return Json(new { success = false, message = "Ürün adı boş geçilemez." });
-            }
+                if (string.IsNullOrWhiteSpace(product.ProductName))
+                {
+                    return Json(new { success = false, message = "Ürün adı boş geçilemez." });
+                }
 
-            if (product.CompanyId == 0)
+                if (product.CompanyId == 0)
+                {
+                    // Şirket id yoksa oturumdaki adminden alır
+                    var admin = db.AppUsers.FirstOrDefault(u => u.Role == "Admin");
+                    product.CompanyId = admin != null ? admin.CompanyId : 1;
+                }
+
+                if (string.IsNullOrWhiteSpace(product.ImageUrl))
+                {
+                    product.ImageUrl = "/Content/images/default-food.png";
+                }
+
+                product.IsAvailable = true; // Varsayılan aktif
+
+                db.AppProducts.Add(product);
+                db.SaveChanges();
+
+                // Cache temizleme
+                CacheHelper.Remove($"Company_Products_{product.CompanyId}");
+
+                return Json(new { success = true, message = "Ürün menüye başarıyla eklendi." });
+            }
+            catch (Exception ex)
             {
-                return Json(new { success = false, message = "Şirket bilgisi eksik!" });
+                return Json(new { success = false, message = "Ürün eklenirken hata: " + ex.Message });
             }
-
-            // Varsayılan resim kontrolü
-            if (string.IsNullOrWhiteSpace(product.ImageUrl))
-            {
-                product.ImageUrl = "/Content/images/default-food.png";
-            }
-
-            db.AppProducts.Add(product);
-            db.SaveChanges();
-
-            // Görev 2.3: Veri eklendiği için eski önbelleği temizliyoruz
-            CacheHelper.Remove($"Company_Products_{product.CompanyId}");
-
-            return Json(new { success = true, message = "Ürün menüye başarıyla eklendi." });
         }
 
-        // Ürün Güncelleme (Doğrudan AppProducts nesnesi alıyor)
+        // Ürün Güncelleme
         [HttpPost]
         public JsonResult UpdateProduct(AppProducts updatedProduct)
         {
-            var product = db.AppProducts.FirstOrDefault(p => p.ProductId == updatedProduct.ProductId);
-            if (product == null)
+            try
             {
-                return Json(new { success = false, message = "Ürün bulunamadı." });
+                var product = db.AppProducts.FirstOrDefault(p => p.ProductId == updatedProduct.ProductId);
+                if (product == null)
+                {
+                    return Json(new { success = false, message = "Ürün bulunamadı." });
+                }
+
+                product.ProductName = updatedProduct.ProductName;
+                product.Price = updatedProduct.Price;
+                product.CategoryId = updatedProduct.CategoryId;
+                product.Description = updatedProduct.Description;
+
+                if (!string.IsNullOrEmpty(updatedProduct.ImageUrl))
+                {
+                    product.ImageUrl = updatedProduct.ImageUrl;
+                }
+
+                product.IsAvailable = updatedProduct.IsAvailable;
+
+                db.SaveChanges();
+
+                // Cache Temizleme
+                if (product.CompanyId.HasValue)
+                {
+                    CacheHelper.Remove($"Company_Products_{product.CompanyId.Value}");
+                }
+
+                return Json(new { success = true, message = "Ürün bilgileri başarıyla güncellendi." });
             }
-
-            product.ProductName = updatedProduct.ProductName;
-            product.Price = updatedProduct.Price;
-            product.CategoryId = updatedProduct.CategoryId;
-            product.Description = updatedProduct.Description;
-
-            if (!string.IsNullOrEmpty(updatedProduct.ImageUrl))
+            catch (Exception ex)
             {
-                product.ImageUrl = updatedProduct.ImageUrl;
+                return Json(new { success = false, message = "Güncelleme hatası: " + ex.Message });
             }
-
-            product.IsAvailable = updatedProduct.IsAvailable;
-
-            db.SaveChanges();
-
-            // Görev 2.3: Veri güncellendiği için önbelleği temizliyoruz
-            if (product.CompanyId.HasValue)
-            {
-                CacheHelper.Remove($"Company_Products_{product.CompanyId.Value}");
-            }
-
-            return Json(new { success = true, message = "Ürün bilgileri güncellendi." });
         }
 
         // Menüden Ürün Çıkarma / Silme
         [HttpPost]
         public JsonResult DeleteProduct(int productId)
         {
-            var product = db.AppProducts.FirstOrDefault(p => p.ProductId == productId);
-            if (product == null)
+            try
             {
-                return Json(new { success = false, message = "Silinmek istenen ürün bulunamadı." });
+                var product = db.AppProducts.FirstOrDefault(p => p.ProductId == productId);
+                if (product == null)
+                {
+                    return Json(new { success = false, message = "Silinmek istenen ürün bulunamadı." });
+                }
+
+                int? companyId = product.CompanyId;
+
+                db.AppProducts.Remove(product);
+                db.SaveChanges();
+
+                // Cache Temizleme
+                if (companyId.HasValue)
+                {
+                    CacheHelper.Remove($"Company_Products_{companyId.Value}");
+                }
+
+                return Json(new { success = true, message = "Ürün menüden başarıyla silindi." });
             }
-
-            int? companyId = product.CompanyId;
-
-            db.AppProducts.Remove(product);
-            db.SaveChanges();
-
-            // Görev 2.3: Ürün silindiği için önbelleği temizliyoruz
-            if (companyId.HasValue)
+            catch (Exception ex)
             {
-                CacheHelper.Remove($"Company_Products_{companyId.Value}");
+                return Json(new { success = false, message = "Ürün silinirken hata oluştu: " + ex.Message });
             }
-
-            return Json(new { success = true, message = "Ürün menüden başarıyla çıkarıldı." });
         }
 
-        // Ürünün Stok / Aktiflik Durumunu Değiştirme (Tek tıkla Var/Yok yapma)
+        // Ürün Görseli Yükleme (Upload)
+        [HttpPost]
+        public JsonResult UploadProductImage(HttpPostedFileBase imageFile)
+        {
+            try
+            {
+                if (imageFile != null && imageFile.ContentLength > 0)
+                {
+                    string fileName = Guid.NewGuid().ToString() + Path.GetExtension(imageFile.FileName);
+                    string folderPath = Server.MapPath("~/Content/images/products/");
+
+                    if (!Directory.Exists(folderPath))
+                    {
+                        Directory.CreateDirectory(folderPath);
+                    }
+
+                    string fullPath = Path.Combine(folderPath, fileName);
+                    imageFile.SaveAs(fullPath);
+
+                    string dbImageUrl = "/Content/images/products/" + fileName;
+                    return Json(new { success = true, imageUrl = dbImageUrl });
+                }
+
+                return Json(new { success = false, message = "Lütfen geçerli bir resim dosyası seçin." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Resim yükleme hatası: " + ex.Message });
+            }
+        }
+
+        // Ürün Stok / Aktiflik Durumunu Değiştirme
         [HttpPost]
         public JsonResult ToggleProductStatus(int productId)
         {
@@ -307,7 +390,6 @@ namespace RestaurantApp.Web.Controllers
             product.IsAvailable = !product.IsAvailable;
             db.SaveChanges();
 
-            // Görev 2.3: Stok durumu değiştiği için önbelleği temizliyoruz
             if (product.CompanyId.HasValue)
             {
                 CacheHelper.Remove($"Company_Products_{product.CompanyId.Value}");

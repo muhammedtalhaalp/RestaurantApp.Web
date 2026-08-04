@@ -227,11 +227,13 @@
     <Content Include="favicon.ico" />
     <Content Include="Global.asax" />
     <Content Include="Content\Site.css" />
+    <Content Include="Library\scripts\adminIndex.js" />
     <Content Include="Library\scripts\dashboard.js" />
     <Content Include="Library\scripts\login.js" />
     <Content Include="Library\scripts\pos.js" />
     <Content Include="Library\scripts\profileSettings.js" />
     <Content Include="Library\scripts\staffManagement.js" />
+    <Content Include="Library\styles\admin-index.css" />
     <Content Include="Library\styles\dashboard.css" />
     <Content Include="Library\styles\login.css" />
     <Content Include="Library\styles\my-site.css" />

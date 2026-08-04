@@ -1,0 +1,75 @@
+﻿/* Ana Sayfa Yönlendirme Kartları */
+.menu-card {
+    background-color: #ffffff;
+    border: 2px solid #4a154b;
+    border-radius: 20px;
+    padding: 28px 24px;
+    transition: all 0.3s ease-in-out;
+    cursor: pointer;
+    text-decoration: none !important;
+    display: block;
+    height: 100%;
+    position: relative;
+    /* Neon Pulse Nabız Animasyonu */
+    animation: neonPulse 2.5s ease-in-out infinite;
+}
+
+/* Neon Nabız Işık Efekti */
+@keyframes neonPulse {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(74, 21, 75, 0.2), 0 0 20px rgba(74, 21, 75, 0.1);
+    }
+
+    50% {
+        box-shadow: 0 0 22px rgba(74, 21, 75, 0.6), 0 0 40px rgba(74, 21, 75, 0.3);
+    }
+}
+
+.menu-card:hover {
+    transform: translateY(-6px);
+    border-color: #6b1f6e;
+}
+
+/* Kart İkon Alanı */
+.menu-card-icon {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #4a154b 0%, #6b1f6e 100%);
+    color: #ffffff;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.6rem;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 16px rgba(74, 21, 75, 0.25);
+}
+
+.menu-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 10px;
+}
+
+.menu-card-desc {
+    font-size: 0.9rem;
+    color: #718096;
+    line-height: 1.5;
+    margin-bottom: 0;
+}
+
+.menu-card-arrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #4a154b;
+    margin-top: 18px;
+    transition: transform 0.2s ease;
+}
+
+.menu-card:hover .menu-card-arrow {
+    transform: translateX(5px);
+}

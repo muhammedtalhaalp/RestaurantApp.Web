@@ -13,7 +13,7 @@ body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* Standart CSS Keyframes (Çifte @@ kullanılmaz kuralına uygun) */
+/* Standart CSS Keyframes */
 @keyframes fadeIn {
     from {
         opacity: 0;

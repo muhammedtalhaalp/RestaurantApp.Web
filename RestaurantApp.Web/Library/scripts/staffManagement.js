@@ -1,10 +1,32 @@
-﻿$(document).ready(function () {
+﻿const STAFF_STATE_KEY = 'lezzetpos_staff_filters';
+let rawStaffList = []; // Tüm personelleri saklayan ham dizi
+
+$(document).ready(function () {
     console.log("Personel Yönetimi JS yüklendi.");
 
-    // 1. Sayfa Açıldığında Personel Listesini Yükle
+    // 1. Önce kaydedilmiş filtre durumunu yükle
+    restoreStaffFilterState();
+
+    // 2. Personel Listesini Yükle
     loadStaffList();
 
-    // 2. Yeni Personel Kayıt Formu Gönderimi
+    // 3. Filtreleme Dinleyicileri (Yazıldıkça / Seçildikçe Anlık Çalışır)
+    $('#filterStaffSearch, #filterStaffRole').on('input change', function () {
+        saveStaffFilterState();
+        renderStaffTable();
+    });
+
+    // 4. Filtreleri Temizle Butonu
+    $('#btnClearStaffFilters').on('click', function () {
+        clearStaffFilterState();
+    });
+
+    // 5. Excel'e Aktar (.xlsx)
+    $('#btnExportStaffExcel').on('click', function () {
+        exportStaffToExcel();
+    });
+
+    // 6. Yeni Personel Kayıt Formu Gönderimi
     $("#formAddStaff").on("submit", function (e) {
         e.preventDefault();
 
@@ -22,7 +44,7 @@
         $btn.prop("disabled", true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i>Kaydediliyor...');
 
         $.ajax({
-            url: "/Admin/AddStaff", // Backend Controller metod adresi
+            url: "/Admin/AddStaff",
             type: "POST",
             data: {
                 FullName: fullName,
@@ -42,11 +64,8 @@
                         showConfirmButton: false
                     });
 
-                    // Modal'ı Kapat ve Formu Sıfırla
                     $("#modalAddStaff").modal("hide");
                     $("#formAddStaff")[0].reset();
-
-                    // Tabloyu Yenile
                     loadStaffList();
                 } else {
                     Swal.fire("Hata", response.message, "error");
@@ -61,42 +80,50 @@
 });
 
 // ----------------------------------------------------
-// Personel Listesini AJAX ile Getiren Fonksiyon
+// State Save (Filtreleri localStorage'a kaydetme)
+// ----------------------------------------------------
+function saveStaffFilterState() {
+    let state = {
+        search: $('#filterStaffSearch').val() || '',
+        role: $('#filterStaffRole').val() || ''
+    };
+    localStorage.setItem(STAFF_STATE_KEY, JSON.stringify(state));
+}
+
+function restoreStaffFilterState() {
+    let savedState = localStorage.getItem(STAFF_STATE_KEY);
+    if (savedState) {
+        try {
+            let state = JSON.parse(savedState);
+            $('#filterStaffSearch').val(state.search || '');
+            $('#filterStaffRole').val(state.role || '');
+        } catch (e) {
+            console.log('Filtre okuma hatası:', e);
+        }
+    }
+}
+
+function clearStaffFilterState() {
+    localStorage.removeItem(STAFF_STATE_KEY);
+    $('#filterStaffSearch').val('');
+    $('#filterStaffRole').val('');
+    renderStaffTable();
+}
+
+// ----------------------------------------------------
+// Personel Listesini Backend'den Çeken Fonksiyon
 // ----------------------------------------------------
 function loadStaffList() {
     var $tbody = $("#tblStaffList");
     $tbody.html('<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin me-2"></i>Personeller yükleniyor...</td></tr>');
 
     $.ajax({
-        url: "/Admin/GetStaffList", // Backend Controller metod adresi
+        url: "/Admin/GetStaffList",
         type: "GET",
         success: function (response) {
-            if (response.success && response.data && response.data.length > 0) {
-                var rows = "";
-                $.each(response.data, function (index, staff) {
-                    // Mutfak Şefi ve Garson/Kasiyer için rozet sınıfı seçimi
-                    var badgeClass = "badge-garson";
-                    if (staff.role === "Mutfak Şefi") {
-                        badgeClass = "badge-mutfak";
-                    } else if (staff.role === "Garson/Kasiyer") {
-                        badgeClass = "badge-kasiyer";
-                    }
-
-                    rows += `
-                        <tr>
-                            <td class="fw-bold text-secondary">${index + 1}</td>
-                            <td class="fw-semibold text-dark">${staff.fullName}</td>
-                            <td>${staff.email}</td>
-                            <td><span class="badge ${badgeClass} badge-role">${staff.role}</span></td>
-                            <td class="text-center">
-                                <button class="btn btn-sm btn-outline-danger border-0 rounded-2" onclick="deleteStaff(${staff.id})" title="Sil">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                });
-                $tbody.html(rows);
+            if (response.success && response.data) {
+                rawStaffList = response.data;
+                renderStaffTable();
             } else {
                 $tbody.html('<tr><td colspan="5" class="text-center py-4 text-muted">Henüz kayıtlı personel bulunmuyor.</td></tr>');
             }
@@ -105,6 +132,106 @@ function loadStaffList() {
             $tbody.html('<tr><td colspan="5" class="text-center py-4 text-danger"><i class="fa-solid fa-triangle-exclamation me-2"></i>Personeller yüklenirken bir hata oluştu.</td></tr>');
         }
     });
+}
+
+// ----------------------------------------------------
+// Filtrelere Göre Tabloyu Ekrana Çizen Fonksiyon (Render)
+// ----------------------------------------------------
+function getFilteredStaffList() {
+    let searchText = ($('#filterStaffSearch').val() || '').toLowerCase().trim();
+    let selectedRole = $('#filterStaffRole').val();
+
+    return rawStaffList.filter(function (staff) {
+        let matchesSearch = true;
+        if (searchText) {
+            let name = (staff.fullName || '').toLowerCase();
+            let email = (staff.email || '').toLowerCase();
+            matchesSearch = name.includes(searchText) || email.includes(searchText);
+        }
+
+        let matchesRole = true;
+        if (selectedRole) {
+            matchesRole = staff.role === selectedRole;
+        }
+
+        return matchesSearch && matchesRole;
+    });
+}
+
+function renderStaffTable() {
+    var $tbody = $("#tblStaffList");
+    $tbody.empty();
+
+    let filteredData = getFilteredStaffList();
+
+    if (filteredData.length === 0) {
+        $tbody.html('<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fa-solid fa-magnifying-glass me-2"></i>Aramanıza uygun personel bulunamadı.</td></tr>');
+        return;
+    }
+
+    var rows = "";
+    $.each(filteredData, function (index, staff) {
+        var badgeClass = "badge-garson";
+        if (staff.role === "Mutfak Şefi" || staff.role === "Mutfak") {
+            badgeClass = "badge-mutfak";
+        } else if (staff.role === "Garson/Kasiyer" || staff.role === "Kasiyer") {
+            badgeClass = "badge-kasiyer";
+        }
+
+        rows += `
+            <tr>
+                <td class="fw-bold text-secondary">${index + 1}</td>
+                <td class="fw-semibold text-dark">${staff.fullName}</td>
+                <td>${staff.email}</td>
+                <td><span class="badge ${badgeClass} badge-role">${staff.role}</span></td>
+                <td class="text-center">
+                    <button class="btn btn-sm btn-outline-danger border-0 rounded-2" onclick="deleteStaff(${staff.id})" title="Sil">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    $tbody.html(rows);
+}
+
+// ----------------------------------------------------
+// Excel'e Aktar (.xlsx) Fonksiyonu (SheetJS)
+// ----------------------------------------------------
+function exportStaffToExcel() {
+    let filteredData = getFilteredStaffList();
+
+    if (filteredData.length === 0) {
+        Swal.fire("Uyarı", "Dışa aktarılacak personel kaydı bulunamadı.", "warning");
+        return;
+    }
+
+    // Excel sütun formatı hazırlama
+    let excelRows = filteredData.map(function (staff, index) {
+        return {
+            "No": index + 1,
+            "Ad Soyad": staff.fullName || "",
+            "E-Posta / Kullanıcı Adı": staff.email || "",
+            "Rol": staff.role || ""
+        };
+    });
+
+    // SheetJS ile Workbook oluşturma
+    let worksheet = XLSX.utils.json_to_sheet(excelRows);
+    let workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Personel Listesi");
+
+    // Sütun genişliklerini otomatik ayarla
+    worksheet['!cols'] = [
+        { wch: 6 },
+        { wch: 25 },
+        { wch: 30 },
+        { wch: 20 }
+    ];
+
+    // İndirme işlemini başlat
+    let fileName = `Personel_Listesi_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
 }
 
 // ----------------------------------------------------

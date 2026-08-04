@@ -29,6 +29,39 @@
                 <i class="fa-solid fa-rotate me-1"></i>Yenile
             </button>
         </div>
+
+        <!-- DETAYLI FİLTRELEME & EXCEL BARI -->
+        <div class="p-3 border-bottom bg-light">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-5">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0 text-muted">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </span>
+                        <input type="text" id="filterStaffSearch" class="form-control border-start-0 input-clean" placeholder="Ad Soyad veya E-Posta ile ara...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select id="filterStaffRole" class="form-select form-select-sm input-clean">
+                        <option value="">Tüm Rolleri Göster</option>
+                        <option value="Mutfak Şefi">Mutfak Şefi</option>
+                        <option value="Garson/Kasiyer">Garson/Kasiyer</option>
+                        <option value="Garson">Garson</option>
+                        <option value="Kasiyer">Kasiyer</option>
+                        <option value="Mutfak">Mutfak</option>
+                    </select>
+                </div>
+                <div class="col-md-4 text-end d-flex gap-2 justify-content-end">
+                    <button type="button" class="btn btn-sm btn-outline-danger px-3 rounded-2" id="btnClearStaffFilters" title="Filtreleri Temizle">
+                        <i class="fa-solid fa-filter-circle-xmark me-1"></i>Temizle
+                    </button>
+                    <button type="button" class="btn btn-sm btn-success px-3 rounded-2 fw-semibold" id="btnExportStaffExcel">
+                        <i class="fa-solid fa-file-excel me-1"></i>Excel'e Aktar (.xlsx)
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-clean table-hover align-middle mb-0">
@@ -96,5 +129,7 @@
 </div>
 
 @section scripts {
-    <script src="~/Library/scripts/staffManagement.js"></script>
+    <!-- Excel indirmek için SheetJS Kütüphanesi -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="~/Library/scripts/staffManagement.js?v=1.1"></script>
 }

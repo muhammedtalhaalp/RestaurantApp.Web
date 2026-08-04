@@ -21,7 +21,7 @@
     <style>
         :root {
             --sidebar-width: 250px;
-            --sidebar-collapsed-width: 70px;
+            --sidebar-collapsed-width: 75px;
             --sidebar-bg: #1e232a; /* Sade Koyu Gri/Siyah */
             --sidebar-active-bg: #2b313a; /* Aktif Menü Zemin */
             --primary-purple: #4a154b; /* Sitemizin Vurgu Mor Rengi */
@@ -43,22 +43,26 @@
             min-height: 100vh;
         }
 
-        /* SOL SIDEBAR (Fixed) */
+        /* RESİMDEKİ MODERN FLOATING SIDEBAR GÖRÜNÜMÜ */
         #sidebar {
             width: var(--sidebar-width);
             background: var(--sidebar-bg);
             color: #fff;
-            transition: width 0.3s ease;
+            transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             z-index: 1000;
             position: fixed;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            height: 100vh;
-            overflow-y: auto;
+            top: 16px;
+            left: 16px;
+            bottom: 16px;
+            height: calc(100vh - 32px);
+            border-radius: 28px; /* Görseldeki yuvarlatılmış kart yapısı */
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            padding: 10px 8px;
+            overflow: hidden;
         }
 
             #sidebar.collapsed {
@@ -66,27 +70,28 @@
             }
 
             #sidebar .brand-logo {
-                padding: 20px 22px;
+                padding: 16px 16px;
                 display: flex;
                 align-items: center;
                 gap: 12px;
                 color: #fff;
                 text-decoration: none;
                 font-weight: 700;
-                font-size: 1.25rem;
+                font-size: 1.2rem;
                 border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             }
 
                 #sidebar .brand-logo i {
                     color: var(--primary-purple);
-                    font-size: 1.5rem;
+                    font-size: 1.4rem;
                     background: #ffffff;
                     width: 36px;
                     height: 36px;
-                    border-radius: 10px;
+                    border-radius: 12px;
                     display: flex;
                     align-items: center;
                     justify-content: center;
+                    flex-shrink: 0;
                 }
 
             #sidebar.collapsed .brand-text {
@@ -97,24 +102,29 @@
             list-style: none;
             padding: 15px 0;
             margin: 0;
+            flex: 1;
         }
+
+            .sidebar-menu li {
+                margin-bottom: 4px;
+            }
 
             .sidebar-menu li a {
                 display: flex;
                 align-items: center;
-                gap: 15px;
-                padding: 14px 22px;
+                gap: 14px;
+                padding: 12px 18px;
                 color: #9aa5b1;
                 text-decoration: none;
                 font-size: 0.95rem;
                 font-weight: 500;
+                border-radius: 14px; /* Görseldeki yuvarlatılmış buton hatları */
                 transition: all 0.2s;
             }
 
                 .sidebar-menu li a:hover, .sidebar-menu li.active a {
                     color: #fff;
                     background: var(--sidebar-active-bg);
-                    border-left: 4px solid var(--primary-purple);
                 }
 
         #sidebar.collapsed .link-text {
@@ -122,55 +132,60 @@
         }
 
         .sidebar-footer {
-            padding: 15px;
+            padding: 12px 8px;
             border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .btn-toggle-sidebar {
-            background: transparent;
+            background: rgba(255, 255, 255, 0.05);
             border: none;
             color: #9aa5b1;
             width: 100%;
             text-align: center;
             padding: 8px;
+            border-radius: 10px;
             cursor: pointer;
+            transition: all 0.2s;
         }
 
             .btn-toggle-sidebar:hover {
                 color: #fff;
+                background: rgba(255, 255, 255, 0.1);
             }
 
         .btn-logout {
             color: #e53e3e;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             text-decoration: none;
             font-weight: 600;
-            padding: 8px;
+            padding: 10px 16px;
+            border-radius: 12px;
             transition: all 0.2s;
         }
 
             .btn-logout:hover {
                 color: #fc8181;
+                background: rgba(229, 62, 62, 0.1);
             }
 
         #sidebar.collapsed .logout-text {
             display: none;
         }
 
-        /* SAĞ İÇERİK ALANI */
+        /* SAĞ İÇERİK ALANI DÜZENİ (Yüzen sidebar boşluğuyla tam uyumlu) */
         #content {
             flex: 1;
             display: flex;
             flex-direction: column;
             min-width: 0;
-            margin-left: var(--sidebar-width);
+            margin-left: calc(var(--sidebar-width) + 32px);
             transition: margin-left 0.3s ease;
         }
 
             #content.expanded {
-                margin-left: var(--sidebar-collapsed-width);
+                margin-left: calc(var(--sidebar-collapsed-width) + 32px);
             }
 
         .top-navbar {
@@ -223,7 +238,7 @@
 </head>
 <body>
     <div class="wrapper">
-        <!-- Sol Sidebar -->
+        <!-- Sol Sidebar (Tüm elementlerin ve JS id'lerin birebir korundu) -->
         <nav id="sidebar">
             <div>
                 <a href="/Admin/Index" class="brand-logo">
@@ -280,7 +295,6 @@
 
                     <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" aria-labelledby="userProfileDropdown" style="border-radius: 12px; min-width: 180px;">
                         <li>
-                            <!-- Link adresi /Auth/ProfileSettings olarak güncellendi -->
                             <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="/Auth/ProfileSettings">
                                 <i class="fa-solid fa-user-gear" style="color: #4a154b;"></i>
                                 <span>Profil Ayarları</span>
@@ -327,7 +341,6 @@
                 $('#lblFullName').text(fullName);
             }
 
-            // Menü açıldığında oka yukarı, kapandığında aşağı yön veriyoruz
             const dropdownElement = document.getElementById('profileDropdownContainer');
             if (dropdownElement) {
                 dropdownElement.addEventListener('show.bs.dropdown', function () {
