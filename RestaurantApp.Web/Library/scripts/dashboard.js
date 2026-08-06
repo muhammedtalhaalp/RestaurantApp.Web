@@ -76,25 +76,30 @@ function handleImagePreview(input, imgSelector, wrapperSelector) {
     }
 }
 
-// 1. Kategorileri Yükle
+// 1. Kategorileri Yükle (CategoryController Üzerinden)
 function loadCategories() {
-    $.get('/Admin/GetCategories', { companyId: currentCompanyId }, function (res) {
+    $.get('/Category/GetCategories', function (res) {
         if (res && res.success) {
             let ddlAdd = $('#ddlCategories');
             let ddlEdit = $('#editDdlCategories');
             let ddlFilter = $('#filterCategory');
 
-            let savedCat = $('#filterCategory').val(); // Önceden yüklenmiş state varsa koru
+            let savedCat = $('#filterCategory').val();
 
             ddlAdd.empty().append('<option value="">-- Kategori Seçin --</option>');
             ddlEdit.empty().append('<option value="">-- Kategori Seçin --</option>');
             ddlFilter.empty().append('<option value="">Tüm Kategoriler</option>');
 
             $.each(res.data || [], function (i, cat) {
-                let opt = `<option value="${cat.CategoryId}">${cat.CategoryName}</option>`;
+                let isDisabled = !cat.IsActive;
+                let disabledText = isDisabled ? ' (Donduruldu)' : '';
+                let disabledAttr = isDisabled ? 'disabled style="color: #a0aec0;"' : '';
+
+                let opt = `<option value="${cat.CategoryId}" ${disabledAttr}>${cat.CategoryName}${disabledText}</option>`;
+
                 ddlAdd.append(opt);
                 ddlEdit.append(opt);
-                ddlFilter.append(`<option value="${cat.CategoryId}">${cat.CategoryName}</option>`);
+                ddlFilter.append(`<option value="${cat.CategoryId}">${cat.CategoryName}${disabledText}</option>`);
             });
 
             if (savedCat) {
@@ -104,7 +109,71 @@ function loadCategories() {
     });
 }
 
-// 2. Kategori Ekle
+// 2. Kategori Dondurma Modalı Açma ve Listeleme
+function openCategoryModal() {
+    $.get('/Category/GetCategories', function (res) {
+        if (res && res.success) {
+            let tbody = $('#tblCategoryManagementList');
+            tbody.empty();
+
+            if (!res.data || res.data.length === 0) {
+                tbody.append('<tr><td colspan="3" class="text-center text-muted py-3">Kategori bulunamadı.</td></tr>');
+            } else {
+                $.each(res.data, function (i, cat) {
+                    let statusBadge = cat.IsActive
+                        ? '<span class="badge bg-success px-2 py-1">Aktif</span>'
+                        : '<span class="badge bg-info text-dark px-2 py-1"><i class="fa-solid fa-snowflake me-1"></i>Donduruldu</span>';
+
+                    let btnText = cat.IsActive ? 'Dondur' : 'Aktif Et';
+                    let btnClass = cat.IsActive ? 'btn-outline-warning' : 'btn-outline-success';
+                    let btnIcon = cat.IsActive ? 'fa-snowflake' : 'fa-check';
+
+                    let row = `
+                        <tr>
+                            <td class="fw-bold text-dark">${cat.CategoryName}</td>
+                            <td>${statusBadge}</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm ${btnClass} rounded-2 fw-semibold" onclick="toggleCategoryStatus(${cat.CategoryId})">
+                                    <i class="fa-solid ${btnIcon} me-1"></i>${btnText}
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.append(row);
+                });
+            }
+
+            // Modal'ı Bootstrap API'si ile güvenli şekilde aç
+            var modalEl = document.getElementById('categoryManagementModal');
+            var modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modalInstance.show();
+        }
+    });
+}
+
+// 3. Kategori Dondur / Aktif Et (Modal'ı Kapatmadan Anlık Tabloyu Günceller)
+function toggleCategoryStatus(categoryId) {
+    $.post('/Category/ToggleCategoryStatus', { categoryId: categoryId }, function (res) {
+        if (res && res.success) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: res.message,
+                showConfirmButton: false,
+                timer: 1500
+            });
+
+            // Modalı kapatıp açmak yerine, doğrudan açık olan modalın içindeki tabloyu ve arka plandaki selectleri yeniliyoruz
+            openCategoryModal();
+            loadCategories();
+        } else {
+            Swal.fire('Hata', res ? res.message : 'İşlem başarısız.', 'error');
+        }
+    });
+}
+
+// 4. Kategori Ekle (CategoryController Üzerinden)
 function addCategory() {
     let catName = ($('#txtCategoryName').val() || '').trim();
     if (!catName) {
@@ -112,7 +181,7 @@ function addCategory() {
         return;
     }
 
-    $.post('/Admin/AddCategory', { categoryName: catName, companyId: currentCompanyId }, function (res) {
+    $.post('/Category/Create', { categoryName: catName, companyId: currentCompanyId }, function (res) {
         if (res && res.success) {
             Swal.fire('Başarılı', res.message, 'success');
             $('#txtCategoryName').val('');
@@ -123,7 +192,7 @@ function addCategory() {
     });
 }
 
-// 3. Menüdeki Ürünleri Getir
+// 5. Menüdeki Ürünleri Getir
 function loadProducts() {
     $.get('/Admin/GetProducts', { companyId: currentCompanyId }, function (res) {
         if (res && res.success) {
@@ -133,7 +202,7 @@ function loadProducts() {
     });
 }
 
-// 4. Detaylı Canlı Filtreleme Ve Tabloyu Hazırlama (Render)
+// 6. Detaylı Canlı Filtreleme Ve Tabloyu Hazırlama (Render)
 function renderProductsTable() {
     let tbody = $('#tblProductList');
     tbody.empty();
@@ -142,9 +211,7 @@ function renderProductsTable() {
     let selectedCat = $('#filterCategory').val();
     let selectedStatus = $('#filterStatus').val();
 
-    // Veriyi filtrelere tabi tut
     let filteredList = rawProductsList.filter(function (p) {
-        // Arama (İsim veya Açıklamada)
         let matchesSearch = true;
         if (searchText) {
             let pName = (p.ProductName || '').toLowerCase();
@@ -152,13 +219,11 @@ function renderProductsTable() {
             matchesSearch = pName.includes(searchText) || pDesc.includes(searchText);
         }
 
-        // Kategori Filtresi
         let matchesCategory = true;
         if (selectedCat) {
             matchesCategory = p.CategoryId == selectedCat;
         }
 
-        // Stok Durumu Filtresi
         let matchesStatus = true;
         if (selectedStatus === 'available') {
             matchesStatus = p.IsAvailable === true;
@@ -211,7 +276,7 @@ function renderProductsTable() {
     });
 }
 
-// 5. Yeni Ürün Ekle
+// 7. Yeni Ürün Ekle
 function addProduct() {
     let name = ($('#txtProductName').val() || '').trim();
     let catId = $('#ddlCategories').val();
@@ -283,7 +348,7 @@ function saveProductToDb(name, catId, price, desc, imageUrl, $btn) {
     });
 }
 
-// 6. Ürün Düzenleme Modalı Açma
+// 8. Ürün Düzenleme Modalı Açma
 function openEditModal(productId) {
     $.get('/Admin/GetProductById', { productId: productId }, function (res) {
         if (res && res.success && res.data) {
@@ -307,7 +372,7 @@ function openEditModal(productId) {
     });
 }
 
-// 7. Ürün Güncelleme Kaydı
+// 9. Ürün Güncelleme Kaydı
 function updateProduct() {
     let id = $('#editProductId').val();
     let name = ($('#editProductName').val() || '').trim();
@@ -375,7 +440,7 @@ function saveProductUpdateToDb(id, name, catId, price, desc, imageUrl, $btn) {
     });
 }
 
-// 8. Ürün Sil
+// 10. Ürün Sil
 function deleteProduct(id) {
     Swal.fire({
         title: 'Emin misiniz?',
@@ -400,7 +465,7 @@ function deleteProduct(id) {
     });
 }
 
-// 9. Stok Var/Yok Değiştir
+// 11. Stok Var/Yok Değiştir
 function toggleStatus(id) {
     $.post('/Admin/ToggleProductStatus', { productId: id }, function (res) {
         if (res && res.success) {

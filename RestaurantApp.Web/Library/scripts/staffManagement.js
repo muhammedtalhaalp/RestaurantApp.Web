@@ -156,7 +156,6 @@ function renderStaffTable() {
         var roleText = staff.role || '';
         var isKitchen = roleText.toLowerCase().includes('mutfak');
 
-        // Renkleri doğrudan inline style olarak veriyoruz ki hiçbir CSS ezemesin
         var badgeStyle = isKitchen
             ? "background-color: #dcfce7 !important; color: #15803d !important; border: 1px solid #bbf7d0;"
             : "background-color: #e0f2fe !important; color: #0369a1 !important; border: 1px solid #bae6fd;";

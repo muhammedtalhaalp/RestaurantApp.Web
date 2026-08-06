@@ -1,0 +1,182 @@
+﻿/* Kroki Tuval Alanı */
+.floor-plan-container {
+    background-color: #f4f0ea;
+    background-image: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+    border: 3px solid #2d3748;
+    border-radius: 16px;
+    position: relative;
+    min-height: 550px;
+    overflow: hidden;
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.08);
+}
+
+/* İçeri ve Dışarı Alan Ayırıcı Çizgisi */
+.floor-divider {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    border-top: 3px dashed #718096;
+    z-index: 1;
+}
+
+/* Mimari Yapılar (Mutfak, Kasa, Kapılar) */
+.architect-element {
+    position: absolute;
+    background: #e2e8f0;
+    border: 2px solid #4a5568;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #2d3748;
+    z-index: 2;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    cursor: move;
+    user-select: none;
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+    .architect-element:hover {
+        box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+        border-color: #4a154b;
+    }
+
+.elem-kitchen {
+    top: 15px;
+    left: 15px;
+    width: 130px;
+    height: 100px;
+    background: #feebc8;
+    border-color: #dd6b20;
+    color: #7b341e;
+}
+
+.elem-pos {
+    top: 190px;
+    left: 15px;
+    width: 90px;
+    height: 50px;
+    background: #e9d8fd;
+    border-color: #805ad5;
+    color: #44123f;
+}
+
+.elem-door-inner {
+    top: 235px;
+    left: 45%;
+    width: 100px;
+    height: 26px;
+    background: #cbd5e0;
+    border-color: #4a5568;
+    font-size: 0.75rem;
+}
+
+.elem-door-outer {
+    bottom: 10px;
+    left: 45%;
+    width: 100px;
+    height: 26px;
+    background: #cbd5e0;
+    border-color: #4a5568;
+    font-size: 0.75rem;
+}
+
+/* Alan Etiketleri */
+.section-label {
+    position: absolute;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: rgba(0,0,0,0.15);
+    font-size: 1.8rem;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.label-indoor {
+    top: 20px;
+    right: 25px;
+}
+
+.label-outdoor {
+    bottom: 20px;
+    right: 25px;
+}
+
+/* Kroki Üzerindeki Masalar */
+.draggable-table {
+    position: absolute;
+    width: 75px;
+    height: 75px;
+    background: #ffffff;
+    border: 2px solid #4a154b;
+    color: #2d3748;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: move;
+    z-index: 10;
+    font-weight: 700;
+    font-size: 0.8rem;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+    user-select: none;
+}
+
+    .draggable-table:hover {
+        box-shadow: 0 8px 16px rgba(0,0,0,0.18);
+    }
+
+    .draggable-table.square {
+        border-radius: 12px;
+    }
+
+    .draggable-table.circle {
+        border-radius: 50%;
+    }
+
+    .draggable-table .table-icon {
+        font-size: 1.1rem;
+        color: #4a154b;
+        margin-bottom: 2px;
+    }
+
+    .draggable-table .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        position: absolute;
+        top: 6px;
+        right: 6px;
+    }
+
+.status-dot.bos {
+    background-color: #38a169;
+}
+
+.status-dot.dolu {
+    background-color: #e53e3e;
+}
+
+/* Masa Boyutlandırma Tutamakları */
+.ui-resizable-handle {
+    background-color: #4a154b;
+    border-radius: 50%;
+    width: 8px !important;
+    height: 8px !important;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.draggable-table:hover .ui-resizable-handle {
+    opacity: 0.8;
+}
+
+.ui-resizable-se {
+    right: 2px !important;
+    bottom: 2px !important;
+}

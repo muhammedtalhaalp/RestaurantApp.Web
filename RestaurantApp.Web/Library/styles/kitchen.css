@@ -1,0 +1,57 @@
+﻿/* Mutfak Ekranı Özel Kart ve Liste Stilleri */
+
+#kitchen-orders-grid .card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+}
+
+    #kitchen-orders-grid .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08) !important;
+    }
+
+/* Kart Başlığı ve Rozetler */
+#kitchen-orders-grid .card-header {
+    border-bottom: none;
+}
+
+    #kitchen-orders-grid .card-header .badge {
+        font-weight: 600;
+        font-size: 0.8rem;
+        padding: 6px 10px;
+        border-radius: 8px;
+    }
+
+/* Kesikli Alt Çizgi (Border Bottom Dashed) */
+.border-bottom-dashed {
+    border-bottom: 1px dashed #e2e8f0 !important;
+}
+
+    .border-bottom-dashed:last-child {
+        border-bottom: none !important;
+    }
+
+/* Ürün Listesi */
+#kitchen-orders-grid .list-group-item {
+    background: transparent;
+    font-size: 0.92rem;
+}
+
+    #kitchen-orders-grid .list-group-item .badge {
+        background-color: #4a154b !important; /* Tema Vurgu Moru */
+        color: #ffffff;
+        font-size: 0.82rem;
+        padding: 5px 10px;
+    }
+
+/* Hazır Butonu Hover Etkisi */
+#kitchen-orders-grid .btn-success {
+    background-color: #198754;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+    #kitchen-orders-grid .btn-success:hover {
+        background-color: #146c43;
+        transform: scale(1.01);
+    }

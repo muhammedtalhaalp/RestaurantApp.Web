@@ -61,6 +61,12 @@
           <Property Name="TableNumber" Type="nvarchar" MaxLength="20" Nullable="false" />
           <Property Name="Status" Type="nvarchar" MaxLength="20" Nullable="false" />
           <Property Name="IsActive" Type="bit" Nullable="false" />
+          <Property Name="Section" Type="nvarchar" MaxLength="50" />
+          <Property Name="Shape" Type="nvarchar" MaxLength="20" />
+          <Property Name="PosX" Type="int" />
+          <Property Name="PosY" Type="int" />
+          <Property Name="Width" Type="int" />
+          <Property Name="Height" Type="int" />
         </EntityType>
         <EntityType Name="AppUsers">
           <Key>
@@ -318,6 +324,12 @@
           <Property Name="Status" Type="String" Nullable="false" MaxLength="20" FixedLength="false" Unicode="true" />
           <Property Name="IsActive" Type="Boolean" Nullable="false" />
           <NavigationProperty Name="AppOrders" Relationship="RestaurantAppDBModel.FK_AppOrders_AppTables" FromRole="AppTables" ToRole="AppOrders" />
+          <Property Name="Section" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="Shape" Type="String" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="PosX" Type="Int32" />
+          <Property Name="PosY" Type="Int32" />
+          <Property Name="Width" Type="Int32" />
+          <Property Name="Height" Type="Int32" />
         </EntityType>
         <EntityType Name="AppUsers">
           <Key>
@@ -504,6 +516,12 @@
           <EntitySetMapping Name="AppTables">
             <EntityTypeMapping TypeName="RestaurantAppDBModel.AppTables">
               <MappingFragment StoreEntitySet="AppTables">
+                <ScalarProperty Name="Height" ColumnName="Height" />
+                <ScalarProperty Name="Width" ColumnName="Width" />
+                <ScalarProperty Name="PosY" ColumnName="PosY" />
+                <ScalarProperty Name="PosX" ColumnName="PosX" />
+                <ScalarProperty Name="Shape" ColumnName="Shape" />
+                <ScalarProperty Name="Section" ColumnName="Section" />
                 <ScalarProperty Name="IsActive" ColumnName="IsActive" />
                 <ScalarProperty Name="Status" ColumnName="Status" />
                 <ScalarProperty Name="TableNumber" ColumnName="TableNumber" />

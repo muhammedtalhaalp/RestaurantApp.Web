@@ -7,7 +7,7 @@ using System.Web.Mvc;
 
 namespace RestaurantApp.Web.Controllers
 {
-    [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+    [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer, Mutfak Şefi, Mutfak")]
     public class OrderController : Controller
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
@@ -17,9 +17,14 @@ namespace RestaurantApp.Web.Controllers
             return View();
         }
 
-        // 1. Şirkete Ait Aktif Masaları Getir
+        // YENİ: Garson Sipariş Takip Sayfası ActionResult
+        public ActionResult WaiterOrderTracking()
+        {
+            return View();
+        }
+
         [HttpGet]
-        [AllowAnonymous] // AJAX çağrılarında yetki takılmasını önler
+        [AllowAnonymous]
         public JsonResult GetTables()
         {
             try
@@ -29,7 +34,15 @@ namespace RestaurantApp.Web.Controllers
                     .Select(t => new
                     {
                         tableId = t.TableId,
-                        tableName = "Masa " + t.TableNumber
+                        tableName = t.TableNumber, // "Masa Masa-1" çiftlemesini önlemek için doğrudan veritabanı verisi aktarılıyor
+                        tableNumber = t.TableNumber,
+                        status = t.Status ?? "Bos",
+                        section = t.Section ?? "Salon",
+                        shape = t.Shape ?? "Square",
+                        posX = t.PosX ?? 50,
+                        posY = t.PosY ?? 50,
+                        width = t.Width ?? 75,
+                        height = t.Height ?? 75
                     }).ToList();
 
                 return Json(new { success = true, data = tables }, JsonRequestBehavior.AllowGet);
@@ -40,7 +53,90 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // 2. Yeni Sipariş Oluşturma (Görev 3.4: Harita Konumu ve Adres ile Birlikte)
+        // 2. POS Ekranı İçin Ürün Getirme Endpoint'i
+        [HttpGet]
+        [AllowAnonymous]
+        public JsonResult GetProducts(int? companyId)
+        {
+            try
+            {
+                int targetCompanyId = companyId.HasValue && companyId.Value > 0 ? companyId.Value : 1;
+
+                var products = db.AppProducts
+                    .Where(p => p.CompanyId == targetCompanyId && p.IsActive)
+                    .Select(p => new
+                    {
+                        p.ProductId,
+                        p.ProductName,
+                        p.Price,
+                        p.CategoryId,
+                        CategoryName = p.AppCategories != null ? p.AppCategories.CategoryName : "Kategorisiz",
+                        p.Description,
+                        p.ImageUrl,
+                        p.IsAvailable
+                    }).ToList();
+
+                return Json(new { success = true, data = products }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Ürünler yüklenirken hata: " + ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // 3. Mutfak Şefinin Siparişi "Hazır" İşaretlemesi
+        [HttpPost]
+        [JwtAuthorize(Roles = "Admin, Mutfak Şefi, Mutfak")]
+        public JsonResult MarkOrderAsReady(int orderId)
+        {
+            try
+            {
+                var order = db.AppOrders.FirstOrDefault(x => x.OrderId == orderId);
+                if (order == null)
+                    return Json(new { success = false, message = "Sipariş bulunamadı." });
+
+                order.Status = "Hazır";
+                db.SaveChanges();
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Sipariş hazır olarak işaretlendi.",
+                    orderId = order.OrderId,
+                    tableName = order.TableId.HasValue && order.AppTables != null ? order.AppTables.TableNumber : "Paket Servis",
+                    orderType = order.OrderType,
+                    address = order.DeliveryAddress
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Bir hata oluştu: " + ex.Message });
+            }
+        }
+
+        // 4. Garsonun Bildirimi/Siparişi Onaylayıp "Tamamlandı" İşaretlemesi
+        [HttpPost]
+        [JwtAuthorize(Roles = "Admin, Garson/Kasiyer, Garson, Kasiyer")]
+        public JsonResult ApproveOrderDelivery(int orderId)
+        {
+            try
+            {
+                var order = db.AppOrders.FirstOrDefault(x => x.OrderId == orderId);
+                if (order == null)
+                    return Json(new { success = false, message = "Sipariş bulunamadı." });
+
+                order.Status = "Tamamlandı";
+                db.SaveChanges();
+
+                return Json(new { success = true, message = "Sipariş teslimatı onaylandı." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        // 5. Yeni Sipariş Oluşturma
         [HttpPost]
         public JsonResult CreateOrder(CreateOrderViewModel model)
         {
@@ -67,9 +163,18 @@ namespace RestaurantApp.Web.Controllers
                 };
 
                 db.AppOrders.Add(newOrder);
+
+                if (model.OrderType == "Masa" && model.TableId.HasValue)
+                {
+                    var selectedTable = db.AppTables.Find(model.TableId.Value);
+                    if (selectedTable != null)
+                    {
+                        selectedTable.Status = "Dolu";
+                    }
+                }
+
                 db.SaveChanges();
 
-                // Sipariş Detaylarını Ekle (TotalPrice kaldırıldı)
                 foreach (var item in model.Items)
                 {
                     var detail = new AppOrderDetails

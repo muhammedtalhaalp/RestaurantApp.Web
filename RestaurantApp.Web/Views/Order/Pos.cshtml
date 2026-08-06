@@ -4,20 +4,39 @@
 }
 
 @section styles {
-    <link href="~/Library/styles/pos.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link href="~/Library/styles/pos.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+    <style>
+        #map {
+            width: 100%;
+            height: 220px;
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* Google Autocomplete Açılır Menü Tasarımı */
+        .pac-container {
+            z-index: 10000 !important;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            font-family: 'Poppins', sans-serif;
+            border: 1px solid #e2e8f0;
+        }
+    </style>
 }
 
 <div class="row g-0">
-    <!-- SOL TARAF: Menü ve Kategoriler (8 Kolon) -->
+    <!-- SOL TARAF: Sipariş Yönetimi ve Kategoriler (8 Kolon) -->
     <div class="col-md-8 p-4">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h4 class="m-0"><i class="fa-solid fa-utensils me-2"></i>Menü</h4>
+        <div class="mb-3">
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-utensils me-2" style="color: #4a154b;"></i>Sipariş Yönetimi
+            </h4>
+            <p class="text-muted small mb-0">Menüden dilediğiniz ürünleri seçip sepete ekleyebilir, masa veya paket siparişinizi tamamlayabilirsiniz.</p>
         </div>
 
         <!-- Kategoriler -->
         <div id="category-list" class="d-flex flex-wrap mb-3">
-            <button class="btn btn-primary category-btn active" data-id="0">
+            <button class="btn btn-primary category-btn active" data-id="0" onclick="filterCategory(0, this)">
                 <i class="fa-solid fa-list me-1"></i>Tüm Ürünler
             </button>
         </div>
@@ -44,26 +63,29 @@
             </select>
         </div>
 
-        <!-- Masa Seçimi (Masa Siparişi Seçiliyken Görünür) -->
+        <!-- Masa Seçimi -->
         <div class="mb-3" id="tableSelectGroup">
             <label class="form-label fw-bold">Masa Seçin:</label>
-            <select id="tableId" class="form-select">
-                <option value="">Masalar Yükleniyor...</option>
-            </select>
+            <div class="input-group">
+                <select id="tableId" class="form-select">
+                    <option value="">Masalar Yükleniyor...</option>
+                </select>
+                <button class="btn btn-outline-primary fw-bold" type="button" id="btnOpenTableModal">
+                    <i class="fa-solid fa-border-all me-1"></i>Kartlardan Seç
+                </button>
+            </div>
         </div>
 
-        <!-- PAKET SERVİS ALANI (Paket Servis Seçildiğinde Açılacak - Varsayılan Gizli) -->
+        <!-- PAKET SERVİS ALANI (GOOGLE MAPS VE AUTOCOMPLETE) -->
         <div id="deliveryGroup" style="display: none;" class="mb-3">
             <div class="mb-2">
-                <label class="form-label fw-bold">Açık Adres:</label>
-                <textarea id="txtDeliveryAddress" class="form-control" rows="2" placeholder="Sokak, bina no, daire..."></textarea>
+                <label class="form-label fw-bold"><i class="fa-solid fa-location-dot me-1" style="color: #4a154b;"></i>Açık Adres:</label>
+                <input type="text" id="txtDeliveryAddress" class="form-control" placeholder="Adres yazın (Örn: Atatürk Cadesi No:5...)" autocomplete="off" />
             </div>
 
-            <!-- Google Maps Harita Kutusu -->
-            <label class="form-label fw-bold">Teslimat Konumu (Pin Sürükleyin veya Tıklayın):</label>
+            <label class="form-label fw-bold small text-muted">Teslimat Konumu (Pin Sürükleyin veya Haritaya Tıklayın):</label>
             <div id="map"></div>
 
-            <!-- Seçilen Enlem/Boylam Bilgilerinin Tutulacağı Gizli Input'lar -->
             <input type="hidden" id="latitude" />
             <input type="hidden" id="longitude" />
         </div>
@@ -75,8 +97,8 @@
                     <tr>
                         <th>Ürün</th>
                         <th style="width: 80px;">Adet</th>
-                        <th>Fiyat</th>
-                        <th style="width: 40px;"></th>
+                        <th class="text-end">Fiyat</th>
+                        <th style="width: 35px;" class="text-center">Sil</th>
                     </tr>
                 </thead>
                 <tbody id="cart-items">
@@ -98,8 +120,72 @@
     </div>
 </div>
 
+<!-- GARSON KARTLI MASA SEÇİM MODALI -->
+<div class="modal fade" id="posTableMapModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold"><i class="fa-solid fa-chair me-2" style="color: #4a154b;"></i>Masa Seçimi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <ul class="nav nav-pills nav-fill gap-2 mb-3" id="posSectionTabs">
+                    <li class="nav-item">
+                        <button class="nav-link active fw-bold py-2 rounded-3" data-section="Hepsi">Tümü</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold py-2 rounded-3" data-section="Salon">Salon</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold py-2 rounded-3" data-section="Bahçe">Bahçe</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold py-2 rounded-3" data-section="Balkon">Balkon</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold py-2 rounded-3" data-section="Teras">Teras</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold py-2 rounded-3" data-section="Üst Kat">Üst Kat</button>
+                    </li>
+                </ul>
+
+                <div class="row g-3" id="posTableCardGrid" style="max-height: 480px; overflow-y: auto;">
+                    <!-- JS Çizecek -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- YEMEK BÜYÜTME & DETAY MODALI -->
+<div class="modal fade" id="productDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark" id="modalProductName">Ürün Detayı</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <img id="modalProductImage" src="" class="img-fluid rounded-4 shadow-sm mb-3" style="max-height: 220px; width: 100%; object-fit: cover;" />
+                <div class="mb-2">
+                    <span id="modalProductCategory" class="badge bg-light text-dark border px-2 py-1">Kategori</span>
+                </div>
+                <p id="modalProductDescription" class="text-muted small mb-3">Açıklama yükleniyor...</p>
+                <div class="fs-3 fw-bold mb-3" style="color: #4a154b;" id="modalProductPrice">0.00 ₺</div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-light d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-purple px-4 fw-bold" id="btnModalAddToCart">
+                    <i class="fa-solid fa-cart-plus me-1"></i>Sepete Ekle
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section scripts {
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Google Maps JS API Entegrasyonu -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB4PzsQaSlz70n5upY-1Ha30lrk_makrQo&libraries=places&callback=initGoogleMap" async defer></script>
     <script src="~/Library/scripts/pos.js?v=@DateTime.Now.Ticks"></script>
 }

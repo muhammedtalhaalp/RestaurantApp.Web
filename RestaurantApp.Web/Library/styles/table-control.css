@@ -1,0 +1,28 @@
+﻿/* Masa Kontrol Sayfası Stilleri */
+
+.table-card-occupied {
+    background: #ffffff;
+    border-left: 5px solid #dc3545 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .table-card-occupied:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(220, 53, 69, 0.12) !important;
+    }
+
+.btn-empty-table {
+    border-color: #198754 !important;
+    color: #198754 !important;
+    font-weight: 600 !important;
+    border-radius: 10px !important;
+    transition: all 0.2s ease !important;
+}
+
+    .btn-empty-table:hover {
+        background-color: #198754 !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(25, 135, 84, 0.2) !important;
+    }

@@ -1,0 +1,38 @@
+﻿@{
+    ViewBag.Title = "Sipariş Takip";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/waiter-order-tracking.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+}
+
+<div class="container-fluid mt-2">
+    <!-- Sayfa Başlığı -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-bell-concierge me-2" style="color: #4a154b;"></i>Sipariş Takip Paneli
+            </h4>
+            <p class="text-muted small mb-0">Mutfaktan çıkan siparişler burada kart olarak gözükür. Teslim aldığınızda "Teslim Aldım" butonuna basarak onaylayabilirsiniz.</p>
+        </div>
+        <span class="badge bg-warning text-dark fs-6 px-3 py-2 rounded-pill" id="waiterOrdersBadge">0 Sipariş Hazır</span>
+    </div>
+
+    <!-- Mutfaktan Çıkan Hazır Sipariş Kartları Grid Alanı -->
+    <div class="row g-3" id="waiterReadyOrdersGrid">
+        <div class="col-12 text-center py-5 text-muted">
+            <i class="fa-solid fa-spinner fa-spin fs-3 mb-3 d-block" style="color: #4a154b;"></i>
+            <span>Hazır siparişler yükleniyor...</span>
+        </div>
+    </div>
+</div>
+
+<!-- SOL ALT CANLI TOAST BİLDİRİM CONTAINER -->
+<div id="waiterToastContainer"></div>
+
+@section scripts {
+    <script src="~/Scripts/jquery.signalR-2.4.3.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+    <script src="~/Library/scripts/waiterOrderTracking.js?v=@DateTime.Now.Ticks"></script>
+}

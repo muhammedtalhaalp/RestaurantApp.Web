@@ -86,8 +86,11 @@
         <div class="col-lg-4">
             <!-- Kategori Ekleme Kartı -->
             <div class="card card-clean mb-4">
-                <div class="card-header-clean d-flex align-items-center">
-                    <i class="fa-solid fa-folder-plus me-2" style="color: #4a154b;"></i>Yeni Kategori Ekle
+                <div class="card-header-clean d-flex justify-content-between align-items-center">
+                    <span><i class="fa-solid fa-folder-plus me-2" style="color: #4a154b;"></i>Yeni Kategori Ekle</span>
+                    <button type="button" class="btn btn-sm btn-outline-info rounded-2 fw-semibold" onclick="openCategoryModal()">
+                        <i class="fa-solid fa-snowflake me-1"></i>Kategorileri Dondur
+                    </button>
                 </div>
                 <div class="card-body p-4">
                     <div class="form-group mb-3">
@@ -267,6 +270,37 @@
     </div>
 </div>
 
+<!-- KATEGORİ DONDURMA / YÖNETİM MODALI -->
+<div class="modal fade" id="categoryManagementModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header border-bottom p-3">
+                <h5 class="modal-title fw-bold text-dark">
+                    <i class="fa-solid fa-snowflake me-2" style="color: #0284c7;"></i>Kategori Dondurma & Yönetim
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <p class="text-muted small mb-3">Dondurulan kategoriler garson ekranında (POS) silik görünür ve seçilemez.</p>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Kategori Adı</th>
+                                <th>Durum</th>
+                                <th class="text-end">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tblCategoryManagementList">
+                            <!-- JS ile Doldurulacak -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section scripts {
-    <script src="~/Library/scripts/dashboard.js?v=1.2"></script>
+    <script src="~/Library/scripts/dashboard.js?v=1.3"></script>
 }

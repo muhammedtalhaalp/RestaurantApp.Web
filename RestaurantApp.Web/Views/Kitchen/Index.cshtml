@@ -1,0 +1,37 @@
+﻿@{
+    ViewBag.Title = "Mutfak Ekranı";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-fire-burner me-2" style="color: #4a154b;"></i>Mutfak Sipariş Ekranı
+            </h4>
+            <p class="text-muted small mb-0">Hazırlanmakta olan siparişleri buradan takip edebilir ve hazır olduğunda garsona bildirebilirsiniz.</p>
+        </div>
+        <div>
+            <button class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="loadKitchenOrders()">
+                <i class="fa-solid fa-rotate me-1"></i> Yenile
+            </button>
+        </div>
+    </div>
+
+    <!-- Sipariş Kartları Izgarası -->
+    <div class="row g-3" id="kitchen-orders-grid">
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Yükleniyor...</span>
+            </div>
+            <p class="text-muted mt-2">Siparişler yükleniyor...</p>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <!-- SignalR JS Kütüphaneleri -->
+    <script src="~/Scripts/jquery.signalR-2.4.3.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+    <script src="~/Library/scripts/kitchen.js"></script>
+}

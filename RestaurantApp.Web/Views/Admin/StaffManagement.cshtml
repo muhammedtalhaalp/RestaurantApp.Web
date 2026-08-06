@@ -4,54 +4,7 @@
 }
 
 @section styles {
-    <style>
-        .badge-role {
-            font-size: 0.85rem !important;
-            padding: 6px 14px !important;
-            border-radius: 8px !important;
-            font-weight: 600 !important;
-            display: inline-block !important;
-        }
-
-        /* Garson/Kasiyer Rozeti: Açık Mavi Zemin, Koyu Mavi Yazı */
-        .badge-garson {
-            background-color: #e0f2fe !important;
-            color: #0369a1 !important;
-            border: 1px solid #bae6fd !important;
-        }
-
-        /* Mutfak Şefi Rozeti: Açık Yeşil Zemin, Koyu Yeşil Yazı */
-        .badge-mutfak {
-            background-color: #dcfce7 !important;
-            color: #15803d !important;
-            border: 1px solid #bbf7d0 !important;
-        }
-
-        .info-box-email {
-            background-color: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 14px 16px;
-            font-size: 0.85rem;
-            color: #64748b;
-            line-height: 1.5;
-        }
-
-        .btn-purple-main {
-            background-color: #4a154b !important;
-            color: #ffffff !important;
-            font-weight: 600;
-            border: none;
-            border-radius: 12px;
-            padding: 12px;
-            transition: all 0.2s ease;
-        }
-
-            .btn-purple-main:hover {
-                background-color: #381039 !important;
-                color: #ffffff !important;
-            }
-    </style>
+    <link href="~/Library/styles/staff-management.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
 }
 
 <div class="container-fluid mt-2">
@@ -170,5 +123,5 @@
 
 @section scripts {
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="~/Library/scripts/staffManagement.js?v=1.5"></script>
+    <script src="~/Library/scripts/staffManagement.js?v=@DateTime.Now.Ticks"></script>
 }

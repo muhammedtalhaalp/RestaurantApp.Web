@@ -24,6 +24,12 @@ namespace RestaurantApp.Web.Data
         public string TableNumber { get; set; }
         public string Status { get; set; }
         public bool IsActive { get; set; }
+        public string Section { get; set; }
+        public string Shape { get; set; }
+        public Nullable<int> PosX { get; set; }
+        public Nullable<int> PosY { get; set; }
+        public Nullable<int> Width { get; set; }
+        public Nullable<int> Height { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<AppOrders> AppOrders { get; set; }

@@ -1,0 +1,35 @@
+﻿@{
+    ViewBag.Title = "Masa Kontrolü";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/table-control.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+}
+
+<div class="container-fluid mt-2">
+    <!-- Sayfa Başlığı -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-chair me-2" style="color: #4a154b;"></i>Masa Kontrolü
+            </h4>
+            <p class="text-muted small mb-0">Müşterisi kalkan masaları tek tıkla boş durumuna alabilirsiniz.</p>
+        </div>
+        <span class="badge rounded-pill p-2 px-3 fw-bold" id="occupiedCountBadge" style="background-color: #4a154b; color: #fff;">
+            0 Dolu Masa
+        </span>
+    </div>
+
+    <!-- DOLU MASALAR KART LİSTESİ -->
+    <div class="row g-3" id="occupiedTablesContainer">
+        <div class="col-12 text-center py-5 text-muted">
+            <i class="fa-solid fa-spinner fa-spin fs-3 mb-2 d-block" style="color: #4a154b;"></i>
+            <span>Dolu masalar yükleniyor...</span>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Library/scripts/table-control.js?v=@DateTime.Now.Ticks"></script>
+}

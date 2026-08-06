@@ -1,0 +1,96 @@
+﻿/* Mutfak Raporu Stilleri - Mor Tema ve Temiz Tasarım */
+
+/* Tarih Seçim Kartı */
+.date-picker-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+}
+
+.date-input-custom {
+    background-color: #ffffff !important;
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 12px !important;
+    padding: 10px 16px !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    transition: all 0.2s ease !important;
+}
+
+    .date-input-custom:focus {
+        border-color: #4a154b !important;
+        box-shadow: 0 0 0 4px rgba(74, 21, 75, 0.12) !important;
+    }
+
+/* Temiz Kart & Tablo Stilleri */
+.card-clean {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+}
+
+.table-clean thead th {
+    background-color: #f8fafc !important;
+    color: #475569 !important;
+    font-weight: 600 !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+    padding: 14px 18px !important;
+    font-size: 0.88rem !important;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.table-clean tbody td {
+    padding: 14px 18px !important;
+    color: #334155 !important;
+    font-size: 0.92rem !important;
+}
+
+/* Vurgu Butonları */
+.btn-purple-main {
+    background-color: #4a154b !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+
+    .btn-purple-main:hover {
+        background-color: #381039 !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(74, 21, 75, 0.2);
+    }
+
+/* İçerik Bilgi Butonu */
+.btn-info-detail {
+    background-color: #f3e8ff !important;
+    color: #4a154b !important;
+    border: 1px solid #e9d5ff !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 0.82rem !important;
+    padding: 6px 12px !important;
+    transition: all 0.2s ease !important;
+}
+
+    .btn-info-detail:hover {
+        background-color: #4a154b !important;
+        color: #ffffff !important;
+    }
+
+/* Modal Ürün Listesi Stilleri */
+.modal-product-item {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+}
+
+    .modal-product-item:last-child {
+        margin-bottom: 0;
+    }

@@ -1,4 +1,4 @@
-﻿/* Masa Yönetimi Özel Stilleri */
+﻿/* Genel Renk ve Başlık Tanımları */
 .table-management-title {
     color: #4a154b;
 }
@@ -14,6 +14,138 @@
         color: #ffffff;
     }
 
-.table-management-card {
-    border-radius: 1rem;
+.btn-outline-purple {
+    color: #4a154b;
+    border-color: #4a154b;
+}
+
+    .btn-outline-purple:hover {
+        background-color: #4a154b;
+        color: #ffffff;
+    }
+
+/* Sekme (Tabs) Stilleri */
+#sectionTabs .nav-link {
+    color: #4a5568;
+    background-color: #f7fafc;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease-in-out;
+}
+
+    #sectionTabs .nav-link:hover {
+        background-color: #edf2f7;
+        color: #2d3748;
+    }
+
+    #sectionTabs .nav-link.active {
+        background-color: #4a154b;
+        color: #ffffff;
+        border-color: #4a154b;
+        box-shadow: 0 4px 6px rgba(74, 21, 75, 0.2);
+    }
+
+/* Masa Kartları Stilleri */
+.table-card {
+    min-height: 140px;
+    border-radius: 16px;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 2px solid #e2e8f0;
+    background: #ffffff;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+    .table-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Boş Masa Kartı */
+    .table-card.table-empty {
+        background-color: #f8fafc;
+        border-color: #cbd5e1;
+        color: #334155;
+    }
+
+        .table-card.table-empty .table-card-number {
+            color: #1e293b;
+        }
+
+    /* Dolu Masa Kartı (Fotoğraftaki Mavi/Mavi Degrade Tasarım) */
+    .table-card.table-occupied {
+        background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+        border-color: #0284c7;
+        color: #ffffff;
+        box-shadow: 0 6px 15px rgba(37, 99, 235, 0.25);
+    }
+
+        .table-card.table-occupied .table-card-number {
+            color: #ffffff;
+        }
+
+/* Kart İçerik Elemanları */
+.table-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.table-card-number {
+    font-size: 1.15rem;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+}
+
+.table-card-badge {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    text-transform: uppercase;
+}
+
+.badge-empty {
+    background-color: #e2e8f0;
+    color: #475569;
+}
+
+.badge-paid {
+    background-color: rgba(255, 255, 255, 0.85);
+    color: #0284c7;
+}
+
+.table-card-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.table-card-status-text {
+    font-size: 0.85rem;
+    font-weight: 600;
+    opacity: 0.9;
+}
+
+.table-card-price {
+    font-size: 1.35rem;
+    font-weight: 800;
+    text-align: right;
+    margin-top: 15px;
+}
+
+/* Masa Silme/İşlem Butonu */
+.btn-delete-card-table {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+}
+
+.table-card:hover .btn-delete-card-table {
+    opacity: 1;
 }

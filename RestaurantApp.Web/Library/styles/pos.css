@@ -1,36 +1,117 @@
-﻿.category-btn {
+﻿:root {
+    --brand-purple: #4a154b;
+    --brand-purple-hover: #381039;
+}
+
+/* KATEGORİ VE VURGU BUTONLARI (MOR TEMA ENTEGRASYONU) */
+.category-btn {
     min-width: 120px;
     margin-right: 8px;
     margin-bottom: 8px;
+    border-radius: 10px;
+    font-weight: 500;
+    transition: all 0.2s ease;
 }
 
+    .btn-primary,
+    .category-btn.btn-primary {
+        background-color: var(--brand-purple) !important;
+        border-color: var(--brand-purple) !important;
+        color: #ffffff !important;
+    }
+
+        .btn-primary:hover,
+        .category-btn.btn-primary:hover {
+            background-color: var(--brand-purple-hover) !important;
+            border-color: var(--brand-purple-hover) !important;
+        }
+
+.btn-outline-primary {
+    color: var(--brand-purple) !important;
+    border-color: var(--brand-purple) !important;
+}
+
+    .btn-outline-primary:hover,
+    .btn-outline-primary:active,
+    .btn-outline-primary.active {
+        background-color: var(--brand-purple) !important;
+        border-color: var(--brand-purple) !important;
+        color: #ffffff !important;
+    }
+
+.category-btn:disabled {
+    border-style: dashed !important;
+    background-color: #f1f5f9 !important;
+    color: #94a3b8 !important;
+    border-color: #cbd5e1 !important;
+}
+
+/* ÜRÜN KARTLARI */
 .product-card {
     cursor: pointer;
+    border-radius: 12px !important;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
     .product-card:hover {
         transform: translateY(-3px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        box-shadow: 0 6px 16px rgba(74, 21, 75, 0.12) !important;
     }
 
+/* POS SEPET KONTEYNIRI */
 .cart-container {
-    border-left: 1px solid #dee2e6;
+    border-left: 1px solid #e2e8f0;
     min-height: calc(100vh - 20px);
-    background-color: #f8f9fa;
-}
-/* POS Sepet Konteynırı */
-.cart-container {
-    border-left: 1px solid #dee2e6;
-    min-height: 100vh;
-    background-color: #f8f9fa;
+    background-color: #f8fafc;
 }
 
-/* Google Maps Bileşeni Stili */
+/* LEAFLET MAPS STİLİ */
 #map {
     width: 100%;
     height: 200px;
-    border-radius: 8px;
-    border: 1px solid #ced4da;
+    border-radius: 10px;
+    border: 1px solid #cbd5e0;
     margin-bottom: 10px;
 }
+
+/* GARSON MASA SEÇİM MODAL STİLLERİ */
+#posSectionTabs .nav-link {
+    color: #4a5568;
+    background-color: #f7fafc;
+    border: 1px solid #e2e8f0;
+}
+
+    #posSectionTabs .nav-link.active {
+        background-color: var(--brand-purple);
+        color: #ffffff;
+        border-color: var(--brand-purple);
+    }
+
+.pos-table-card {
+    border-radius: 14px;
+    padding: 14px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 2px solid #e2e8f0;
+    background: #ffffff;
+}
+
+    .pos-table-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 16px rgba(74, 21, 75, 0.1);
+    }
+
+    .pos-table-card.table-card-empty {
+        background-color: #f8fafc;
+        border-color: #cbd5e1;
+    }
+
+    .pos-table-card.table-card-occupied {
+        background: linear-gradient(135deg, #4a154b 0%, #381039 100%);
+        border-color: var(--brand-purple);
+        color: #ffffff;
+    }
+
+        .pos-table-card.table-card-occupied .text-muted {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }

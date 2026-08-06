@@ -1,0 +1,126 @@
+﻿@{
+    ViewBag.Title = "Mutfak Raporu";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/kitchen-report.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+}
+
+<div class="container-fluid mt-2">
+    <!-- SAYFA BAŞLIĞI (İkon Sol Bar İle Aynı: fa-receipt) -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-receipt me-2" style="color: #4a154b;"></i>Mutfak Raporu
+            </h4>
+            <p class="text-muted small mb-0">Seçilen tarihte mutfaktan çıkan siparişleri, detaylı içeriklerini ve toplam tutarlarını inceleyebilirsiniz.</p>
+        </div>
+    </div>
+
+    <!-- TARİH SEÇİM KARTI -->
+    <div class="card date-picker-card p-3 mb-4 shadow-sm border-0 rounded-4">
+        <div class="row align-items-center justify-content-center g-3">
+            <div class="col-md-5 col-lg-4 text-center">
+                <label for="txtReportDate" class="form-label fw-bold text-dark mb-2">
+                    <i class="fa-regular fa-calendar-days me-2" style="color: #4a154b;"></i>Tarih Seçin
+                </label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0 rounded-start-3 text-muted"><i class="fa-solid fa-calendar"></i></span>
+                    <input type="date" id="txtReportDate" class="form-control date-input-custom border-start-0 rounded-end-3" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FİLTRELEME VE TABLO KARTI -->
+    <div class="card card-clean border-0 shadow-sm rounded-4">
+        <!-- Arama / Filtreleme Üst Barı -->
+        <div class="p-3 border-bottom bg-light rounded-top-4">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-5">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white border-end-0 text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
+                        <input type="text" id="filterSearchText" class="form-control border-start-0 input-clean" placeholder="Masa no, paket adresi veya ürün içeriği ara...">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <select id="filterOrderType" class="form-select form-select-sm input-clean">
+                        <option value="">Tüm Sipariş Türleri</option>
+                        <option value="Masa">Masa Siparişi</option>
+                        <option value="PaketServis">Paket Servis</option>
+                    </select>
+                </div>
+                <div class="col-md-2 text-end">
+                    <button type="button" class="btn btn-sm btn-outline-danger w-100" id="btnClearFilters" title="Filtreleri Temizle">
+                        <i class="fa-solid fa-filter-circle-xmark me-1"></i>Temizle
+                    </button>
+                </div>
+                <div class="col-md-2 text-end">
+                    <button type="button" class="btn btn-sm btn-outline-success w-100" id="btnExportExcel">
+                        <i class="fa-solid fa-file-excel me-1"></i>Excel'e Aktar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- YENİ DÜZENLİ RAPOR TABLOSU -->
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-clean table-hover align-middle mb-0 text-center">
+                    <thead class="bg-light text-secondary text-uppercase fs-7 border-bottom">
+                        <tr>
+                            <th style="width: 70px;" class="py-3">#</th>
+                            <th style="width: 150px;" class="py-3">Sipariş Saati</th>
+                            <th class="py-3 text-start">Sipariş Türü</th>
+                            <th style="width: 180px;" class="py-3">Sipariş İçeriği</th>
+                            <th style="width: 160px;" class="py-3 text-end pe-4">Sipariş Fiyatı</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tblKitchenReportBody">
+                        <tr>
+                            <td colspan="5" class="text-center py-5 text-muted">
+                                <i class="fa-solid fa-spinner fa-spin me-2" style="color: #4a154b;"></i>Sipariş raporu yükleniyor...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer bg-white border-top p-3 d-flex justify-content-between align-items-center rounded-bottom-4">
+            <span class="text-muted small" id="lblReportSummary">Toplam 0 sipariş gösteriliyor.</span>
+            <div class="fw-bold text-dark fs-6">
+                Günlük Toplam Ciro: <span id="lblDayTotalAmount" style="color: #4a154b;">0.00 ₺</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SİPARİŞ İÇERİK DETAY MODALI -->
+<div class="modal fade" id="modalOrderItems" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <div class="modal-header border-bottom p-3">
+                <h5 class="modal-title fw-bold text-dark">
+                    <i class="fa-solid fa-utensils me-2" style="color: #4a154b;"></i>Sipariş İçeriği
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="modalOrderInfoBar" class="p-2 mb-3 bg-light rounded-3 text-muted small border"></div>
+                <div id="modalProductsContainer">
+                    <!-- JS ile doldurulacak -->
+                </div>
+            </div>
+            <div class="modal-footer border-top p-3 d-flex justify-content-between align-items-center">
+                <span class="fw-bold text-dark">Toplam Tutar: <span id="modalTotalAmount" style="color: #4a154b;">0.00 ₺</span></span>
+                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="~/Library/scripts/kitchen-report.js?v=@DateTime.Now.Ticks"></script>
+}

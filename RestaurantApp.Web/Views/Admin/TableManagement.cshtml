@@ -9,65 +9,51 @@
 }
 
 <div class="container-fluid py-3">
+    <!-- Üst Başlık & Butonlar -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold m-0"><i class="fa-solid fa-chair me-2 table-management-title"></i>Masa Yönetimi</h3>
-            <p class="text-muted small m-0">Restoran masalarını ekleyin, listeleyin veya sistemden kaldırın.</p>
+            <p class="text-muted small m-0">Restoran alanlarına göre masalarınızı yönetin, yeni masa ekleyin veya düzenleyin.</p>
         </div>
-        <button class="btn btn-theme-primary fw-bold px-4 rounded-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addTableModal">
-            <i class="fa-solid fa-plus me-2"></i>Yeni Masa Ekle
-        </button>
+        <div class="d-flex gap-2">
+            <a href="/Admin/FloorPlanManagement" class="btn btn-outline-purple fw-bold rounded-3 shadow-sm">
+                <i class="fa-solid fa-map-location-dot me-2"></i>Kroki Yönetimi
+            </a>
+            <button class="btn btn-theme-primary fw-bold px-4 rounded-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addTableModal">
+                <i class="fa-solid fa-plus me-2"></i>Yeni Masa Ekle
+            </button>
+        </div>
     </div>
 
-    <!-- Masa Listesi Tablosu -->
-    <div class="card border-0 shadow-sm table-management-card">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="ps-4">Masa ID</th>
-                            <th>Masa Adı / No</th>
-                            <th>Masa Durumu</th>
-                            <th class="text-end pe-4">İşlemler</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (Model != null && Model.Any())
-                        {
-                            foreach (var table in Model)
-                            {
-                                <tr>
-                                    <td class="ps-4 fw-semibold text-secondary">#@table.TableId</td>
-                                    <td class="fw-bold text-dark">Masa @table.TableNumber</td>
-                                    <td>
-                                        @if (table.Status == "Bos")
-                                        {
-                                            <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill">Boş</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="badge bg-danger-subtle text-danger px-3 py-2 rounded-pill">Dolu / Rezerve</span>
-                                        }
-                                    </td>
-                                    <td class="text-end pe-4">
-                                        <button class="btn btn-outline-danger btn-sm rounded-3 px-3 btn-delete-table" data-id="@table.TableId">
-                                            <i class="fa-solid fa-trash me-1"></i>Sil
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
-                        }
-                        else
-                        {
-                            <tr>
-                                <td colspan="4" class="text-center py-4 text-muted">Kayıtlı masa bulunmamaktadır. Lütfen yeni masa ekleyin.</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+    <!-- Alan / Bölüm Sekmeleri (Tabs) -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-2">
+            <ul class="nav nav-pills nav-fill gap-2" id="sectionTabs">
+                <li class="nav-item">
+                    <button class="nav-link active fw-bold py-2 rounded-3" data-section="Hepsi">Tümü</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link fw-bold py-2 rounded-3" data-section="Salon">Salon</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link fw-bold py-2 rounded-3" data-section="Bahçe">Bahçe</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link fw-bold py-2 rounded-3" data-section="Balkon">Balkon</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link fw-bold py-2 rounded-3" data-section="Teras">Teras</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link fw-bold py-2 rounded-3" data-section="Üst Kat">Üst Kat</button>
+                </li>
+            </ul>
         </div>
+    </div>
+
+    <!-- Masa Kartları Grid Alanı -->
+    <div class="row g-3" id="tableCardContainer">
+        <!-- JS tarafı masaları buraya kart olarak çizecek -->
     </div>
 </div>
 
@@ -81,8 +67,18 @@
             </div>
             <div class="modal-body py-4">
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Masa Numarası / Adı:</label>
-                    <input type="text" id="txtTableNumber" class="form-control rounded-3" placeholder="Örn: 1, 2 veya Bahçe-1" />
+                    <label class="form-label fw-semibold">Masa Adı / Numarası:</label>
+                    <input type="text" id="txtTableNumber" class="form-control rounded-3" placeholder="Örn: B00201, Masa 5" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Restoran Alanı:</label>
+                    <select id="selectSection" class="form-select rounded-3">
+                        <option value="Salon">Salon</option>
+                        <option value="Bahçe">Bahçe</option>
+                        <option value="Balkon">Balkon</option>
+                        <option value="Teras">Teras</option>
+                        <option value="Üst Kat">Üst Kat</option>
+                    </select>
                 </div>
             </div>
             <div class="modal-footer border-0 pt-0">

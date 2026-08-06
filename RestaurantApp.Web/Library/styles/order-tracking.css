@@ -1,0 +1,32 @@
+﻿/* Admin Sipariş Takip Paneli Stilleri - Mor Tema */
+
+.pending-order-card {
+    background: #ffffff;
+    border-left: 5px solid #4a154b !important;
+    border-radius: 14px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .pending-order-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(74, 21, 75, 0.12) !important;
+    }
+
+.card-clean {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+}
+
+/* Rozet ve Vurgu Stilleri */
+.badge-purple-light {
+    background-color: #f3e8ff !important;
+    color: #4a154b !important;
+    border: 1px solid #e9d5ff !important;
+}
+
+.badge-purple-main {
+    background-color: #4a154b !important;
+    color: #ffffff !important;
+}

@@ -9,27 +9,38 @@ using System.Web.Mvc;
 
 namespace RestaurantApp.Web.Controllers
 {
-    [JwtAuthorize(Roles = "Admin")]
+    // Garson rollerinin metoda erişebilmesi için sınıf düzeyindeki role izinler eklendi
+    [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
     public class AdminController : Controller
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
 
+        [JwtAuthorize(Roles = "Admin")]
         public ActionResult Index()
         {
             return View();
         }
 
+        [JwtAuthorize(Roles = "Admin")]
         public ActionResult Dashboard()
         {
             return View();
         }
 
+        [JwtAuthorize(Roles = "Admin")]
         public ActionResult StaffManagement()
         {
             return View();
         }
 
+        [JwtAuthorize(Roles = "Admin")]
         public ActionResult MenuManagement()
+        {
+            return View();
+        }
+
+        [JwtAuthorize(Roles = "Admin")]
+        public ActionResult OrderTracking()
         {
             return View();
         }
@@ -37,12 +48,15 @@ namespace RestaurantApp.Web.Controllers
         #region PERSONEL İŞLEMLERİ
 
         [HttpGet]
+        [JwtAuthorize(Roles = "Admin")]
         public JsonResult GetStaffList()
         {
             try
             {
+                var allowedRoles = new[] { "Mutfak Şefi", "Mutfak", "Garson/Kasiyer", "Garson", "Kasiyer" };
+
                 var staffList = db.AppUsers
-                    .Where(u => u.Role == "Mutfak Şefi" || u.Role == "Garson/Kasiyer" || u.Role == "Garson" || u.Role == "Kasiyer" || u.Role == "Mutfak")
+                    .Where(u => allowedRoles.Contains(u.Role))
                     .Select(u => new
                     {
                         id = u.UserId,
@@ -60,6 +74,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpPost]
+        [JwtAuthorize(Roles = "Admin")]
         public JsonResult AddStaff(string FullName, string Email, string Role)
         {
             try
@@ -75,7 +90,6 @@ namespace RestaurantApp.Web.Controllers
                     return Json(new { success = false, message = "Bu e-posta adresiyle zaten kayıtlı bir personel bulunmaktadır." });
                 }
 
-                // Otomatik 6 Haneli Rastgele Şifre Üret (100000 - 999999)
                 Random random = new Random();
                 string generatedPassword = random.Next(100000, 999999).ToString();
 
@@ -88,7 +102,7 @@ namespace RestaurantApp.Web.Controllers
                     FullName = FullName,
                     Username = Email,
                     Email = Email,
-                    PasswordHash = generatedPassword, // Otomatik üretilen şifre kaydedildi
+                    PasswordHash = generatedPassword,
                     Role = Role,
                     IsActive = true,
                     CreatedDate = DateTime.Now,
@@ -99,7 +113,6 @@ namespace RestaurantApp.Web.Controllers
                 db.AppUsers.Add(newStaff);
                 db.SaveChanges();
 
-                // Personelin e-posta adresine hoş geldin mesajı ve üretilen şifre gönderiliyor
                 bool mailSent = EmailHelper.SendWelcomeEmail(Email, FullName, generatedPassword, Role);
 
                 if (mailSent)
@@ -127,6 +140,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpPost]
+        [JwtAuthorize(Roles = "Admin")]
         public JsonResult DeleteStaff(int id)
         {
             try
@@ -148,26 +162,125 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
+        #region MUTFAK RAPORU İŞLEMLERİ
+
+        [HttpGet]
+        [JwtAuthorize(Roles = "Admin")]
+        public ActionResult KitchenReport()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        public JsonResult GetKitchenReportByDate(string reportDate)
+        {
+            try
+            {
+                DateTime targetDate;
+                if (!DateTime.TryParse(reportDate, out targetDate))
+                {
+                    targetDate = DateTime.Today;
+                }
+
+                DateTime startOfDay = targetDate.Date;
+                DateTime endOfDay = targetDate.Date.AddDays(1).AddTicks(-1);
+
+                // Seçilen gün içindeki tüm aktif/tamamlanmış/hazırlanmış siparişler ve ürün detayları çekilir
+                var queryOrders = db.AppOrders
+                    .Where(o => o.CreatedDate >= startOfDay && o.CreatedDate <= endOfDay)
+                    .OrderByDescending(o => o.CreatedDate)
+                    .ToList();
+
+                var reportData = queryOrders.Select(o => new
+                {
+                    orderId = o.OrderId,
+                    orderType = o.OrderType,
+                    orderTime = o.CreatedDate.ToString("HH:mm"),
+                    title = o.OrderType == "Masa" && o.AppTables != null ? o.AppTables.TableNumber : "Paket Servis",
+                    deliveryAddress = o.DeliveryAddress,
+                    totalAmount = o.TotalAmount,
+                    items = o.AppOrderDetails.Select(d => new
+                    {
+                        productId = d.ProductId,
+                        productName = d.AppProducts != null ? d.AppProducts.ProductName : "Bilinmeyen Ürün",
+                        quantity = d.Quantity,
+                        unitPrice = d.UnitPrice,
+                        totalLinePrice = d.Quantity * d.UnitPrice
+                    }).ToList()
+                }).ToList();
+
+                return Json(new { success = true, data = reportData }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Rapor çekilirken hata oluştu: " + ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
         #endregion
 
-        // 1. Masa Yönetimi Ekranı
+        #endregion
+
+        #region MASA VE KROKİ İŞLEMLERİ
+
         [HttpGet]
+        [JwtAuthorize(Roles = "Admin")]
         public ActionResult TableManagement()
         {
             var tables = db.AppTables.Where(t => t.IsActive).ToList();
             return View(tables);
         }
 
-        // 2. Yeni Masa Ekle
+        [HttpGet]
+        [JwtAuthorize(Roles = "Admin")]
+        public ActionResult FloorPlanManagement()
+        {
+            var tables = db.AppTables.Where(t => t.IsActive).ToList();
+            return View(tables);
+        }
+
+        [HttpGet]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        public JsonResult GetTables()
+        {
+            try
+            {
+                var tables = db.AppTables
+                    .Where(t => t.IsActive)
+                    .Select(t => new
+                    {
+                        tableId = t.TableId,
+                        tableNumber = t.TableNumber,
+                        status = t.Status,
+                        section = t.Section ?? "Salon",
+                        shape = t.Shape ?? "Square",
+                        posX = t.PosX ?? 50,
+                        posY = t.PosY ?? 50,
+                        width = t.Width ?? 75,
+                        height = t.Height ?? 75
+                    }).ToList();
+
+                return Json(new { success = true, data = tables }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
         [HttpPost]
-        public JsonResult AddTable(string tableNumber)
+        [JwtAuthorize(Roles = "Admin")]
+        public JsonResult AddTable(string tableNumber, string section)
         {
             try
             {
                 if (string.IsNullOrWhiteSpace(tableNumber))
                 {
-                    return Json(new { success = false, message = "Masa numarası/adı boş olamaz." });
+                    return Json(new { success = false, message = "Masa adı/numarası boş olamaz." });
                 }
+
+                string targetSection = string.IsNullOrWhiteSpace(section) ? "Salon" : section.Trim();
 
                 var existingTable = db.AppTables.FirstOrDefault(t => t.TableNumber == tableNumber && t.IsActive);
                 if (existingTable != null)
@@ -178,8 +291,14 @@ namespace RestaurantApp.Web.Controllers
                 var newTable = new AppTables
                 {
                     TableNumber = tableNumber,
+                    Section = targetSection,
                     Status = "Bos",
-                    IsActive = true
+                    IsActive = true,
+                    Shape = "Square",
+                    PosX = 50,
+                    PosY = 50,
+                    Width = 75,
+                    Height = 75
                 };
 
                 db.AppTables.Add(newTable);
@@ -193,8 +312,57 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // 3. Masa Sil / Pasife Al
         [HttpPost]
+        [JwtAuthorize(Roles = "Admin")]
+        public JsonResult SaveTableLayout(int? tableId, string tableNumber, string section, string shape, int posX, int posY, int? width, int? height)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(tableNumber))
+                {
+                    return Json(new { success = false, message = "Masa adı boş olamaz." });
+                }
+
+                AppTables table;
+
+                if (tableId.HasValue && tableId.Value > 0)
+                {
+                    table = db.AppTables.Find(tableId.Value);
+                    if (table == null)
+                    {
+                        return Json(new { success = false, message = "Masa bulunamadı." });
+                    }
+                }
+                else
+                {
+                    table = new AppTables
+                    {
+                        Status = "Bos",
+                        IsActive = true
+                    };
+                    db.AppTables.Add(table);
+                }
+
+                table.TableNumber = tableNumber;
+                table.Section = string.IsNullOrWhiteSpace(section) ? "Salon" : section;
+                table.Shape = shape;
+                table.PosX = posX;
+                table.PosY = posY;
+                table.Width = width ?? 75;
+                table.Height = height ?? 75;
+
+                db.SaveChanges();
+
+                return Json(new { success = true, message = "Masa düzeni kaydedildi.", tableId = table.TableId });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [JwtAuthorize(Roles = "Admin")]
         public JsonResult DeleteTable(int id)
         {
             try
@@ -216,9 +384,12 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
+        #endregion
+
         #region KATEGORİ İŞLEMLERİ
 
         [HttpGet]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
         public JsonResult GetCategories(int companyId)
         {
             var categories = db.AppCategories
@@ -233,6 +404,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpPost]
+        [JwtAuthorize(Roles = "Admin")]
         public JsonResult AddCategory(string categoryName, int companyId)
         {
             if (string.IsNullOrWhiteSpace(categoryName))
@@ -255,11 +427,41 @@ namespace RestaurantApp.Web.Controllers
             return Json(new { success = true, message = "Kategori başarıyla eklendi.", categoryId = category.CategoryId });
         }
 
+        // Garson ve Admin için ortak sipariş çekme metodu
+        [HttpGet]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        public JsonResult GetPendingDeliveryOrders()
+        {
+            try
+            {
+                var pendingOrders = db.AppOrders
+                    .Where(o => o.Status == "Hazır")
+                    .OrderByDescending(o => o.CreatedDate)
+                    .ToList()
+                    .Select(o => new
+                    {
+                        orderId = o.OrderId,
+                        orderType = o.OrderType,
+                        tableName = o.OrderType == "Masa" && o.AppTables != null ? o.AppTables.TableNumber : "Paket Servis",
+                        deliveryAddress = o.DeliveryAddress,
+                        orderDate = o.CreatedDate.ToString("HH:mm"),
+                        totalAmount = o.TotalAmount
+                    }).ToList();
+
+                return Json(new { success = true, data = pendingOrders }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Siparişler çekilirken hata: " + ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
         #endregion
 
         #region MENÜ / ÜRÜN İŞLEMLERİ (CACHE DESTEKLİ)
 
         [HttpGet]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
         public JsonResult GetProducts(int companyId)
         {
             string cacheKey = $"Company_Products_{companyId}";
@@ -267,7 +469,7 @@ namespace RestaurantApp.Web.Controllers
             var products = CacheHelper.GetOrAdd(cacheKey, () =>
             {
                 return db.AppProducts
-                    .Where(p => p.CompanyId == companyId)
+                    .Where(p => p.CompanyId == companyId && p.IsActive)
                     .Select(p => new
                     {
                         p.ProductId,
@@ -277,6 +479,7 @@ namespace RestaurantApp.Web.Controllers
                         CategoryName = p.AppCategories != null ? p.AppCategories.CategoryName : "Kategorisiz",
                         p.Description,
                         p.ImageUrl,
+                        p.IsActive,
                         p.IsAvailable
                     }).ToList();
             });
@@ -285,6 +488,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpGet]
+        [JwtAuthorize(Roles = "Admin")]
         public JsonResult GetProductById(int productId)
         {
             var product = db.AppProducts
@@ -310,6 +514,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpPost]
+        [JwtAuthorize(Roles = "Admin")]
         public JsonResult AddProduct(AppProducts product)
         {
             try
@@ -330,6 +535,7 @@ namespace RestaurantApp.Web.Controllers
                     product.ImageUrl = "/Content/images/default-food.png";
                 }
 
+                product.IsActive = true;
                 product.IsAvailable = true;
 
                 db.AppProducts.Add(product);
@@ -346,6 +552,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpPost]
+        [JwtAuthorize(Roles = "Admin")]
         public JsonResult UpdateProduct(AppProducts updatedProduct)
         {
             try
@@ -384,6 +591,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpPost]
+        [JwtAuthorize(Roles = "Admin")]
         public JsonResult DeleteProduct(int productId)
         {
             try
@@ -413,6 +621,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpPost]
+        [JwtAuthorize(Roles = "Admin")]
         public JsonResult UploadProductImage(HttpPostedFileBase imageFile)
         {
             try
@@ -443,6 +652,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpPost]
+        [JwtAuthorize(Roles = "Admin")]
         public JsonResult ToggleProductStatus(int productId)
         {
             var product = db.AppProducts.FirstOrDefault(p => p.ProductId == productId);

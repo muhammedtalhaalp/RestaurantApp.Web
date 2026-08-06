@@ -1,0 +1,39 @@
+﻿@{
+    ViewBag.Title = "Sipariş Takip";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/order-tracking.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+}
+
+<div class="container-fluid mt-2">
+    <!-- Sayfa Başlığı -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-clock-rotate-left me-2" style="color: #4a154b;"></i>Sipariş Takip Paneli
+            </h4>
+            <p class="text-muted small mb-0">Mutfaktan çıkan ve garson teslimatı bekleyen hazır siparişleri buradan canlı izleyebilirsiniz.</p>
+        </div>
+        <span class="badge bg-warning text-dark fs-6 px-3 py-2 rounded-pill" id="pendingOrdersCountBadge">0 Sipariş Bekliyor</span>
+    </div>
+
+    <!-- Canlı Takip Kartları Alanı -->
+    <div class="card card-clean border-0 shadow-sm rounded-4">
+        <div class="card-body p-4">
+            <div class="row g-3" id="adminPendingOrdersContainer">
+                <div class="col-12 text-center py-5 text-muted">
+                    <i class="fa-solid fa-spinner fa-spin fs-3 mb-3 d-block" style="color: #4a154b;"></i>
+                    <span>Siparişler yükleniyor...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Scripts/jquery.signalR-2.4.3.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+    <script src="~/Library/scripts/order-tracking.js"></script>
+}

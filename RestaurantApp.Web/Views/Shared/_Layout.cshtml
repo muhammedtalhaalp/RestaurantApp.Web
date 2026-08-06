@@ -22,11 +22,11 @@
         :root {
             --sidebar-width: 250px;
             --sidebar-collapsed-width: 75px;
-            --sidebar-bg: #1e232a; /* Sade Koyu Gri/Siyah */
-            --sidebar-active-bg: #2b313a; /* Aktif Menü Zemin */
-            --primary-purple: #4a154b; /* Sitemizin Vurgu Mor Rengi */
-            --primary-purple-hover: #381039; /* Mor Hover */
-            --bg-light: #f8f9fa; /* Bembeyaz / Çok Açık Gri Zemin */
+            --sidebar-bg: #1e232a;
+            --sidebar-active-bg: #2b313a;
+            --primary-purple: #4a154b;
+            --primary-purple-hover: #381039;
+            --bg-light: #eef2f6;
         }
 
         body {
@@ -43,7 +43,6 @@
             min-height: 100vh;
         }
 
-        /* RESİMDEKİ MODERN FLOATING SIDEBAR GÖRÜNÜMÜ */
         #sidebar {
             width: var(--sidebar-width);
             background: var(--sidebar-bg);
@@ -58,11 +57,12 @@
             left: 16px;
             bottom: 16px;
             height: calc(100vh - 32px);
-            border-radius: 28px; /* Görseldeki yuvarlatılmış kart yapısı */
+            border-radius: 28px;
             border: 1px solid rgba(255, 255, 255, 0.08);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
             padding: 10px 8px;
-            overflow: hidden;
+            overflow-y: auto;
+            overflow-x: hidden;
         }
 
             #sidebar.collapsed {
@@ -118,17 +118,36 @@
                     text-decoration: none;
                     font-size: 0.95rem;
                     font-weight: 500;
-                    border-radius: 14px; /* Görseldeki yuvarlatılmış buton hatları */
+                    border-radius: 14px;
                     transition: all 0.2s;
                 }
 
-                    .sidebar-menu li a:hover, .sidebar-menu li.active a {
+                    .sidebar-menu li a:hover, .sidebar-menu li.active > a {
                         color: #fff;
                         background: var(--sidebar-active-bg);
                     }
 
-        #sidebar.collapsed .link-text {
-            display: none;
+        .submenu-list {
+            list-style: none;
+            padding-left: 36px;
+            margin-top: 4px;
+        }
+
+            .submenu-list li a {
+                padding: 8px 14px;
+                font-size: 0.88rem;
+                color: #9aa5b1;
+            }
+
+                .submenu-list li a:hover, .submenu-list li.active a {
+                    color: #fff !important;
+                    background: rgba(255, 255, 255, 0.08) !important;
+                }
+
+        #sidebar.collapsed .link-text,
+        #sidebar.collapsed .submenu-arrow,
+        #sidebar.collapsed .submenu-list {
+            display: none !important;
         }
 
         .sidebar-footer {
@@ -174,7 +193,6 @@
             display: none;
         }
 
-        /* SAĞ İÇERİK ALANI DÜZENİ (Yüzen sidebar boşluğuyla tam uyumlu) */
         #content {
             flex: 1;
             display: flex;
@@ -218,12 +236,10 @@
             font-size: 0.9rem;
         }
 
-        /* Bootstrap varsayılan dropdown okunu kaldırıyoruz */
         .user-profile.dropdown-toggle::after {
             display: none !important;
         }
 
-        /* Profil Dropdown Stilleri */
         .dropdown-menu .dropdown-item:active {
             background-color: var(--primary-purple) !important;
             color: #fff !important;
@@ -231,6 +247,15 @@
 
             .dropdown-menu .dropdown-item:active i {
                 color: #fff !important;
+            }
+
+        .notification-item {
+            transition: background-color 0.2s ease;
+            cursor: pointer;
+        }
+
+            .notification-item:hover {
+                background-color: #f8f9fa !important;
             }
     </style>
 
@@ -250,7 +275,6 @@
                 <ul class="sidebar-menu" id="mainSidebarMenu">
                     @{
                         string currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
-                        // AuthController'daki Session["UserRole"] ile tam uyumlu hale getirildi:
                         string userRole = Session["UserRole"] != null ? Session["UserRole"].ToString() : (Session["Role"] != null ? Session["Role"].ToString() : "");
                     }
 
@@ -274,23 +298,55 @@
                                 <span class="link-text">Personel Yönetimi</span>
                             </a>
                         </li>
-                        <li class="@(currentAction == "TableManagement" ? "active" : "")">
-                            <a href="/Admin/TableManagement">
-                                <i class="fa-solid fa-chair"></i>
-                                <span class="link-text">Masa Yönetimi</span>
+                        <li class="@(currentAction == "OrderTracking" ? "active" : "")">
+                            <a href="/Admin/OrderTracking">
+                                <i class="fa-solid fa-clock-rotate-left"></i>
+                                <span class="link-text">Sipariş Takip</span>
                             </a>
                         </li>
+                        <li class="@(currentAction == "KitchenReport" ? "active" : "")">
+                            <a href="/Admin/KitchenReport">
+                                <i class="fa-solid fa-receipt"></i>
+                                <span class="link-text">Mutfak Raporu</span>
+                            </a>
+                        </li>
+                        <!-- MASA YÖNETİMİ AÇILIR MENÜ -->
+                        <li class="@(currentAction == "TableManagement" || currentAction == "FloorPlanManagement" ? "active" : "")">
+                            <a class="d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#tableSubMenu" role="button" aria-expanded="false">
+                                <span><i class="fa-solid fa-chair me-2"></i><span class="link-text">Masa Yönetimi</span></span>
+                                <i class="fa-solid fa-chevron-down small submenu-arrow"></i>
+                            </a>
+                            <div class="collapse" id="tableSubMenu">
+                                <ul class="submenu-list">
+                                    <li class="@(currentAction == "TableManagement" ? "active" : "")">
+                                        <a href="/Admin/TableManagement"><span class="link-text">Yeni Masa Ekle</span></a>
+                                    </li>
+                                    <li class="@(currentAction == "FloorPlanManagement" ? "active" : "")">
+                                        <a href="/Admin/FloorPlanManagement"><span class="link-text">Kroki Yönetimi</span></a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
                     }
-                    else if (userRole == "Garson/Kasiyer" || userRole == "Garson" || userRole == "Kasiyer")
+                    else if (userRole.Contains("Garson") || userRole.Contains("Kasiyer"))
                     {
-                        <li class="@(currentAction == "Pos" ? "active" : "")">
-                            <a href="/Order/Pos">
-                                <i class="fa-solid fa-cash-register"></i>
-                                <span class="link-text">POS & Sipariş</span>
+                        <li class="@(currentAction == "POS" || currentAction == "Pos" ? "active" : "")">
+                            <a href="/Order/POS" class="nav-link">
+                                <i class="fa-solid fa-utensils me-2"></i><span class="link-text">Sipariş Yönetimi</span>
+                            </a>
+                        </li>
+                        <li class="@(currentAction == "WaiterOrderTracking" ? "active" : "")">
+                            <a href="/Order/WaiterOrderTracking" class="nav-link">
+                                <i class="fa-solid fa-bell-concierge me-2"></i><span class="link-text">Sipariş Takip</span>
+                            </a>
+                        </li>
+                        <li class="@(currentAction == "TableControl" ? "active" : "")">
+                            <a href="/Table/TableControl" class="nav-link">
+                                <i class="fa-solid fa-chair me-2"></i><span class="link-text">Masa Kontrolü</span>
                             </a>
                         </li>
                     }
-                    else if (userRole == "Mutfak Şefi" || userRole == "Mutfak")
+                    else if (userRole.Contains("Mutfak"))
                     {
                         <li class="@(currentAction == "Index" ? "active" : "")">
                             <a href="/Kitchen/Index">
@@ -316,9 +372,26 @@
         <!-- Sağ Taraf İçerik -->
         <div id="content">
             <header class="top-navbar">
-                <i class="fa-regular fa-bell text-muted cursor-pointer" style="font-size: 1.2rem;"></i>
+                <!-- BİLDİRİM ZİLİ DROPDOWN -->
+                <div class="dropdown me-2" id="notificationDropdownContainer">
+                    <a class="position-relative text-muted text-decoration-none dropdown-toggle cursor-pointer" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 1.25rem;">
+                        <i class="fa-regular fa-bell"></i>
+                        <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem; display: none;">
+                            0
+                        </span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end shadow border-0 mt-2 p-2" aria-labelledby="notificationDropdown" style="width: 320px; border-radius: 16px; max-height: 380px; overflow-y: auto;">
+                        <div class="dropdown-header fw-bold text-dark border-bottom pb-2 mb-2 d-flex justify-content-between align-items-center">
+                            <span><i class="fa-solid fa-bell me-2 text-warning"></i>Hazır Siparişler</span>
+                            <span class="badge bg-light text-dark border" id="notificationCountText">0 Sipariş</span>
+                        </div>
+                        <ul class="list-unstyled mb-0" id="notificationItemsContainer">
+                            <li class="text-center py-3 text-muted small" id="noNotificationText">Hazır bekleyen sipariş bulunmuyor.</li>
+                        </ul>
+                    </div>
+                </div>
 
-                <!-- Tıklanınca Aşağı Açılan Profil Menüsü -->
+                <!-- Profile Dropdown -->
                 <div class="dropdown" id="profileDropdownContainer">
                     <div class="user-profile dropdown-toggle" id="userProfileDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
                         <div class="user-avatar">
@@ -359,50 +432,138 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // Anında çalışan (Self-Executing) JS sidebar render mekanizması
+        // GLOBAL BİLDİRİM ÇEKİCİ FONKSİYON
+        function fetchLayoutNotifications() {
+            var serverRole = "@userRole";
+            var localRole = (localStorage.getItem("Role") || "").trim();
+
+            // Mutfak ise çalıştırma
+            if (serverRole.includes('Mutfak') || localRole.includes('Mutfak')) {
+                return;
+            }
+
+            $.ajax({
+                url: "/Admin/GetPendingDeliveryOrders",
+                type: "GET",
+                cache: false,
+                success: function (res) {
+                    var $badge = $("#notificationBadge");
+                    var $countText = $("#notificationCountText");
+                    var $container = $("#notificationItemsContainer");
+
+                    if (res.success && res.data && res.data.length > 0) {
+                        $badge.text(res.data.length).show();
+                        $countText.text(`${res.data.length} Sipariş`);
+
+                        // Rol kontrolü ile doğru sayfaya yönlendir
+                        var targetUrl = (serverRole === 'Admin' || localRole === 'Admin')
+                            ? '/Admin/OrderTracking'
+                            : '/Order/WaiterOrderTracking';
+
+                        var html = "";
+                        $.each(res.data, function (i, order) {
+                            var isMasa = order.orderType === "Masa";
+                            var rawName = order.tableName || '';
+                            var title = isMasa
+                                ? (rawName.toLowerCase().startsWith('masa') ? rawName : `Masa ${rawName}`)
+                                : "Paket Servis";
+
+                            html += `
+                                <li class="notification-item p-2 mb-1 rounded-3 border-bottom" onclick="window.location.href='${targetUrl}'">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="fw-bold text-dark small">
+                                            <i class="fa-solid fa-utensils me-1" style="color: #4a154b;"></i>${title}
+                                        </span>
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle extra-small" style="font-size: 0.7rem;">${order.orderDate}</span>
+                                    </div>
+                                    <p class="text-muted extra-small mb-0" style="font-size:0.78rem;">Sipariş mutfakta hazırlandı, servise hazır!</p>
+                                </li>`;
+                        });
+
+                        $container.html(html);
+                    } else {
+                        $badge.hide().text("0");
+                        $countText.text("0 Sipariş");
+                        $container.html('<li class="text-center py-3 text-muted small" id="noNotificationText">Hazır bekleyen sipariş bulunmuyor.</li>');
+                    }
+                },
+                error: function (err) {
+                    console.error("Bildirimler çekilemedi:", err);
+                }
+            });
+        }
+
         (function renderRoleSidebar() {
-            var localRole = localStorage.getItem("Role");
+            var localRole = (localStorage.getItem("Role") || "").trim();
             var currentPath = window.location.pathname.toLowerCase();
             var menuHtml = '';
 
-            // 1. Önce Role Göre Çizim
-            if (localRole === 'Admin') {
+            var isTableActive = currentPath.includes('/admin/tablemanagement') || currentPath.includes('/admin/floorplanmanagement');
+
+            // Admin kontrolü
+            if (localRole === 'Admin' || currentPath.includes('/admin/')) {
                 menuHtml = `
-                            <li class="${currentPath.includes('/admin/index') ? 'active' : ''}">
-                                <a href="/Admin/Index"><i class="fa-solid fa-house"></i><span class="link-text">Ana Sayfa</span></a>
-                            </li>
-                            <li class="${currentPath.includes('/admin/dashboard') ? 'active' : ''}">
-                                <a href="/Admin/Dashboard"><i class="fa-solid fa-sliders"></i><span class="link-text">Kontrol Paneli</span></a>
-                            </li>
-                            <li class="${currentPath.includes('/admin/staffmanagement') ? 'active' : ''}">
-                                <a href="/Admin/StaffManagement"><i class="fa-solid fa-users-gear"></i><span class="link-text">Personel Yönetimi</span></a>
-                            </li>
-                            <li class="${currentPath.includes('/admin/tablemanagement') ? 'active' : ''}">
-                                <a href="/Admin/TableManagement"><i class="fa-solid fa-chair"></i><span class="link-text">Masa Yönetimi</span></a>
-                            </li>`;
-            } else if (localRole === 'Garson/Kasiyer' || localRole === 'Garson' || localRole === 'Kasiyer') {
-                menuHtml = `
-                            <li class="${currentPath.includes('/order/pos') ? 'active' : ''}">
-                                <a href="/Order/Pos"><i class="fa-solid fa-cash-register"></i><span class="link-text">POS & Sipariş</span></a>
-                            </li>`;
-            } else if (localRole === 'Mutfak Şefi' || localRole === 'Mutfak') {
-                menuHtml = `
-                            <li class="${currentPath.includes('/kitchen') ? 'active' : ''}">
-                                <a href="/Kitchen/Index"><i class="fa-solid fa-fire-burner"></i><span class="link-text">Mutfak Ekranı</span></a>
-                            </li>`;
-            }
-            // 2. Rol Okunamazsa URL Yoluna Göre Fallback Çizim (Güvenlik Önlemi)
-            else {
-                if (currentPath.includes('/order/pos')) {
-                    menuHtml = `
-                                <li class="active">
-                                    <a href="/Order/Pos"><i class="fa-solid fa-cash-register"></i><span class="link-text">POS & Sipariş</span></a>
+                                <li class="${currentPath.includes('/admin/index') ? 'active' : ''}">
+                                    <a href="/Admin/Index"><i class="fa-solid fa-house"></i><span class="link-text">Ana Sayfa</span></a>
+                                </li>
+                                <li class="${currentPath.includes('/admin/dashboard') ? 'active' : ''}">
+                                    <a href="/Admin/Dashboard"><i class="fa-solid fa-sliders"></i><span class="link-text">Kontrol Paneli</span></a>
+                                </li>
+                                <li class="${currentPath.includes('/admin/staffmanagement') ? 'active' : ''}">
+                                    <a href="/Admin/StaffManagement"><i class="fa-solid fa-users-gear"></i><span class="link-text">Personel Yönetimi</span></a>
+                                </li>
+                                <li class="${currentPath.includes('/admin/ordertracking') ? 'active' : ''}">
+                                    <a href="/Admin/OrderTracking"><i class="fa-solid fa-clock-rotate-left"></i><span class="link-text">Sipariş Takip</span></a>
+                                </li>
+                                <li class="${currentPath.includes('/admin/kitchenreport') ? 'active' : ''}">
+                                    <a href="/Admin/KitchenReport"><i class="fa-solid fa-receipt"></i><span class="link-text">Mutfak Raporu</span></a>
+                                </li>
+                                <li class="${isTableActive ? 'active' : ''}">
+                                    <a class="d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#tableSubMenu" role="button" aria-expanded="false">
+                                        <span><i class="fa-solid fa-chair me-2"></i><span class="link-text">Masa Yönetimi</span></span>
+                                        <i class="fa-solid fa-chevron-down small submenu-arrow"></i>
+                                    </a>
+                                    <div class="collapse" id="tableSubMenu">
+                                        <ul class="submenu-list">
+                                            <li class="${currentPath.includes('/admin/tablemanagement') ? 'active' : ''}">
+                                                <a href="/Admin/TableManagement"><span class="link-text">Yeni Masa Ekle</span></a>
+                                            </li>
+                                            <li class="${currentPath.includes('/admin/floorplanmanagement') ? 'active' : ''}">
+                                                <a href="/Admin/FloorPlanManagement"><span class="link-text">Kroki Yönetimi</span></a>
+                                            </li>
+                                        </ul>
+                                    </div>
                                 </li>`;
-                } else if (currentPath.includes('/kitchen')) {
-                    menuHtml = `
-                                <li class="active">
+            } else if (localRole.includes('Garson') || localRole.includes('Kasiyer')) {
+                menuHtml = `
+                                <li class="${currentPath.includes('/order/pos') ? 'active' : ''}">
+                                    <a href="/Order/POS"><i class="fa-solid fa-utensils"></i><span class="link-text">Sipariş Yönetimi</span></a>
+                                </li>
+                                <li class="${currentPath.includes('/order/waiterordertracking') ? 'active' : ''}">
+                                    <a href="/Order/WaiterOrderTracking"><i class="fa-solid fa-bell-concierge"></i><span class="link-text">Sipariş Takip</span></a>
+                                </li>
+                                <li class="${currentPath.includes('/table/tablecontrol') ? 'active' : ''}">
+                                    <a href="/Table/TableControl"><i class="fa-solid fa-chair"></i><span class="link-text">Masa Kontrolü</span></a>
+                                </li>`;
+            } else if (localRole.includes('Mutfak')) {
+                menuHtml = `
+                                <li class="${currentPath.includes('/kitchen') ? 'active' : ''}">
                                     <a href="/Kitchen/Index"><i class="fa-solid fa-fire-burner"></i><span class="link-text">Mutfak Ekranı</span></a>
                                 </li>`;
+            } else {
+                if (currentPath.includes('/order/') || currentPath.includes('/table/')) {
+                    menuHtml = `
+                                <li class="${currentPath.includes('/order/pos') ? 'active' : ''}">
+                                    <a href="/Order/POS"><i class="fa-solid fa-utensils"></i><span class="link-text">Sipariş Yönetimi</span></a>
+                                </li>
+                                <li class="${currentPath.includes('/order/waiterordertracking') ? 'active' : ''}">
+                                    <a href="/Order/WaiterOrderTracking"><i class="fa-solid fa-bell-concierge"></i><span class="link-text">Sipariş Takip</span></a>
+                                </li>
+                                <li class="${currentPath.includes('/table/tablecontrol') ? 'active' : ''}">
+                                    <a href="/Table/TableControl"><i class="fa-solid fa-chair"></i><span class="link-text">Masa Kontrolü</span></a>
+                                </li>`;
+                } else if (currentPath.includes('/kitchen')) {
+                    menuHtml = `<li class="active"><a href="/Kitchen/Index"><i class="fa-solid fa-fire-burner"></i><span class="link-text">Mutfak Ekranı</span></a></li>`;
                 }
             }
 
@@ -415,7 +576,10 @@
         })();
 
         $(document).ready(function () {
-            // Sidebar daraltma/genişletme
+            // Bildirim çekicisini başlat
+            fetchLayoutNotifications();
+            setInterval(fetchLayoutNotifications, 8000);
+
             $('#sidebarToggle').on('click', function () {
                 $('#sidebar').toggleClass('collapsed');
                 $('#content').toggleClass('expanded');
@@ -427,18 +591,15 @@
                 }
             });
 
-            // Kullanıcı Ad-Soyad Gösterimi
             let fullName = localStorage.getItem("FullName");
             if (fullName) {
                 $('#lblFullName').text(fullName);
             }
 
-            // Çıkış yapıldığında localStorage temizliği
             $('#btnLogout, a[href="/Auth/Login"]').on('click', function () {
                 localStorage.clear();
             });
 
-            // Dropdown Ok Yönü Değişimi
             const dropdownElement = document.getElementById('profileDropdownContainer');
             if (dropdownElement) {
                 dropdownElement.addEventListener('show.bs.dropdown', function () {

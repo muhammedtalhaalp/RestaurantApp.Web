@@ -1,35 +1,36 @@
 ﻿using RestaurantApp.Web.Data;
 using RestaurantApp.Web.Filters;
-using RestaurantApp.Web.Helpers; // CacheHelper için
+using RestaurantApp.Web.Helpers;
 using System;
 using System.Linq;
 using System.Web.Mvc;
 
 namespace RestaurantApp.Web.Controllers
 {
-    [JwtAuthorize(Roles = "Admin")] // Sadece Yönetici erişebilir
+    [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
     public class CategoryController : Controller
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
 
-        // 1. Kategorileri Önbellekten / DB'den Listele
+        // 1. Kategorileri ve Durumlarını Getir
         [HttpGet]
-        public JsonResult GetCategories()
+        [AllowAnonymous]
+        public JsonResult GetCategories(int? companyId)
         {
             try
             {
-                var categories = CacheHelper.GetOrAdd("AllCategories", () =>
-                {
-                    return db.AppCategories
-                        .Where(c => c.IsActive)
-                        .Select(c => new
-                        {
-                            c.CategoryId,
-                            c.CategoryName,
-                            c.CompanyId,
-                            ProductCount = c.AppProducts.Count()
-                        }).ToList();
-                });
+                int targetCompanyId = companyId.HasValue && companyId.Value > 0 ? companyId.Value : 1;
+
+                var categories = db.AppCategories
+                    .Where(c => c.CompanyId == targetCompanyId)
+                    .Select(c => new
+                    {
+                        c.CategoryId,
+                        c.CategoryName,
+                        c.CompanyId,
+                        c.IsActive,
+                        productCount = c.AppProducts.Count(p => p.IsActive)
+                    }).ToList();
 
                 return Json(new { success = true, data = categories }, JsonRequestBehavior.AllowGet);
             }
@@ -39,7 +40,33 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // 2. Yeni Kategori Ekle (AJAX)
+        // 2. Kategori Dondur / Aktif Et (Toggle Status)
+        [HttpPost]
+        public JsonResult ToggleCategoryStatus(int categoryId)
+        {
+            try
+            {
+                var category = db.AppCategories.FirstOrDefault(c => c.CategoryId == categoryId);
+                if (category == null)
+                {
+                    return Json(new { success = false, message = "Kategori bulunamadı." });
+                }
+
+                category.IsActive = !category.IsActive;
+                db.SaveChanges();
+
+                CacheHelper.Remove("AllCategories");
+
+                string statusMessage = category.IsActive ? "Kategori aktif edildi." : "Kategori donduruldu / pasife alındı.";
+                return Json(new { success = true, isActive = category.IsActive, message = statusMessage });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        // 3. Yeni Kategori Ekle (AJAX)
         [HttpPost]
         public JsonResult Create(string categoryName, int? companyId)
         {
@@ -60,13 +87,12 @@ namespace RestaurantApp.Web.Controllers
             db.AppCategories.Add(category);
             db.SaveChanges();
 
-            // Cache Temizle
             CacheHelper.Remove("AllCategories");
 
             return Json(new { success = true, message = "Kategori başarıyla eklendi.", categoryId = category.CategoryId });
         }
 
-        // 3. Kategori Güncelle (AJAX)
+        // 4. Kategori Güncelle (AJAX)
         [HttpPost]
         public JsonResult Update(int categoryId, string categoryName)
         {
@@ -84,24 +110,21 @@ namespace RestaurantApp.Web.Controllers
             category.CategoryName = categoryName;
             db.SaveChanges();
 
-            // Cache Temizle
             CacheHelper.Remove("AllCategories");
 
             return Json(new { success = true, message = "Kategori güncellendi." });
         }
 
-        // 4. Kategori Sil / Pasife Al (AJAX)
+        // 5. Kategori Sil (AJAX)
         [HttpPost]
         public JsonResult Delete(int id)
         {
             var category = db.AppCategories.FirstOrDefault(c => c.CategoryId == id);
             if (category != null)
             {
-                // Soft Delete: Pasife Çekiyoruz
-                category.IsActive = false;
+                db.AppCategories.Remove(category);
                 db.SaveChanges();
 
-                // Cache Temizle
                 CacheHelper.Remove("AllCategories");
 
                 return Json(new { success = true, message = "Kategori başarıyla silindi." });
