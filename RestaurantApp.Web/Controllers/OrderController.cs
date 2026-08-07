@@ -12,12 +12,16 @@ namespace RestaurantApp.Web.Controllers
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
 
+        public ActionResult Index()
+        {
+            return View();
+        }
+
         public ActionResult POS()
         {
             return View();
         }
 
-        // YENİ: Garson Sipariş Takip Sayfası ActionResult
         public ActionResult WaiterOrderTracking()
         {
             return View();
@@ -31,18 +35,28 @@ namespace RestaurantApp.Web.Controllers
             {
                 var tables = db.AppTables
                     .Where(t => t.IsActive)
-                    .Select(t => new
+                    .ToList()
+                    .Select(t =>
                     {
-                        tableId = t.TableId,
-                        tableName = t.TableNumber, // "Masa Masa-1" çiftlemesini önlemek için doğrudan veritabanı verisi aktarılıyor
-                        tableNumber = t.TableNumber,
-                        status = t.Status ?? "Bos",
-                        section = t.Section ?? "Salon",
-                        shape = t.Shape ?? "Square",
-                        posX = t.PosX ?? 50,
-                        posY = t.PosY ?? 50,
-                        width = t.Width ?? 75,
-                        height = t.Height ?? 75
+                        // DÜZELTME: Hesabı henüz kapatılmamış (Tamamlandı ve İptal olmayan) siparişlerin tutarını topluyoruz.
+                        var activeTotal = db.AppOrders
+                            .Where(o => o.TableId == t.TableId && o.Status != "Tamamlandı" && o.Status != "İptal")
+                            .Sum(o => (decimal?)o.TotalAmount) ?? 0;
+
+                        return new
+                        {
+                            tableId = t.TableId,
+                            tableName = t.TableNumber,
+                            tableNumber = t.TableNumber,
+                            status = t.Status ?? "Bos",
+                            currentAmount = activeTotal,
+                            section = t.Section ?? "Salon",
+                            shape = t.Shape ?? "Square",
+                            posX = t.PosX ?? 50,
+                            posY = t.PosY ?? 50,
+                            width = t.Width ?? 75,
+                            height = t.Height ?? 75
+                        };
                     }).ToList();
 
                 return Json(new { success = true, data = tables }, JsonRequestBehavior.AllowGet);
@@ -53,7 +67,6 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // 2. POS Ekranı İçin Ürün Getirme Endpoint'i
         [HttpGet]
         [AllowAnonymous]
         public JsonResult GetProducts(int? companyId)
@@ -84,37 +97,6 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // 3. Mutfak Şefinin Siparişi "Hazır" İşaretlemesi
-        [HttpPost]
-        [JwtAuthorize(Roles = "Admin, Mutfak Şefi, Mutfak")]
-        public JsonResult MarkOrderAsReady(int orderId)
-        {
-            try
-            {
-                var order = db.AppOrders.FirstOrDefault(x => x.OrderId == orderId);
-                if (order == null)
-                    return Json(new { success = false, message = "Sipariş bulunamadı." });
-
-                order.Status = "Hazır";
-                db.SaveChanges();
-
-                return Json(new
-                {
-                    success = true,
-                    message = "Sipariş hazır olarak işaretlendi.",
-                    orderId = order.OrderId,
-                    tableName = order.TableId.HasValue && order.AppTables != null ? order.AppTables.TableNumber : "Paket Servis",
-                    orderType = order.OrderType,
-                    address = order.DeliveryAddress
-                });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Bir hata oluştu: " + ex.Message });
-            }
-        }
-
-        // 4. Garsonun Bildirimi/Siparişi Onaylayıp "Tamamlandı" İşaretlemesi
         [HttpPost]
         [JwtAuthorize(Roles = "Admin, Garson/Kasiyer, Garson, Kasiyer")]
         public JsonResult ApproveOrderDelivery(int orderId)
@@ -125,7 +107,9 @@ namespace RestaurantApp.Web.Controllers
                 if (order == null)
                     return Json(new { success = false, message = "Sipariş bulunamadı." });
 
-                order.Status = "Tamamlandı";
+                // DÜZELTME: Teslim alınınca statü "Servis Edildi" olur. 
+                // Sipariş takipten düşer ancak ödeme yapılmadığı için masa tutarında kalır.
+                order.Status = "Servis Edildi";
                 db.SaveChanges();
 
                 return Json(new { success = true, message = "Sipariş teslimatı onaylandı." });
@@ -136,7 +120,6 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // 5. Yeni Sipariş Oluşturma
         [HttpPost]
         public JsonResult CreateOrder(CreateOrderViewModel model)
         {
@@ -189,7 +172,7 @@ namespace RestaurantApp.Web.Controllers
 
                 db.SaveChanges();
 
-                return Json(new { success = true, message = "Sipariş başarıyla oluşturuldu.", orderId = newOrder.OrderId });
+                return Json(new { success = true, message = "Sipariş mutfağa iletildi.", orderId = newOrder.OrderId });
             }
             catch (Exception ex)
             {

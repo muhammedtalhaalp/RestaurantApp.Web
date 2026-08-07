@@ -251,6 +251,7 @@
     <Content Include="Library\scripts\adminIndex.js" />
     <Content Include="Library\scripts\dashboard.js" />
     <Content Include="Library\scripts\floor-plan-management.js" />
+    <Content Include="Library\scripts\order-index.js" />
     <Content Include="Library\scripts\kitchen-report.js" />
     <Content Include="Library\scripts\kitchen.js" />
     <Content Include="Library\scripts\login.js" />
@@ -264,6 +265,7 @@
     <Content Include="Library\styles\admin-index.css" />
     <Content Include="Library\styles\dashboard.css" />
     <Content Include="Library\styles\floor-plan-management.css" />
+    <Content Include="Library\styles\order-index.css" />
     <Content Include="Library\styles\kitchen-report.css" />
     <Content Include="Library\styles\kitchen.css" />
     <Content Include="Library\styles\login.css" />
@@ -327,13 +329,11 @@
     <Content Include="Views\Order\WaiterOrderTracking.cshtml" />
     <Content Include="Views\Admin\KitchenReport.cshtml" />
     <Content Include="Views\Order\TableControl.cshtml" />
+    <Content Include="Views\Order\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />
     <Folder Include="Library\assets\" />
-    <Folder Include="Views\Category\" />
-    <Folder Include="Views\Product\" />
-    <Folder Include="Views\Table\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\bootstrap.rtl.min.css.map" />

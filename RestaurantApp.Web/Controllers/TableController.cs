@@ -11,23 +11,20 @@ namespace RestaurantApp.Web.Controllers
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
 
-        // 1. Masaları Listele
         public ActionResult Index()
         {
             var tables = db.AppTables.Where(t => t.IsActive).ToList();
             return View(tables);
         }
 
-        #region YENİ: MASA KONTROLÜ İŞLEMLERİ
+        #region MASA KONTROLÜ VE HESAP KAPATMA İŞLEMLERİ
 
-        // 1.1 Garson Masa Kontrolü Görünüm Metodu (Açık dosya yolu ile hatayı çözer)
         [HttpGet]
         public ActionResult TableControl()
         {
             return View("~/Views/Order/TableControl.cshtml");
         }
 
-        // 1.2 Sadece "Dolu" Masaları Getiren Endpoint (JS tarafı çağırır)
         [HttpGet]
         public JsonResult GetOccupiedTables()
         {
@@ -35,12 +32,22 @@ namespace RestaurantApp.Web.Controllers
             {
                 var occupiedTables = db.AppTables
                     .Where(t => t.IsActive && t.Status == "Dolu")
-                    .Select(t => new
+                    .ToList()
+                    .Select(t =>
                     {
-                        tableId = t.TableId,
-                        tableName = t.TableNumber,
-                        section = t.Section ?? "Salon",
-                        status = t.Status
+                        // DÜZELTME: Kapatılmamış (Status != Tamamlandı ve Status != İptal) tüm siparişleri toplar.
+                        var totalAmount = db.AppOrders
+                            .Where(o => o.TableId == t.TableId && o.Status != "Tamamlandı" && o.Status != "İptal")
+                            .Sum(o => (decimal?)o.TotalAmount) ?? 0;
+
+                        return new
+                        {
+                            tableId = t.TableId,
+                            tableName = t.TableNumber,
+                            section = t.Section ?? "Salon",
+                            status = t.Status,
+                            totalAmount = totalAmount
+                        };
                     }).ToList();
 
                 return Json(new { success = true, data = occupiedTables }, JsonRequestBehavior.AllowGet);
@@ -51,9 +58,9 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // 1.3 Müşteri Kalktığında Masayı Boşa Alan Endpoint
+        // Müşteri hesabı ödediğinde masayı boşaltan ve adisyonları kapatan endpoint
         [HttpPost]
-        public JsonResult ClearTableStatus(int tableId)
+        public JsonResult CloseTableAndPay(int tableId)
         {
             try
             {
@@ -61,20 +68,33 @@ namespace RestaurantApp.Web.Controllers
                 if (table == null)
                     return Json(new { success = false, message = "Masa bulunamadı." });
 
+                // Garson masadaki tüm siparişleri teslim almadan (Servis Edildi yapmadan) masa kapatılamaz!
+                bool hasUnservedOrders = db.AppOrders.Any(o => o.TableId == tableId && (o.Status == "Hazırlanıyor" || o.Status == "Hazır"));
+                if (hasUnservedOrders)
+                {
+                    return Json(new { success = false, message = "Bu masada henüz servisi tamamlanmamış (hazırlanan veya hazır) ürünler var! Önce siparişleri masaya teslim almalısınız." });
+                }
+
+                // Masaya ait açık tüm siparişlerin durumunu "Tamamlandı" (Hesap Ödendi) yapıyoruz
+                var activeOrders = db.AppOrders.Where(o => o.TableId == tableId && o.Status != "Tamamlandı" && o.Status != "İptal").ToList();
+                foreach (var order in activeOrders)
+                {
+                    order.Status = "Tamamlandı";
+                }
+
                 table.Status = "Bos";
                 db.SaveChanges();
 
-                return Json(new { success = true, message = "Masa başarıyla boşaltıldı." });
+                return Json(new { success = true, message = "Hesap kapatıldı ve masa boşaltıldı." });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Masa boşaltılırken hata: " + ex.Message });
+                return Json(new { success = false, message = "Masa kapatılırken hata: " + ex.Message });
             }
         }
 
         #endregion
 
-        // 2. Yeni Masa Ekle (POST)
         [HttpPost]
         public ActionResult Create(string tableNumber)
         {
@@ -94,7 +114,6 @@ namespace RestaurantApp.Web.Controllers
             return RedirectToAction("Index");
         }
 
-        // 3. Masa Durumu Güncelle (Bos, Dolu, Rezerve) (POST)
         [HttpPost]
         public ActionResult UpdateStatus(int id, string status)
         {
@@ -108,7 +127,6 @@ namespace RestaurantApp.Web.Controllers
             return RedirectToAction("Index");
         }
 
-        // 4. Masa Sil / Pasife Al (POST)
         [HttpPost]
         public ActionResult Delete(int id)
         {

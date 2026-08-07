@@ -13,16 +13,16 @@ var marker;
 var geocoder;
 var autocomplete;
 var cart = [];
-var defaultLat = 41.0082; // İstanbul Varsayılan Lat
-var defaultLng = 28.9784; // İstanbul Varsayılan Lng
+var defaultLat = 38.7205;
+var defaultLng = 35.4826;
 var posTablesData = [];
 var currentRawProducts = [];
+var currentViewMode = "grid";
+var activeCategoryId = 0;
 
-// GOOGLE MAPS İNİTİALİZE FONKSİYONU
 function initGoogleMap() {
     var defaultLocation = { lat: defaultLat, lng: defaultLng };
 
-    // 1. Haritayı Oluştur
     map = new google.maps.Map(document.getElementById('map'), {
         center: defaultLocation,
         zoom: 14,
@@ -31,7 +31,6 @@ function initGoogleMap() {
         fullscreenControl: false
     });
 
-    // 2. Geocoder & Sürüklenip-Tıklanabilir Marker
     geocoder = new google.maps.Geocoder();
     marker = new google.maps.Marker({
         position: defaultLocation,
@@ -42,7 +41,6 @@ function initGoogleMap() {
 
     updateCoordinates(defaultLat, defaultLng);
 
-    // 3. Haritaya Tıklandığında Pini Oraya Taşı ve Onay Sor
     map.addListener('click', function (e) {
         var clickedLat = e.latLng.lat();
         var clickedLng = e.latLng.lng();
@@ -52,24 +50,19 @@ function initGoogleMap() {
         askAndUpdateAddress(e.latLng);
     });
 
-    // 4. Pin Sürüklendiğinde Bırakıldığı Yerin Adresi İçin Onay Sor
     marker.addListener('dragend', function () {
         var pos = marker.getPosition();
         updateCoordinates(pos.lat(), pos.lng());
         askAndUpdateAddress(pos);
     });
 
-    // 5. Places Autocomplete (Üst Adres Kutusundan Seçim Yapılınca)
     var input = document.getElementById('txtDeliveryAddress');
     autocomplete = new google.maps.places.Autocomplete(input);
     autocomplete.bindTo('bounds', map);
 
-    // Otomatik Adres Seçildiğinde Pini ve Haritayı Oraya Taşı
     autocomplete.addListener('place_changed', function () {
         var place = autocomplete.getPlace();
-        if (!place.geometry || !place.geometry.location) {
-            return;
-        }
+        if (!place.geometry || !place.geometry.location) return;
 
         if (place.geometry.viewport) {
             map.fitBounds(place.geometry.viewport);
@@ -83,7 +76,6 @@ function initGoogleMap() {
     });
 }
 
-// ONAYLI ADRES GÜNCELLEME FONKSİYONU (Harita Tıklama/Sürükleme İçin)
 function askAndUpdateAddress(latLng) {
     if (!geocoder) return;
 
@@ -92,7 +84,6 @@ function askAndUpdateAddress(latLng) {
             var fetchedAddress = results[0].formatted_address;
             var currentAddress = ($("#txtDeliveryAddress").val() || "").trim();
 
-            // Kutudaki mevcut adres ile haritadan gelen adres farklıysa onay sor
             if (currentAddress !== "" && currentAddress !== fetchedAddress) {
                 Swal.fire({
                     title: 'Adres Güncellensin mi?',
@@ -109,7 +100,6 @@ function askAndUpdateAddress(latLng) {
                     }
                 });
             } else if (currentAddress === "") {
-                // Adres kutusu henüz boşsa direkt yaz
                 $("#txtDeliveryAddress").val(fetchedAddress);
             }
         }
@@ -128,7 +118,20 @@ $(document).ready(function () {
     loadProducts(0);
     loadTables();
 
-    // Sipariş Türü Değiştiğinde Alanları Göster/Gizle
+    $("#btnGridView").on("click", function () {
+        currentViewMode = "grid";
+        $("#btnTableView").removeClass("active btn-purple-main text-white").addClass("btn-outline-secondary");
+        $(this).removeClass("btn-outline-secondary").addClass("active btn-purple-main text-white");
+        renderProductsView();
+    });
+
+    $("#btnTableView").on("click", function () {
+        currentViewMode = "table";
+        $("#btnGridView").removeClass("active btn-purple-main text-white").addClass("btn-outline-secondary");
+        $(this).removeClass("btn-outline-secondary").addClass("active btn-purple-main text-white");
+        renderProductsView();
+    });
+
     $("#orderType").on("change", function () {
         var selectedType = $(this).val();
         if (selectedType === "PaketServis") {
@@ -182,6 +185,27 @@ $(document).ready(function () {
                 });
                 return;
             }
+
+            var selectedTable = posTablesData.find(t => t.tableId == tableId);
+            if (selectedTable && selectedTable.status === "Dolu") {
+                var itemListText = cart.map(c => `• ${c.name} (${c.quantity} Adet)`).join('\n');
+
+                Swal.fire({
+                    title: `${selectedTable.tableName} Masasına Ek Sipariş!`,
+                    text: `Bu masa halihazırda DOLUDUR. Aşağıdaki ürünler masanın mevcut adisyonuna eklenecektir:\n\n${itemListText}\n\nDevam etmek istiyor musunuz?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#4a154b',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Evet, Masaya Ekle',
+                    cancelButtonText: 'İptal Et'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        executeSubmitOrder(orderType, tableId, address, lat, lng);
+                    }
+                });
+                return;
+            }
         }
 
         if (orderType === "PaketServis") {
@@ -196,47 +220,51 @@ $(document).ready(function () {
             }
         }
 
-        var orderData = {
-            OrderType: orderType,
-            TableId: orderType === "Masa" ? parseInt(tableId) : null,
-            DeliveryAddress: orderType === "PaketServis" ? address : null,
-            Latitude: orderType === "PaketServis" ? lat : null,
-            Longitude: orderType === "PaketServis" ? lng : null,
-            TotalAmount: calculateTotal(),
-            Items: cart.map(item => ({
-                ProductId: item.id,
-                Quantity: item.quantity,
-                UnitPrice: item.price
-            }))
-        };
-
-        var $btn = $(this);
-        $btn.prop("disabled", true).html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Gönderiliyor...');
-
-        $.ajax({
-            url: "/Order/CreateOrder",
-            type: "POST",
-            data: JSON.stringify(orderData),
-            contentType: "application/json",
-            success: function (response) {
-                $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-2"></i>Siparişi Onayla');
-                if (response.success) {
-                    Swal.fire("Başarılı!", response.message, "success");
-                    cart = [];
-                    renderCart();
-                    $("#txtDeliveryAddress").val("");
-                    loadTables();
-                } else {
-                    Swal.fire("Hata", response.message, "error");
-                }
-            },
-            error: function () {
-                $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-2"></i>Siparişi Onayla');
-                Swal.fire("Hata", "Sipariş gönderilirken sunucu hatası oluştu.", "error");
-            }
-        });
+        executeSubmitOrder(orderType, tableId, address, lat, lng);
     });
 });
+
+function executeSubmitOrder(orderType, tableId, address, lat, lng) {
+    var orderData = {
+        OrderType: orderType,
+        TableId: orderType === "Masa" ? parseInt(tableId) : null,
+        DeliveryAddress: orderType === "PaketServis" ? address : null,
+        Latitude: orderType === "PaketServis" ? lat : null,
+        Longitude: orderType === "PaketServis" ? lng : null,
+        TotalAmount: calculateTotal(),
+        Items: cart.map(item => ({
+            ProductId: item.id,
+            Quantity: item.quantity,
+            UnitPrice: item.price
+        }))
+    };
+
+    var $btn = $("#btn-submit-order");
+    $btn.prop("disabled", true).html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Gönderiliyor...');
+
+    $.ajax({
+        url: "/Order/CreateOrder",
+        type: "POST",
+        data: JSON.stringify(orderData),
+        contentType: "application/json",
+        success: function (response) {
+            $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-2"></i>Siparişi Onayla');
+            if (response.success) {
+                Swal.fire("Başarılı!", response.message, "success");
+                cart = [];
+                renderCart();
+                $("#txtDeliveryAddress").val("");
+                loadTables();
+            } else {
+                Swal.fire("Hata", response.message, "error");
+            }
+        },
+        error: function () {
+            $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-2"></i>Siparişi Onayla');
+            Swal.fire("Hata", "Sipariş gönderilirken sunucu hatası oluştu.", "error");
+        }
+    });
+}
 
 function loadTables() {
     $.ajax({
@@ -248,7 +276,8 @@ function loadTables() {
                 posTablesData = res.data;
                 var html = '<option value="">Masa Seçiniz...</option>';
                 $.each(res.data, function (i, t) {
-                    var statusBadge = t.status === "Dolu" ? " (Dolu)" : " (Boş)";
+                    var amountVal = parseFloat(t.currentAmount || 0).toFixed(2);
+                    var statusBadge = t.status === "Dolu" ? ` (Dolu - ${amountVal} ₺)` : " (Boş)";
                     html += `<option value="${t.tableId}">${t.tableName}${statusBadge}</option>`;
                 });
                 $("#tableId").html(html);
@@ -286,7 +315,8 @@ function renderPosTableCards(sectionFilter) {
         var isOccupied = t.status === "Dolu";
         var cardClass = isOccupied ? "table-card-occupied" : "table-card-empty";
         var badgeClass = isOccupied ? "bg-danger text-white" : "bg-success text-white";
-        var statusText = isOccupied ? "Dolu" : "Boş";
+        var amountVal = parseFloat(t.currentAmount || 0).toFixed(2);
+        var statusText = isOccupied ? `Dolu (${amountVal} ₺)` : "Boş";
 
         var cardHtml = `
             <div class="col-md-3 col-sm-6">
@@ -361,53 +391,106 @@ function loadCategories() {
 }
 
 function loadProducts(categoryId) {
+    activeCategoryId = categoryId;
     $.get("/Order/GetProducts?companyId=1", function (res) {
         if (res.success && res.data) {
             currentRawProducts = res.data;
-            var availableProducts = res.data.filter(p => p.IsAvailable !== false);
-
-            var filtered = categoryId == 0
-                ? availableProducts
-                : availableProducts.filter(p => p.CategoryId == categoryId);
-
-            var html = "";
-            if (filtered.length === 0) {
-                html = '<div class="col-12 text-center py-4 text-muted"><i class="fa-solid fa-utensils me-2"></i>Bu kategoride gösterilecek ürün bulunamadı.</div>';
-            } else {
-                $.each(filtered, function (i, p) {
-                    var imgUrl = p.ImageUrl || '/Content/images/default-food.png';
-                    var safeName = p.ProductName.replace(/'/g, "\\'");
-
-                    html += `
-                        <div class="col-md-4 mb-3">
-                            <div class="card product-card p-2 shadow-sm border-0 h-100 position-relative">
-                                <button class="btn btn-sm btn-light position-absolute top-0 end-0 m-2 rounded-circle shadow-sm p-1" 
-                                        style="width: 30px; height: 30px; z-index: 5;" 
-                                        onclick="openProductDetailModal(${p.ProductId})" 
-                                        title="Ayrıntıları Gör">
-                                    <i class="fa-solid fa-circle-info text-secondary"></i>
-                                </button>
-
-                                <img src="${imgUrl}" class="card-img-top rounded-3 mb-2" style="height: 105px; object-fit: cover;">
-                                
-                                <div class="card-body p-1 d-flex flex-column justify-content-between">
-                                    <div class="text-center mb-2">
-                                        <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.88rem;">${p.ProductName}</h6>
-                                        <span class="fw-bold fs-6" style="color: #4a154b;">${parseFloat(p.Price).toFixed(2)} ₺</span>
-                                    </div>
-                                    
-                                    <button class="btn btn-sm btn-purple w-100 rounded-3 fw-semibold py-1 mt-auto" 
-                                            onclick="addToCart(${p.ProductId}, '${safeName}', ${p.Price})">
-                                        <i class="fa-solid fa-plus me-1"></i>Ekle
-                                    </button>
-                                </div>
-                            </div>
-                        </div>`;
-                });
-            }
-            $("#product-list").html(html);
+            renderProductsView();
         }
     });
+}
+
+function renderProductsView() {
+    if (!currentRawProducts || currentRawProducts.length === 0) return;
+
+    var availableProducts = currentRawProducts.filter(p => p.IsAvailable !== false);
+    var filtered = activeCategoryId == 0
+        ? availableProducts
+        : availableProducts.filter(p => p.CategoryId == activeCategoryId);
+
+    var $container = $("#product-list");
+    $container.empty();
+
+    if (filtered.length === 0) {
+        $container.html('<div class="col-12 text-center py-4 text-muted"><i class="fa-solid fa-utensils me-2"></i>Bu kategoride gösterilecek ürün bulunamadı.</div>');
+        return;
+    }
+
+    if (currentViewMode === "grid") {
+        var html = "";
+        $.each(filtered, function (i, p) {
+            var imgUrl = p.ImageUrl || '/Content/images/default-food.png';
+            var safeName = p.ProductName.replace(/'/g, "\\'");
+
+            html += `
+                <div class="col-md-4 mb-3">
+                    <div class="card product-card p-2 shadow-sm border-0 h-100 position-relative">
+                        <button class="btn btn-sm btn-light position-absolute top-0 end-0 m-2 rounded-circle shadow-sm p-1" 
+                                style="width: 30px; height: 30px; z-index: 5;" 
+                                onclick="openProductDetailModal(${p.ProductId})" 
+                                title="Ayrıntıları Gör">
+                            <i class="fa-solid fa-circle-info text-secondary"></i>
+                        </button>
+
+                        <img src="${imgUrl}" class="card-img-top rounded-3 mb-2" style="height: 105px; object-fit: cover;">
+                        
+                        <div class="card-body p-1 d-flex flex-column justify-content-between">
+                            <div class="text-center mb-2">
+                                <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.88rem;">${p.ProductName}</h6>
+                                <span class="fw-bold fs-6" style="color: #4a154b;">${parseFloat(p.Price).toFixed(2)} ₺</span>
+                            </div>
+                            
+                            <button class="btn btn-sm btn-purple w-100 rounded-3 fw-semibold py-1 mt-auto" 
+                                    onclick="addToCart(${p.ProductId}, '${safeName}', ${p.Price})">
+                                <i class="fa-solid fa-plus me-1"></i>Ekle
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+        });
+        $container.html(html);
+    } else {
+        var tableHtml = `
+            <div class="col-12">
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Ürün Adı</th>
+                                    <th>Kategori</th>
+                                    <th class="text-end">Fiyat</th>
+                                    <th class="text-end pe-3" style="width: 120px;">İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+
+        $.each(filtered, function (i, p) {
+            var safeName = p.ProductName.replace(/'/g, "\\'");
+            tableHtml += `
+                <tr>
+                    <td class="ps-3 fw-semibold text-dark">
+                        ${p.ProductName}
+                        <i class="fa-solid fa-circle-info ms-1 text-muted cursor-pointer" style="font-size: 0.8rem;" onclick="openProductDetailModal(${p.ProductId})" title="Detay"></i>
+                    </td>
+                    <td><span class="badge bg-light text-dark border">${p.CategoryName || 'Genel'}</span></td>
+                    <td class="text-end fw-bold" style="color: #4a154b;">${parseFloat(p.Price).toFixed(2)} ₺</td>
+                    <td class="text-end pe-3">
+                        <button class="btn btn-sm btn-purple rounded-3 fw-semibold px-3" onclick="addToCart(${p.ProductId}, '${safeName}', ${p.Price})">
+                            <i class="fa-solid fa-plus me-1"></i>Ekle
+                        </button>
+                    </td>
+                </tr>`;
+        });
+
+        tableHtml += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>`;
+        $container.html(tableHtml);
+    }
 }
 
 function openProductDetailModal(productId) {

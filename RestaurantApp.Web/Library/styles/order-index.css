@@ -1,0 +1,88 @@
+﻿:root {
+    --brand-purple: #4a154b;
+    --brand-purple-hover: #381039;
+}
+
+/* KARŞILAMA KARTI */
+.welcome-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    border: 1px solid #edf2f7;
+}
+
+.welcome-icon-box {
+    width: 54px;
+    height: 54px;
+    background: #f4ebf4;
+    color: var(--brand-purple);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+/* AHMET ALANLARI / YÖNLENDİRME KARTLARI (ADMIN TASARIMI İLE BİREBİR) */
+.menu-card {
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 24px;
+    padding: 28px 24px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-decoration: none !important;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+    .menu-card:hover {
+        border-color: var(--brand-purple);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 28px rgba(74, 21, 75, 0.12);
+    }
+
+.menu-card-icon {
+    width: 56px;
+    height: 56px;
+    background: var(--brand-purple);
+    color: #ffffff;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    margin-bottom: 20px;
+}
+
+.menu-card-title {
+    font-weight: 700;
+    color: #1a202c;
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+.menu-card-desc {
+    color: #718096;
+    font-size: 0.88rem;
+    line-height: 1.5;
+    margin-bottom: 24px;
+    flex-grow: 1;
+}
+
+.menu-card-link {
+    font-weight: 700;
+    color: var(--brand-purple);
+    font-size: 0.92rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: gap 0.2s ease;
+}
+
+.menu-card:hover .menu-card-link {
+    gap: 10px;
+}

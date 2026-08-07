@@ -1,0 +1,73 @@
+﻿@{
+    ViewBag.Title = "Ana Sayfa";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/order-index.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+}
+
+<div class="container-fluid p-2">
+    <!-- Karşılama Kartı -->
+    <div class="welcome-card mb-4 d-flex align-items-center gap-3">
+        <div class="welcome-icon-box">
+            <i class="fa-solid fa-house"></i>
+        </div>
+        <div>
+            <h4 class="fw-bold text-dark mb-1">Hoş Geldiniz!</h4>
+            <p class="text-muted small mb-0">LezzetPOS garson paneline hoş geldiniz. Sol menüden veya aşağıdaki kartlardan işlemlerinizi gerçekleştirebilirsiniz.</p>
+        </div>
+    </div>
+
+    <!-- Yönlendirme Kartları Grid Yapısı -->
+    <div class="row g-4">
+        <!-- Sipariş Yönetimi -->
+        <div class="col-md-4">
+            <a href="/Order/POS" class="menu-card">
+                <div class="menu-card-icon">
+                    <i class="fa-solid fa-utensils"></i>
+                </div>
+                <div class="menu-card-title">Sipariş Yönetimi</div>
+                <div class="menu-card-desc">Menüdeki ürünleri inceleyin, sepete ekleyin, masa seçimi yapın veya paket servis siparişi oluşturun.</div>
+                <div class="menu-card-link">
+                    <span>Sayfaya Git</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </div>
+            </a>
+        </div>
+
+        <!-- Sipariş Takip -->
+        <div class="col-md-4">
+            <a href="/Order/WaiterOrderTracking" class="menu-card">
+                <div class="menu-card-icon">
+                    <i class="fa-solid fa-bell-concierge"></i>
+                </div>
+                <div class="menu-card-title">Sipariş Takip</div>
+                <div class="menu-card-desc">Mutfaktan çıkan hazır sipariş durumlarını anlık izleyin ve teslim aldığınız siparişleri onaylayın.</div>
+                <div class="menu-card-link">
+                    <span>Sayfaya Git</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </div>
+            </a>
+        </div>
+
+        <!-- Masa Kontrolü -->
+        <div class="col-md-4">
+            <a href="/Table/TableControl" class="menu-card">
+                <div class="menu-card-icon">
+                    <i class="fa-solid fa-chair"></i>
+                </div>
+                <div class="menu-card-title">Masa Kontrolü</div>
+                <div class="menu-card-desc">Restoran salonundaki tüm masaların doluluk durumlarını görün, kalkan müşterilerin masalarını tek tıkla boşaltın.</div>
+                <div class="menu-card-link">
+                    <span>Sayfaya Git</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Library/scripts/order-index.js?v=@DateTime.Now.Ticks"></script>
+}

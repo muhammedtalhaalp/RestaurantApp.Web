@@ -3,7 +3,7 @@
     --brand-purple-hover: #381039;
 }
 
-/* KATEGORİ VE VURGU BUTONLARI (MOR TEMA ENTEGRASYONU) */
+/* KATEGORİ VE VURGU BUTONLARI */
 .category-btn {
     min-width: 120px;
     margin-right: 8px;
@@ -58,14 +58,28 @@
         box-shadow: 0 6px 16px rgba(74, 21, 75, 0.12) !important;
     }
 
-/* POS SEPET KONTEYNIRI */
+/* POS SEPET KONTEYNIRI (EKRANDA SAĞDA SABİT) */
 .cart-container {
     border-left: 1px solid #e2e8f0;
-    min-height: calc(100vh - 20px);
+    position: sticky;
+    top: 16px;
+    height: calc(100vh - 32px);
     background-color: #f8fafc;
+    border-radius: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
 }
 
-/* LEAFLET MAPS STİLİ */
+.btn-purple-main {
+    background-color: var(--brand-purple) !important;
+    color: #ffffff !important;
+    border: none;
+}
+
+    .btn-purple-main:hover {
+        background-color: var(--brand-purple-hover) !important;
+    }
+
+/* LEAFLET/GOOGLE MAPS STİLİ */
 #map {
     width: 100%;
     height: 200px;
@@ -74,7 +88,7 @@
     margin-bottom: 10px;
 }
 
-/* GARSON MASA SEÇİM MODAL STİLLERİ */
+/* MASA SEÇİM MODAL STİLLERİ */
 #posSectionTabs .nav-link {
     color: #4a5568;
     background-color: #f7fafc;

@@ -12,8 +12,8 @@ var waiterReadyNotifications = [];
 $(document).ready(function () {
     console.log("Garson Sipariş Takip JS Yüklendi.");
 
-    loadWaiterReadyOrders();
-    setInterval(loadWaiterReadyOrders, 10000);
+    loadWaiterOrders();
+    setInterval(loadWaiterOrders, 8000);
     initWaiterSignalR();
 });
 
@@ -30,11 +30,11 @@ function initWaiterSignalR() {
             var notificationObj = {
                 orderId: orderId,
                 title: formattedTableName,
-                subtitle: isMasa ? `Mutfakta Hazırlandı` : `Adres: ${address || 'Girilmedi'}`,
+                subtitle: isMasa ? `Mutfakta Hazırlandı!` : `Adres: ${address || 'Girilmedi'}`,
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             };
 
-            loadWaiterReadyOrders();
+            loadWaiterOrders();
             showLeftToast(notificationObj);
         };
 
@@ -44,7 +44,7 @@ function initWaiterSignalR() {
     }
 }
 
-function loadWaiterReadyOrders() {
+function loadWaiterOrders() {
     $.ajax({
         url: "/Admin/GetPendingDeliveryOrders",
         type: "GET",
@@ -55,13 +55,16 @@ function loadWaiterReadyOrders() {
 
             if (res.success && res.data && res.data.length > 0) {
                 waiterReadyNotifications = res.data;
-                $badge.text(`${res.data.length} Sipariş Hazır`)
-                    .removeClass("bg-success text-white bg-warning text-dark")
+
+                var readyCount = res.data.filter(o => o.status === "Hazır").length;
+                $badge.text(`${res.data.length} Aktif Sipariş (${readyCount} Hazır)`)
+                    .removeClass("bg-success text-white")
                     .addClass("bg-warning text-dark");
 
                 var html = "";
                 $.each(res.data, function (i, order) {
                     var isMasa = order.orderType === "Masa";
+                    var isReady = order.status === "Hazır"; // Mutfak Şefi Hazır Dedi mi?
                     var icon = isMasa ? "fa-chair" : "fa-motorcycle";
 
                     var rawTableName = order.tableName || '';
@@ -69,20 +72,28 @@ function loadWaiterReadyOrders() {
                         ? (rawTableName.toLowerCase().startsWith('masa') ? rawTableName : `Masa ${rawTableName}`)
                         : "Paket Servis";
 
-                    var subText = isMasa ? "Mutfakta hazırlandı, servise hazır." : `Adres: ${order.deliveryAddress || 'Girilmedi'}`;
+                    var subText = isReady
+                        ? "<strong class='text-success'><i class='fa-solid fa-circle-check me-1'></i>Mutfakta hazırlandı, servise hazır!</strong>"
+                        : "<span class='text-muted'><i class='fa-solid fa-spinner fa-spin me-1 text-warning'></i>Mutfakta hazırlanıyor...</span>";
+
+                    var buttonHtml = isReady
+                        ? `<button class="btn btn-purple-main w-100 fw-bold py-2 rounded-3 text-white" style="background-color: #4a154b; border: none;" onclick="approveWaiterDelivery(${order.orderId})">
+                               <i class="fa-solid fa-circle-check me-2"></i>Teslim Aldım
+                           </button>`
+                        : `<button class="btn btn-light w-100 fw-bold py-2 rounded-3 text-muted border opacity-75" disabled>
+                               <i class="fa-solid fa-fire-burner me-2 text-warning"></i>Hazırlanıyor...
+                           </button>`;
 
                     html += `
                         <div class="col-md-4 col-lg-3" id="waiter-card-${order.orderId}">
-                            <div class="card h-100 border-0 shadow-sm rounded-4 p-3" style="border-left: 5px solid #4a154b !important;">
+                            <div class="card h-100 border-0 shadow-sm rounded-4 p-3" style="border-left: 5px solid ${isReady ? '#198754' : '#ffc107'} !important;">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid ${icon} me-2" style="color: #4a154b;"></i>${title}</h6>
                                     <span class="badge bg-light text-dark border"><i class="fa-regular fa-clock me-1"></i>${order.orderDate}</span>
                                 </div>
-                                <p class="text-muted small mb-3">${subText}</p>
+                                <p class="small mb-3">${subText}</p>
                                 <div class="pt-2 border-top mt-auto">
-                                    <button class="btn btn-purple-main w-100 fw-bold py-2 rounded-3 text-white" style="background-color: #4a154b; border: none;" onclick="approveWaiterDelivery(${order.orderId})">
-                                        <i class="fa-solid fa-circle-check me-2"></i>Teslim Aldım
-                                    </button>
+                                    ${buttonHtml}
                                 </div>
                             </div>
                         </div>`;
@@ -90,14 +101,14 @@ function loadWaiterReadyOrders() {
 
                 $grid.html(html);
             } else {
-                $badge.text("0 Sipariş Hazır")
+                $badge.text("0 Aktif Sipariş")
                     .removeClass("bg-warning text-dark")
                     .addClass("bg-success text-white");
 
                 $grid.html(`
                     <div class="col-12 text-center py-5 text-muted">
                         <i class="fa-solid fa-circle-check text-success fs-1 mb-3 opacity-50 d-block"></i>
-                        <h5>Şu an mutfaktan çıkan hazır sipariş bulunmuyor.</h5>
+                        <h5>Şu an aktif takip edilen sipariş bulunmuyor.</h5>
                     </div>`);
             }
         },
@@ -124,7 +135,7 @@ function approveWaiterDelivery(orderId) {
                 });
 
                 closeToast("toast-order-" + orderId);
-                loadWaiterReadyOrders();
+                loadWaiterOrders();
             }
         }
     });

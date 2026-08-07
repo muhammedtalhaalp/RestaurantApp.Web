@@ -36,7 +36,7 @@
                     var h = t.height || 75;
 
                     var $table = $(`
-                        <div class="draggable-table ${shapeClass}" id="table-${t.tableId}" data-id="${t.tableId}" data-number="${t.tableNumber}" data-section="${t.section}" data-shape="${t.shape}" style="left: ${t.posX}px; top: ${t.posY}px; width: ${w}px; height: ${h}px;">
+                        <div class="draggable-table ${shapeClass}" id="table-${t.tableId}" data-id="${t.tableId}" data-number="${t.tableNumber}" data-section="${t.section || 'Salon'}" data-shape="${t.shape}" style="left: ${t.posX}px; top: ${t.posY}px; width: ${w}px; height: ${h}px;">
                             <span class="status-dot ${statusClass}"></span>
                             <i class="fa-solid fa-chair table-icon"></i>
                             <span class="table-name">${t.tableNumber}</span>
@@ -74,7 +74,8 @@
     function saveTableLayoutData($elem, posX, posY, w, h) {
         var tableId = $elem.data("id");
         var tableNumber = $elem.data("number");
-        var section = posY > 270 ? "Dışarı" : "İçeri";
+        // DÜZELTME: Masanın var olan orijinal restoran alanı korunur (Sert kodlanmış İçeri/Dışarı kalktı)
+        var section = $elem.data("section") || "Salon";
         var shape = $elem.data("shape") || "Square";
 
         $.post("/Admin/SaveTableLayout", {

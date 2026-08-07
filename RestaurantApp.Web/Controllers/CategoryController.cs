@@ -12,7 +12,7 @@ namespace RestaurantApp.Web.Controllers
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
 
-        // 1. Kategorileri ve Durumlarını Getir
+       
         [HttpGet]
         [AllowAnonymous]
         public JsonResult GetCategories(int? companyId)
@@ -40,7 +40,7 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // 2. Kategori Dondur / Aktif Et (Toggle Status)
+        
         [HttpPost]
         public JsonResult ToggleCategoryStatus(int categoryId)
         {
@@ -66,7 +66,7 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // 3. Yeni Kategori Ekle (AJAX)
+        
         [HttpPost]
         public JsonResult Create(string categoryName, int? companyId)
         {
@@ -92,7 +92,7 @@ namespace RestaurantApp.Web.Controllers
             return Json(new { success = true, message = "Kategori başarıyla eklendi.", categoryId = category.CategoryId });
         }
 
-        // 4. Kategori Güncelle (AJAX)
+       
         [HttpPost]
         public JsonResult Update(int categoryId, string categoryName)
         {
@@ -115,7 +115,7 @@ namespace RestaurantApp.Web.Controllers
             return Json(new { success = true, message = "Kategori güncellendi." });
         }
 
-        // 5. Kategori Sil (AJAX)
+        
         [HttpPost]
         public JsonResult Delete(int id)
         {

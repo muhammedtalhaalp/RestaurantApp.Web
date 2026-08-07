@@ -72,16 +72,16 @@
             color: #1e293b;
         }
 
-    /* Dolu Masa Kartı (Fotoğraftaki Mavi/Mavi Degrade Tasarım) */
+    /* Dolu Masa Kartı (Açık Hesap Kırmızı Tasarım) */
     .table-card.table-occupied {
-        background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
-        border-color: #0284c7;
-        color: #ffffff;
-        box-shadow: 0 6px 15px rgba(37, 99, 235, 0.25);
+        background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
+        border-color: #dc2626 !important;
+        color: #ffffff !important;
+        box-shadow: 0 6px 15px rgba(220, 38, 38, 0.25) !important;
     }
 
         .table-card.table-occupied .table-card-number {
-            color: #ffffff;
+            color: #ffffff !important;
         }
 
 /* Kart İçerik Elemanları */
@@ -112,8 +112,9 @@
 }
 
 .badge-paid {
-    background-color: rgba(255, 255, 255, 0.85);
-    color: #0284c7;
+    background-color: #ffffff !important;
+    color: #dc2626 !important;
+    font-weight: 700 !important;
 }
 
 .table-card-body {
@@ -125,7 +126,8 @@
 .table-card-status-text {
     font-size: 0.85rem;
     font-weight: 600;
-    opacity: 0.9;
+    opacity: 0.95;
+    color: #ffffff !important;
 }
 
 .table-card-price {
@@ -133,6 +135,7 @@
     font-weight: 800;
     text-align: right;
     margin-top: 15px;
+    color: #ffffff !important;
 }
 
 /* Masa Silme/İşlem Butonu */

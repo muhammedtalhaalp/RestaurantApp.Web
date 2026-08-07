@@ -1,5 +1,4 @@
-﻿// Global JWT Token Ayarı
-$.ajaxSetup({
+﻿$.ajaxSetup({
     beforeSend: function (xhr) {
         var token = localStorage.getItem("JWToken");
         if (token) {
@@ -29,20 +28,24 @@ function loadOccupiedTables() {
                 $.each(res.data, function (i, table) {
                     var rawName = table.tableName || '';
                     var tableNameFormatted = rawName.toLowerCase().startsWith('masa') ? rawName : `Masa ${rawName}`;
+                    var totalAmountFormatted = parseFloat(table.totalAmount || 0).toFixed(2);
 
                     html += `
                         <div class="col-md-4 col-lg-3" id="table-card-${table.tableId}">
-                            <div class="card h-100 border-0 p-3 table-card-occupied">
+                            <div class="card h-100 border-0 p-3 table-card-occupied shadow-sm">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <h6 class="fw-bold mb-0 text-dark">
                                         <i class="fa-solid fa-chair me-2 text-danger"></i>${tableNameFormatted}
                                     </h6>
-                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1 rounded-2">Dolu</span>
+                                    <span class="badge bg-danger text-white px-2 py-1 rounded-2">Dolu</span>
                                 </div>
-                                <p class="text-muted small mb-3"><i class="fa-solid fa-layer-group me-1"></i>Bölüm: ${table.section || 'Salon'}</p>
+                                <p class="text-muted small mb-1"><i class="fa-solid fa-layer-group me-1"></i>Bölüm: ${table.section || 'Salon'}</p>
+                                <div class="fs-5 fw-bold mb-3" style="color: #4a154b;">
+                                    Adisyon Tutarı: ${totalAmountFormatted} ₺
+                                </div>
                                 <div class="pt-2 border-top mt-auto">
-                                    <button class="btn btn-empty-table w-100 py-2" onclick="makeTableEmpty(${table.tableId})">
-                                        <i class="fa-solid fa-broom me-2"></i>Masayı Boşalt
+                                    <button class="btn btn-success w-100 py-2 fw-bold" onclick="closeAndPayTable(${table.tableId}, '${tableNameFormatted}', ${totalAmountFormatted})">
+                                        <i class="fa-solid fa-credit-card me-2"></i>Ödeme Al & Masayı Boşalt
                                     </button>
                                 </div>
                             </div>
@@ -65,20 +68,20 @@ function loadOccupiedTables() {
     });
 }
 
-function makeTableEmpty(tableId) {
+function closeAndPayTable(tableId, tableName, amount) {
     Swal.fire({
-        title: 'Masa Boşaltılsın mı?',
-        text: "Müşteri kalktıysa masayı boş durumuna alabilirsiniz.",
+        title: 'Ödeme Alınsın mı?',
+        text: `${tableName} için toplam ${amount} ₺ ödeme alındı olarak işaretlenip masa boşaltılacak.`,
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#198754',
         cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Evet, Boşalt',
+        confirmButtonText: 'Evet, Ödeme Alındı & Kapat',
         cancelButtonText: 'Vazgeç'
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: "/Table/ClearTableStatus",
+                url: "/Table/CloseTableAndPay",
                 type: "POST",
                 data: { tableId: tableId },
                 success: function (res) {
@@ -87,7 +90,7 @@ function makeTableEmpty(tableId) {
                             toast: true,
                             position: 'top-end',
                             icon: 'success',
-                            title: 'Masa boşaltıldı!',
+                            title: 'Masa kapatıldı ve ödeme tamamlandı!',
                             showConfirmButton: false,
                             timer: 1500
                         });

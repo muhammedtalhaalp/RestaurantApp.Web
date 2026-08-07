@@ -1,5 +1,4 @@
-﻿// Global AJAX Ayarı (JWT Token Otomatik Eklenir)
-$.ajaxSetup({
+﻿$.ajaxSetup({
     beforeSend: function (xhr) {
         var token = localStorage.getItem("JWToken");
         if (token) {
@@ -13,13 +12,9 @@ var orderHubProxy = null;
 $(document).ready(function () {
     console.log("Kitchen JS Yüklendi.");
 
-    // SignalR Bağlantısını Kurma
     initKitchenSignalR();
-
-    // Siparişleri İlk Kez Yükleme
     loadKitchenOrders();
 
-    // Her 15 saniyede bir tedbiren siparişleri tazele
     setInterval(loadKitchenOrders, 15000);
 });
 
@@ -27,7 +22,6 @@ function initKitchenSignalR() {
     if ($.connection && $.connection.orderHub) {
         orderHubProxy = $.connection.orderHub;
 
-        // Yeni sipariş geldiğinde mutfak ekranı otomatik yenilensin
         orderHubProxy.client.onNewOrderCreated = function () {
             loadKitchenOrders();
         };
@@ -53,7 +47,9 @@ function loadKitchenOrders() {
                 $.each(res.data, function (i, order) {
                     var isMasa = order.orderType === "Masa";
                     var headerBadge = isMasa ? "bg-primary" : "bg-warning text-dark";
-                    var headerTitle = isMasa ? `Masa ${order.tableName}` : "Paket Servis";
+                    var rawTableName = order.tableName || '';
+                    var tableNameFormatted = rawTableName.toLowerCase().startsWith('masa') ? rawTableName : `Masa ${rawTableName}`;
+                    var headerTitle = isMasa ? tableNameFormatted : "Paket Servis";
                     var subInfo = isMasa ? "" : `<div class="small text-muted mb-2"><i class="fa-solid fa-location-dot me-1"></i>${order.deliveryAddress || 'Adres Girilmedi'}</div>`;
 
                     var itemsHtml = "";
@@ -102,7 +98,6 @@ function loadKitchenOrders() {
     });
 }
 
-// "Sipariş Hazır" Butonuna Basıldığında Çalışacak Metot
 function markReady(orderId, tableName, orderType, address) {
     Swal.fire({
         title: 'Sipariş Hazır mı?',
@@ -116,12 +111,11 @@ function markReady(orderId, tableName, orderType, address) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: "/Order/MarkOrderAsReady",
+                url: "/Kitchen/MarkOrderAsReady",
                 type: "POST",
                 data: { orderId: orderId },
                 success: function (res) {
                     if (res.success) {
-                        // SignalR üzerinden Garsonlara bildirim tetikle
                         if (orderHubProxy) {
                             orderHubProxy.server.sendOrderReadyNotification(orderId, tableName, orderType, address);
                         }
@@ -135,7 +129,6 @@ function markReady(orderId, tableName, orderType, address) {
                             timer: 1500
                         });
 
-                        // Ekranda hazırlanan kartı kaldır
                         $(`#order-card-${orderId}`).fadeOut(300, function () {
                             $(this).remove();
                             if ($("#kitchen-orders-grid").children().length === 0) {

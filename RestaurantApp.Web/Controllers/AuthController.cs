@@ -29,14 +29,13 @@ namespace RestaurantApp.Web.Controllers
                 return Json(new { success = false, message = "Lütfen tüm alanları doldurun." });
             }
 
-            // 1. E-posta kontrolü
             var existingUser = db.AppUsers.FirstOrDefault(u => u.Username == model.Email || u.Email == model.Email);
             if (existingUser != null)
             {
                 return Json(new { success = false, message = "Bu e-posta adresi zaten kullanımda!" });
             }
 
-            // 2. Önce Şirketi Oluşturup Kaydediyoruz
+            
             var newCompany = new Companies
             {
                 Name = model.CompanyName,
@@ -44,7 +43,7 @@ namespace RestaurantApp.Web.Controllers
             };
 
             db.Companies.Add(newCompany);
-            db.SaveChanges(); // Bu satırdan sonra newCompany.Id otomatik oluşur
+            db.SaveChanges();
 
             // 3. Kullanıcıyı Oluşan newCompany.Id ile Bağlıyoruz
             var adminUser = new AppUsers
@@ -86,7 +85,7 @@ namespace RestaurantApp.Web.Controllers
 
             string token = JwtHelper.GenerateToken(user.UserId, user.Username, user.Role);
 
-            // Oturum ve Profil İşlemleri İçin Session Kayıtları
+          
             Session["JWToken"] = token;
             Session["UserId"] = user.UserId;
             Session["UserRole"] = user.Role;
@@ -96,7 +95,7 @@ namespace RestaurantApp.Web.Controllers
 
             if (user.Role == "Admin")
             {
-                // YENİ HALİ: Artık direkt Dashboard yerine Ana Sayfa (Index) açılıyor
+                
                 redirectUrl = "/Admin/Index";
             }
             else if (user.Role == "Mutfak" || user.Role == "Mutfak Şefi")
@@ -105,7 +104,7 @@ namespace RestaurantApp.Web.Controllers
             }
             else if (user.Role == "Garson" || user.Role == "Kasiyer" || user.Role == "Garson/Kasiyer")
             {
-                redirectUrl = "/Order/POS";
+                redirectUrl = "/Order/Index"; 
             }
 
             return Json(new

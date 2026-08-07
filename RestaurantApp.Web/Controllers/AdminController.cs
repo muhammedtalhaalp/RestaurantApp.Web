@@ -9,7 +9,6 @@ using System.Web.Mvc;
 
 namespace RestaurantApp.Web.Controllers
 {
-    // Garson rollerinin metoda erişebilmesi için sınıf düzeyindeki role izinler eklendi
     [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
     public class AdminController : Controller
     {
@@ -186,7 +185,6 @@ namespace RestaurantApp.Web.Controllers
                 DateTime startOfDay = targetDate.Date;
                 DateTime endOfDay = targetDate.Date.AddDays(1).AddTicks(-1);
 
-                // Seçilen gün içindeki tüm aktif/tamamlanmış/hazırlanmış siparişler ve ürün detayları çekilir
                 var queryOrders = db.AppOrders
                     .Where(o => o.CreatedDate >= startOfDay && o.CreatedDate <= endOfDay)
                     .OrderByDescending(o => o.CreatedDate)
@@ -248,17 +246,27 @@ namespace RestaurantApp.Web.Controllers
             {
                 var tables = db.AppTables
                     .Where(t => t.IsActive)
-                    .Select(t => new
+                    .ToList()
+                    .Select(t =>
                     {
-                        tableId = t.TableId,
-                        tableNumber = t.TableNumber,
-                        status = t.Status,
-                        section = t.Section ?? "Salon",
-                        shape = t.Shape ?? "Square",
-                        posX = t.PosX ?? 50,
-                        posY = t.PosY ?? 50,
-                        width = t.Width ?? 75,
-                        height = t.Height ?? 75
+                        // DÜZELTME: Hesabı henüz kapatılmamış (Tamamlandı ve İptal olmayan) açık siparişlerin tutarını topluyoruz
+                        var currentTotal = db.AppOrders
+                            .Where(o => o.TableId == t.TableId && o.Status != "Tamamlandı" && o.Status != "İptal")
+                            .Sum(o => (decimal?)o.TotalAmount) ?? 0;
+
+                        return new
+                        {
+                            tableId = t.TableId,
+                            tableNumber = t.TableNumber,
+                            status = t.Status ?? "Bos",
+                            currentAmount = currentTotal,
+                            section = t.Section ?? "Salon",
+                            shape = t.Shape ?? "Square",
+                            posX = t.PosX ?? 50,
+                            posY = t.PosY ?? 50,
+                            width = t.Width ?? 75,
+                            height = t.Height ?? 75
+                        };
                     }).ToList();
 
                 return Json(new { success = true, data = tables }, JsonRequestBehavior.AllowGet);
@@ -344,7 +352,11 @@ namespace RestaurantApp.Web.Controllers
                 }
 
                 table.TableNumber = tableNumber;
-                table.Section = string.IsNullOrWhiteSpace(section) ? "Salon" : section;
+                // DÜZELTME: Eğer gelen section boşsa masanın veritabanındaki mevcut alanını ezme
+                if (!string.IsNullOrWhiteSpace(section))
+                {
+                    table.Section = section;
+                }
                 table.Shape = shape;
                 table.PosX = posX;
                 table.PosY = posY;
@@ -427,7 +439,7 @@ namespace RestaurantApp.Web.Controllers
             return Json(new { success = true, message = "Kategori başarıyla eklendi.", categoryId = category.CategoryId });
         }
 
-        // Garson ve Admin için ortak sipariş çekme metodu
+        // Sipariş takip ekranlarına "Hazırlanıyor" ve "Hazır" olan tüm aktif siparişleri sunar
         [HttpGet]
         [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
         public JsonResult GetPendingDeliveryOrders()
@@ -435,13 +447,14 @@ namespace RestaurantApp.Web.Controllers
             try
             {
                 var pendingOrders = db.AppOrders
-                    .Where(o => o.Status == "Hazır")
+                    .Where(o => o.Status == "Hazırlanıyor" || o.Status == "Hazır")
                     .OrderByDescending(o => o.CreatedDate)
                     .ToList()
                     .Select(o => new
                     {
                         orderId = o.OrderId,
                         orderType = o.OrderType,
+                        status = o.Status,
                         tableName = o.OrderType == "Masa" && o.AppTables != null ? o.AppTables.TableNumber : "Paket Servis",
                         deliveryAddress = o.DeliveryAddress,
                         orderDate = o.CreatedDate.ToString("HH:mm"),

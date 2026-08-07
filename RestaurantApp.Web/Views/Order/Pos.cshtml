@@ -34,22 +34,34 @@
             <p class="text-muted small mb-0">Menüden dilediğiniz ürünleri seçip sepete ekleyebilir, masa veya paket siparişinizi tamamlayabilirsiniz.</p>
         </div>
 
-        <!-- Kategoriler -->
-        <div id="category-list" class="d-flex flex-wrap mb-3">
-            <button class="btn btn-primary category-btn active" data-id="0" onclick="filterCategory(0, this)">
-                <i class="fa-solid fa-list me-1"></i>Tüm Ürünler
-            </button>
+        <!-- KATEGORİLER VE GÖRÜNÜM BUTONLARI -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div id="category-list" class="d-flex flex-wrap align-items-center">
+                <button class="btn btn-primary category-btn active" data-id="0" onclick="filterCategory(0, this)">
+                    <i class="fa-solid fa-list me-1"></i>Tüm Ürünler
+                </button>
+            </div>
+
+            <!-- Görünüm Değiştirici Butonlar -->
+            <div class="btn-group shadow-sm ms-2" role="group">
+                <button type="button" class="btn btn-sm btn-purple-main active px-3" id="btnGridView" title="Izgara Görünümü (Resimli)">
+                    <i class="fa-solid fa-border-all"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary px-3" id="btnTableView" title="Tablo Görünümü (Resimsiz)">
+                    <i class="fa-solid fa-list-ul"></i>
+                </button>
+            </div>
         </div>
 
         <hr />
 
-        <!-- Ürünler Izgarası -->
+        <!-- Ürünler Alanı -->
         <div id="product-list" class="row g-3">
             <!-- AJAX ile dinamik yüklenecek -->
         </div>
     </div>
 
-    <!-- SAĞ TARAF: Sepet ve Sipariş Detayları (4 Kolon) -->
+    <!-- SAĞ TARAF: Sepet ve Sipariş Detayları (4 Kolon - EKRANDA SAĞDA SABİT) -->
     <div class="col-md-4 cart-container p-4 d-flex flex-column">
         <h4 class="mb-3"><i class="fa-solid fa-cart-shopping me-2"></i>Aktif Sepet</h4>
         <hr />

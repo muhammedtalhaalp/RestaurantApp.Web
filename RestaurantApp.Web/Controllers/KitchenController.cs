@@ -11,13 +11,12 @@ namespace RestaurantApp.Web.Controllers
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
 
-        // Mutfak Şefi Ekranı
         public ActionResult Index()
         {
             return View();
         }
 
-        // Mutfakta bekleyen ("Hazırlanıyor" statüsündeki) siparişleri getirir
+        
         [HttpGet]
         public JsonResult GetActiveOrders()
         {
@@ -26,14 +25,14 @@ namespace RestaurantApp.Web.Controllers
                 var orders = db.AppOrders
                     .Where(o => o.Status == "Hazırlanıyor")
                     .OrderBy(o => o.CreatedDate)
-                    .ToList() // Veriyi önce belleğe alıyoruz
+                    .ToList()
                     .Select(o => new
                     {
                         orderId = o.OrderId,
                         orderType = o.OrderType,
                         tableName = o.OrderType == "Masa" && o.AppTables != null ? o.AppTables.TableNumber : "Paket Servis",
                         deliveryAddress = o.DeliveryAddress,
-                        orderDate = o.CreatedDate.ToString("HH:mm"), // Non-nullable DateTime doğrudan formatlanır
+                        orderDate = o.CreatedDate.ToString("HH:mm"),
                         items = o.AppOrderDetails.Select(d => new
                         {
                             productName = d.AppProducts != null ? d.AppProducts.ProductName : "Ürün",
@@ -47,6 +46,35 @@ namespace RestaurantApp.Web.Controllers
             catch (Exception ex)
             {
                 return Json(new { success = false, message = "Siparişler yüklenirken hata: " + ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        
+        [HttpPost]
+        public JsonResult MarkOrderAsReady(int orderId)
+        {
+            try
+            {
+                var order = db.AppOrders.FirstOrDefault(x => x.OrderId == orderId);
+                if (order == null)
+                    return Json(new { success = false, message = "Sipariş bulunamadı." });
+
+                order.Status = "Hazır";
+                db.SaveChanges();
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Sipariş hazır olarak işaretlendi.",
+                    orderId = order.OrderId,
+                    tableName = order.TableId.HasValue && order.AppTables != null ? order.AppTables.TableNumber : "Paket Servis",
+                    orderType = order.OrderType,
+                    address = order.DeliveryAddress
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Bir hata oluştu: " + ex.Message });
             }
         }
 
