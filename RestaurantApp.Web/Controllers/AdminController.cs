@@ -2,6 +2,7 @@
 using RestaurantApp.Web.Filters;
 using RestaurantApp.Web.Helpers;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Web;
@@ -22,6 +23,12 @@ namespace RestaurantApp.Web.Controllers
 
         [JwtAuthorize(Roles = "Admin")]
         public ActionResult Dashboard()
+        {
+            return View();
+        }
+
+        [JwtAuthorize(Roles = "Admin")]
+        public ActionResult FinancialReports()
         {
             return View();
         }
@@ -161,7 +168,133 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
+        #endregion
+
         #region MUTFAK RAPORU İŞLEMLERİ
+
+        [HttpGet]
+        [JwtAuthorize(Roles = "Admin")]
+        public JsonResult GetFinancialData(string period)
+        {
+            try
+            {
+                DateTime now = DateTime.Now;
+                DateTime startOfToday = now.Date;
+                DateTime endOfToday = now.Date.AddDays(1).AddTicks(-1);
+
+                var todayOrders = db.AppOrders
+                    .Where(o => o.CreatedDate >= startOfToday && o.CreatedDate <= endOfToday && o.Status != "İptal")
+                    .ToList();
+
+                decimal todayRevenue = todayOrders.Sum(o => o.TotalAmount);
+                int todayOrderCount = todayOrders.Count;
+                decimal avgOrderAmount = todayOrderCount > 0 ? (todayRevenue / todayOrderCount) : 0;
+
+                var topProductToday = db.AppOrderDetails
+                    .Where(d => d.AppOrders.CreatedDate >= startOfToday && d.AppOrders.CreatedDate <= endOfToday && d.AppOrders.Status != "İptal")
+                    .GroupBy(d => d.AppProducts.ProductName)
+                    .Select(g => new { ProductName = g.Key, TotalQty = g.Sum(x => x.Quantity) })
+                    .OrderByDescending(x => x.TotalQty)
+                    .FirstOrDefault();
+
+                string topSellingProductName = topProductToday != null ? topProductToday.ProductName : "Henüz Yok";
+
+                List<string> revenueLabels = new List<string>();
+                List<decimal> revenueValues = new List<decimal>();
+
+                if (period == "weekly")
+                {
+                    for (int i = 6; i >= 0; i--)
+                    {
+                        DateTime day = now.Date.AddDays(-i);
+                        DateTime dayStart = day;
+                        DateTime dayEnd = day.AddDays(1).AddTicks(-1);
+
+                        decimal dayRev = db.AppOrders
+                            .Where(o => o.CreatedDate >= dayStart && o.CreatedDate <= dayEnd && o.Status != "İptal")
+                            .Sum(o => (decimal?)o.TotalAmount) ?? 0;
+
+                        revenueLabels.Add(day.ToString("dd MMM ddd"));
+                        revenueValues.Add(dayRev);
+                    }
+                }
+                else if (period == "monthly")
+                {
+                    for (int i = 5; i >= 0; i--)
+                    {
+                        DateTime mStart = new DateTime(now.Year, now.Month, 1).AddMonths(-i);
+                        DateTime mEnd = mStart.AddMonths(1).AddTicks(-1);
+
+                        decimal monthRev = db.AppOrders
+                            .Where(o => o.CreatedDate >= mStart && o.CreatedDate <= mEnd && o.Status != "İptal")
+                            .Sum(o => (decimal?)o.TotalAmount) ?? 0;
+
+                        revenueLabels.Add(mStart.ToString("MMM yyyy"));
+                        revenueValues.Add(monthRev);
+                    }
+                }
+                else
+                {
+                    for (int hour = 8; hour <= 23; hour += 2)
+                    {
+                        DateTime hStart = startOfToday.AddHours(hour);
+                        DateTime hEnd = startOfToday.AddHours(hour + 2).AddTicks(-1);
+
+                        decimal hRev = db.AppOrders
+                            .Where(o => o.CreatedDate >= hStart && o.CreatedDate <= hEnd && o.Status != "İptal")
+                            .Sum(o => (decimal?)o.TotalAmount) ?? 0;
+
+                        revenueLabels.Add($"{hour:D2}:00-{(hour + 2):D2}:00");
+                        revenueValues.Add(hRev);
+                    }
+                }
+
+                DateTime thirtyDaysAgo = now.AddDays(-30);
+                var top5Products = db.AppOrderDetails
+                    .Where(d => d.AppOrders.CreatedDate >= thirtyDaysAgo && d.AppOrders.Status != "İptal")
+                    .GroupBy(d => d.AppProducts.ProductName)
+                    .Select(g => new
+                    {
+                        ProductName = g.Key ?? "Bilinmeyen Ürün",
+                        TotalQuantity = g.Sum(x => x.Quantity)
+                    })
+                    .OrderByDescending(x => x.TotalQuantity)
+                    .Take(5)
+                    .ToList();
+
+                List<string> hourlyLabels = new List<string>();
+                List<int> hourlyOrderCounts = new List<int>();
+
+                for (int h = 10; h <= 22; h += 2)
+                {
+                    DateTime hStart = startOfToday.AddHours(h);
+                    DateTime hEnd = startOfToday.AddHours(h + 2).AddTicks(-1);
+
+                    int count = db.AppOrders
+                        .Count(o => o.CreatedDate >= hStart && o.CreatedDate <= hEnd && o.Status != "İptal");
+
+                    hourlyLabels.Add($"{h:D2}:00");
+                    hourlyOrderCounts.Add(count);
+                }
+
+                var result = new
+                {
+                    todayRevenue = todayRevenue,
+                    todayOrderCount = todayOrderCount,
+                    avgOrderAmount = avgOrderAmount,
+                    topSellingProduct = topSellingProductName,
+                    revenueChart = new { labels = revenueLabels, data = revenueValues },
+                    topProductsChart = new { labels = top5Products.Select(x => x.ProductName).ToList(), data = top5Products.Select(x => x.TotalQuantity).ToList() },
+                    hourlyChart = new { labels = hourlyLabels, data = hourlyOrderCounts }
+                };
+
+                return Json(new { success = true, data = result }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Finansal veriler hesaplanırken hata: " + ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
 
         [HttpGet]
         [JwtAuthorize(Roles = "Admin")]
@@ -909,7 +1042,46 @@ namespace RestaurantApp.Web.Controllers
 
         #endregion
 
+        #region DOLU MASA ADİSYON ÇEKME METODU
+
+        [HttpGet]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        public JsonResult GetActiveOrderByTableId(int tableId)
+        {
+            try
+            {
+                // Masadaki Tamamlanmamış ve İptal Olmamış Tüm Sipariş Kalemlerini Topluyoruz
+                var activeOrders = db.AppOrders
+                    .Where(o => o.TableId == tableId && o.Status != "Tamamlandı" && o.Status != "İptal")
+                    .ToList();
+
+                if (!activeOrders.Any())
+                {
+                    return Json(new { success = false, message = "Aktif sipariş bulunamadı." }, JsonRequestBehavior.AllowGet);
+                }
+
+                var items = activeOrders
+                    .SelectMany(o => o.AppOrderDetails)
+                    .GroupBy(d => d.ProductId)
+                    .Select(g => new
+                    {
+                        productId = g.Key,
+                        productName = g.FirstOrDefault()?.AppProducts != null ? g.FirstOrDefault().AppProducts.ProductName : "Ürün",
+                        quantity = g.Sum(x => x.Quantity),
+                        unitPrice = g.FirstOrDefault() != null ? g.FirstOrDefault().UnitPrice : 0
+                    }).ToList();
+
+                return Json(new { success = true, data = items }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Sipariş detayları çekilemedi: " + ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
         #endregion
+
+
 
         protected override void Dispose(bool disposing)
         {

@@ -251,6 +251,7 @@
     <Content Include="Content\Site.css" />
     <Content Include="Library\scripts\adminIndex.js" />
     <Content Include="Library\scripts\dashboard.js" />
+    <Content Include="Library\scripts\financial-reports.js" />
     <Content Include="Library\scripts\floor-plan-management.js" />
     <Content Include="Library\scripts\order-index.js" />
     <Content Include="Library\scripts\kitchen-report.js" />
@@ -266,6 +267,7 @@
     <Content Include="Library\scripts\waiterOrderTracking.js" />
     <Content Include="Library\styles\admin-index.css" />
     <Content Include="Library\styles\dashboard.css" />
+    <Content Include="Library\styles\financialReports.css" />
     <Content Include="Library\styles\floor-plan-management.css" />
     <Content Include="Library\styles\order-index.css" />
     <Content Include="Library\styles\kitchen-report.css" />
@@ -334,6 +336,7 @@
     <Content Include="Views\Order\TableControl.cshtml" />
     <Content Include="Views\Order\Index.cshtml" />
     <Content Include="Views\Menu\Index.cshtml" />
+    <Content Include="Views\Admin\FinancialReports.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

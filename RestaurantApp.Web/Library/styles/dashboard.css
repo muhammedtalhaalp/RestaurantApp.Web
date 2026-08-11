@@ -176,3 +176,15 @@
     opacity: 0.55 !important;
     background-color: #f8fafc !important;
 }
+/* Dashboard Tablosunda Pasif veya Tükenmiş Ürün Satırı Sönük Görünümü */
+.table-passive-row {
+    opacity: 0.50 !important;
+    background-color: #f8fafc !important;
+    filter: grayscale(40%);
+    transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+    .table-passive-row:hover {
+        opacity: 0.85 !important;
+        filter: grayscale(0%);
+    }

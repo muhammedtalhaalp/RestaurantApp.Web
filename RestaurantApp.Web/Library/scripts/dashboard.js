@@ -69,7 +69,6 @@ function handleImagePreview(input, imgSelector, wrapperSelector) {
     }
 }
 
-// Modal Butonları Tetikleme
 function openAddCategoryModal() {
     $('#txtCategoryNameModal').val('');
     var modalEl = document.getElementById('addCategoryModal');
@@ -89,7 +88,6 @@ function openCategoryManagementModal() {
     openCategoryModal();
 }
 
-// Kategorileri Yükle
 function loadCategories() {
     $.get('/Category/GetCategories', function (res) {
         if (res && res.success) {
@@ -109,7 +107,6 @@ function loadCategories() {
                 let isPassive = !cat.IsActive;
                 let statusTag = isPassive ? ' (Pasif)' : '';
 
-                // Pasif kategoride ürün eklenmesine izin verilir
                 let opt = `<option value="${cat.CategoryId}">${cat.CategoryName}${statusTag}</option>`;
 
                 ddlAdd.append(opt);
@@ -253,10 +250,39 @@ function renderProductsTable() {
         return;
     }
 
+    // SIRALAMA ALGORİTMASI:
+    // 1. Kategorisi pasif veya stokta tükenmiş olanlar tablonun EN ALTINA atılır.
+    // 2. Aktif olanlar kategorilerine göre alfabetik gruplanır ve kendi içinde isme göre dizilir.
+    filteredList.sort(function (a, b) {
+        let parentCatA = rawCategoriesList.find(c => c.CategoryId === a.CategoryId);
+        let parentCatB = rawCategoriesList.find(c => c.CategoryId === b.CategoryId);
+
+        let isAInactive = (parentCatA && !parentCatA.IsActive) || a.IsAvailable === false;
+        let isBInactive = (parentCatB && !parentCatB.IsActive) || b.IsAvailable === false;
+
+        // Pasif/Tükenmiş ürünleri en alta taşı
+        if (isAInactive !== isBInactive) {
+            return isAInactive ? 1 : -1;
+        }
+
+        // Kategori isimlerine göre alfabetik grupla
+        let catNameA = (a.CategoryName || '').toLowerCase();
+        let catNameB = (b.CategoryName || '').toLowerCase();
+
+        if (catNameA !== catNameB) {
+            return catNameA.localeCompare(catNameB, 'tr');
+        }
+
+        // Kategori içi ürün adlarına göre sırala
+        return (a.ProductName || '').toLowerCase().localeCompare((b.ProductName || '').toLowerCase(), 'tr');
+    });
+
     $.each(filteredList, function (i, p) {
-        // Ürünün bağlı olduğu kategorinin aktiflik durumunu kontrol et
         let parentCat = rawCategoriesList.find(c => c.CategoryId === p.CategoryId);
         let isCategoryPassive = parentCat ? !parentCat.IsActive : false;
+        let isOutOfStock = p.IsAvailable === false;
+
+        let isRowPassive = isCategoryPassive || isOutOfStock;
 
         let statusBadge = p.IsAvailable
             ? '<span class="badge bg-success px-2 py-1">Stokta Var</span>'
@@ -266,8 +292,8 @@ function renderProductsTable() {
             ? `<span class="badge bg-secondary text-white border px-2 py-1"><i class="fa-solid fa-snowflake me-1"></i>${p.CategoryName || 'Kategorisiz'} (Pasif)</span>`
             : `<span class="badge bg-light text-dark border px-2 py-1">${p.CategoryName || 'Kategorisiz'}</span>`;
 
-        // Pasif kategorideki ürünlerin satırı soluk görünür (Opacity 50%)
-        let rowClass = isCategoryPassive ? 'table-passive-category-row' : '';
+        // Pasif veya Tükenmiş ürün satırına silikleşme sınıfı atanır
+        let rowClass = isRowPassive ? 'table-passive-row' : '';
 
         let priceVal = (p.Price != null && !isNaN(p.Price)) ? parseFloat(p.Price).toFixed(2) : '0.00';
 

@@ -1,0 +1,136 @@
+﻿@{
+    ViewBag.Title = "Ciro ve Finansal Grafikler";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/financialReports.css" rel="stylesheet" />
+}
+
+<div class="container-fluid mt-2">
+    <!-- Başlık ve Yenile Butonu -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-chart-line me-2" style="color: #4a154b;"></i>Ciro ve Finansal Grafikler
+            </h4>
+            <p class="text-muted small mb-0">Restoranın satış performansını, saatlik yoğunluğunu ve özet finansal göstergelerini canlı inceleyin.</p>
+        </div>
+        <div>
+            <button class="btn btn-outline-purple btn-sm rounded-3 px-3 fw-semibold h-38" onclick="loadFinancialData()">
+                <i class="fa-solid fa-rotate me-1"></i> Yenile
+            </button>
+        </div>
+    </div>
+
+    <!-- ÖZET İSTATİSTİK KARTLARI -->
+    <div class="row g-3 mb-4">
+        <!-- Bugünkü Ciro -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card stat-card p-3 shadow-sm h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block mb-1">Bugünün Cirosu</span>
+                        <h4 class="fw-bold text-dark mb-0" id="lblTodayRevenue">0.00 ₺</h4>
+                    </div>
+                    <div class="stat-icon icon-purple">
+                        <i class="fa-solid fa-turkish-lira-sign"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bugünkü Sipariş -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card stat-card p-3 shadow-sm h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block mb-1">Bugünkü Sipariş</span>
+                        <h4 class="fw-bold text-dark mb-0" id="lblTodayOrderCount">0</h4>
+                    </div>
+                    <div class="stat-icon icon-blue">
+                        <i class="fa-solid fa-receipt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ortalama Adisyon Tutarı -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card stat-card p-3 shadow-sm h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block mb-1">Ort. Adisyon Tutarı</span>
+                        <h4 class="fw-bold text-dark mb-0" id="lblAvgOrderAmount">0.00 ₺</h4>
+                    </div>
+                    <div class="stat-icon icon-green">
+                        <i class="fa-solid fa-calculator"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- En Çok Satan Ürün -->
+        <div class="col-md-6 col-xl-3">
+            <div class="card stat-card p-3 shadow-sm h-100">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block mb-1">En Çok Satan Ürün</span>
+                        <h6 class="fw-bold text-dark mb-0 text-truncate" style="max-width: 150px;" id="lblTopSellingProduct">--</h6>
+                    </div>
+                    <div class="stat-icon icon-yellow">
+                        <i class="fa-solid fa-crown"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRAFİK ALANLARI -->
+    <div class="row g-4 mb-4">
+        <!-- 1. Ciro Analiz Grafiği -->
+        <div class="col-lg-8">
+            <div class="card chart-card shadow-sm p-4 h-100">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-chart-column me-2" style="color: #4a154b;"></i>Ciro Analizi</h6>
+                    <div class="btn-group btn-group-sm" role="group" id="timeFilterGroup">
+                        <button type="button" class="btn btn-outline-secondary btn-time-filter active" onclick="changeRevenuePeriod('daily', this)">Günlük</button>
+                        <button type="button" class="btn btn-outline-secondary btn-time-filter" onclick="changeRevenuePeriod('weekly', this)">Haftalık</button>
+                        <button type="button" class="btn btn-outline-secondary btn-time-filter" onclick="changeRevenuePeriod('monthly', this)">Aylık</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="revenueChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. En Çok Satan Top 5 Ürün (Yatay Bar Grafiği) -->
+        <div class="col-lg-4">
+            <div class="card chart-card shadow-sm p-4 h-100">
+                <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-fire me-2" style="color: #4a154b;"></i>En Çok Satan Top 5 Ürün</h6>
+                <div class="chart-container">
+                    <canvas id="topProductsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Saate Göre Yoğunluk Grafiği -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card chart-card shadow-sm p-4">
+                <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clock me-2" style="color: #4a154b;"></i>Saatlik Sipariş Yoğunluğu (Restoran ne zaman yoğun?)</h6>
+                <div class="chart-container-sm">
+                    <canvas id="hourlyDensityChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <!-- Chart.js Kütüphanesi -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="~/Library/scripts/financial-reports.js"></script>
+}

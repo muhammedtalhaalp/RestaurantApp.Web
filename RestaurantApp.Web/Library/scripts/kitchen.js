@@ -8,21 +8,110 @@
 });
 
 var orderHubProxy = null;
+var audioCtx = null;
+var selectedKitchenSound = localStorage.getItem("KitchenSelectedSound") || "chime";
 
 $(document).ready(function () {
     console.log("Kitchen JS Yüklendi.");
 
+    $(document).one("click keydown scroll mousemove", function () {
+        getAudioContext();
+    });
+
     initKitchenSignalR();
     loadKitchenOrders();
 
-    setInterval(loadKitchenOrders, 15000);
+    setInterval(updateDelayedOrdersState, 30000);
+    setInterval(loadKitchenOrders, 20000);
 });
+
+function getAudioContext() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === "suspended") {
+        audioCtx.resume();
+    }
+    return audioCtx;
+}
+
+// BİLDİRİM SESİ SEÇİMİ VE KAYDI
+function selectKitchenSound(soundKey, playTest) {
+    selectedKitchenSound = soundKey;
+    localStorage.setItem("KitchenSelectedSound", soundKey);
+
+    if (playTest) {
+        playSelectedKitchenSound(soundKey);
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Bildirim sesi kaydedildi!',
+            showConfirmButton: false,
+            timer: 1200
+        });
+    }
+}
+
+// 6 FARKLI SENTEZLENMİŞ SES MOTORU
+function playSelectedKitchenSound(soundKey) {
+    try {
+        var ctx = getAudioContext();
+        var key = soundKey || selectedKitchenSound;
+
+        if (key === "chime") {
+            // 1. Zil (Klasik)
+            playTone(ctx, 880, 0, 0.3, 0.3);
+            playTone(ctx, 1046, 0.2, 0.4, 0.4);
+        } else if (key === "double-beep") {
+            // 2. Çift Bip (Eko)
+            playTone(ctx, 750, 0, 0.15, 0.3);
+            playTone(ctx, 750, 0.2, 0.15, 0.3);
+        } else if (key === "melody") {
+            // 3. Melodik (Üçlü)
+            playTone(ctx, 523, 0, 0.15, 0.2);
+            playTone(ctx, 659, 0.15, 0.15, 0.2);
+            playTone(ctx, 783, 0.3, 0.25, 0.3);
+        } else if (key === "alarm") {
+            // 4. Yüksek Alarm
+            playTone(ctx, 1200, 0, 0.2, 0.5, "sawtooth");
+            playTone(ctx, 1200, 0.25, 0.2, 0.5, "sawtooth");
+        } else if (key === "whistle") {
+            // 5. Mutfak Düdüğü
+            playTone(ctx, 1500, 0, 0.4, 0.2, "triangle");
+        } else if (key === "digital") {
+            // 6. Dijital Bip
+            playTone(ctx, 950, 0, 0.1, 0.2, "square");
+            playTone(ctx, 1400, 0.12, 0.15, 0.2, "square");
+        } else {
+            playTone(ctx, 880, 0, 0.3, 0.3);
+        }
+    } catch (e) {
+        console.error("Ses üretme hatası: ", e);
+    }
+}
+
+function playTone(ctx, freq, startTime, duration, vol, type) {
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = type || "sine";
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
+    gain.gain.setValueAtTime(vol || 0.2, ctx.currentTime + startTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime + startTime);
+    osc.stop(ctx.currentTime + startTime + duration);
+}
 
 function initKitchenSignalR() {
     if ($.connection && $.connection.orderHub) {
         orderHubProxy = $.connection.orderHub;
 
         orderHubProxy.client.onNewOrderCreated = function () {
+            console.log("Yeni sipariş düştü! Seçili zil çalınıyor...");
+            playSelectedKitchenSound();
             loadKitchenOrders();
         };
 
@@ -52,6 +141,9 @@ function loadKitchenOrders() {
                     var headerTitle = isMasa ? tableNameFormatted : "Paket Servis";
                     var subInfo = isMasa ? "" : `<div class="small text-muted mb-2"><i class="fa-solid fa-location-dot me-1"></i>${order.deliveryAddress || 'Adres Girilmedi'}</div>`;
 
+                    var elapsedMinutes = calculateElapsedMinutes(order.orderDate);
+                    var isDelayed = elapsedMinutes >= 15;
+
                     var itemsHtml = "";
                     $.each(order.items, function (j, item) {
                         itemsHtml += `
@@ -61,12 +153,17 @@ function loadKitchenOrders() {
                             </li>`;
                     });
 
+                    var delayClass = isDelayed ? "card-order-delayed" : "";
+                    var delayBadge = isDelayed
+                        ? `<span class="badge bg-danger text-white ms-1 delay-pulse-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Gecikti (${elapsedMinutes} dk)</span>`
+                        : `<span class="badge bg-white text-dark elapsed-time-badge" data-time="${order.orderDate}"><i class="fa-regular fa-clock me-1"></i>${order.orderDate} (${elapsedMinutes} dk)</span>`;
+
                     var cardHtml = `
-                        <div class="col-md-4 col-lg-3" id="order-card-${order.orderId}">
-                            <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden">
+                        <div class="col-md-4 col-lg-3" id="order-card-${order.orderId}" data-order-date="${order.orderDate}">
+                            <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden ${delayClass}">
                                 <div class="card-header ${headerBadge} text-white d-flex justify-content-between align-items-center py-3">
                                     <h6 class="mb-0 fw-bold"><i class="fa-solid ${isMasa ? 'fa-chair' : 'fa-motorcycle'} me-2"></i>${headerTitle}</h6>
-                                    <span class="badge bg-white text-dark"><i class="fa-regular fa-clock me-1"></i>${order.orderDate}</span>
+                                    ${delayBadge}
                                 </div>
                                 <div class="card-body">
                                     ${subInfo}
@@ -94,6 +191,43 @@ function loadKitchenOrders() {
         },
         error: function () {
             $("#kitchen-orders-grid").html('<div class="col-12 text-center text-danger py-4">Siparişler yüklenirken bir sunucu hatası oluştu.</div>');
+        }
+    });
+}
+
+function calculateElapsedMinutes(timeStr) {
+    if (!timeStr) return 0;
+    var parts = timeStr.split(":");
+    if (parts.length < 2) return 0;
+
+    var now = new Date();
+    var orderTime = new Date();
+    orderTime.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+
+    if (now < orderTime) {
+        orderTime.setDate(orderTime.getDate() - 1);
+    }
+
+    var diffMs = now - orderTime;
+    return Math.floor(diffMs / 60000);
+}
+
+function updateDelayedOrdersState() {
+    $("#kitchen-orders-grid [id^='order-card-']").each(function () {
+        var $cardCol = $(this);
+        var orderDate = $cardCol.data("order-date");
+        var elapsed = calculateElapsedMinutes(orderDate);
+
+        if (elapsed >= 15) {
+            var $card = $cardCol.find(".card");
+            if (!$card.hasClass("card-order-delayed")) {
+                $card.addClass("card-order-delayed");
+                var $header = $card.find(".card-header");
+                $header.find(".elapsed-time-badge").remove();
+                if ($header.find(".delay-pulse-badge").length === 0) {
+                    $header.append(`<span class="badge bg-danger text-white ms-1 delay-pulse-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Gecikti (${elapsed} dk)</span>`);
+                }
+            }
         }
     });
 }

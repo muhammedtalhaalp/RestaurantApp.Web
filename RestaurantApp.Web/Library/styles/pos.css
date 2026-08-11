@@ -58,7 +58,22 @@
         box-shadow: 0 6px 16px rgba(74, 21, 75, 0.12) !important;
     }
 
-/* POS SEPET KONTEYNIRI (EKRANDA SAĞDA SABİT) */
+/* BELİRGİN VE ÇERÇOVELİ + EKLE BUTONU STİLİ */
+.btn-add-product {
+    background-color: #f8f5fa !important;
+    color: #4a154b !important;
+    border: 1.5px solid #4a154b !important;
+    box-shadow: 0 2px 4px rgba(74, 21, 75, 0.08);
+    transition: all 0.2s ease-in-out !important;
+}
+
+    .btn-add-product:hover {
+        background-color: #4a154b !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 8px rgba(74, 21, 75, 0.2);
+    }
+
+/* POS SEPET KONTEYNIRI */
 .cart-container {
     border-left: 1px solid #e2e8f0;
     position: sticky;
@@ -79,7 +94,7 @@
         background-color: var(--brand-purple-hover) !important;
     }
 
-/* LEAFLET/GOOGLE MAPS STİLİ */
+/* GOOGLE MAPS STİLİ */
 #map {
     width: 100%;
     height: 200px;

@@ -118,6 +118,8 @@ $(document).ready(function () {
     loadProducts(0);
     loadTables();
 
+    openInitialModal();
+
     $("#btnGridView").on("click", function () {
         currentViewMode = "grid";
         $("#btnTableView").removeClass("active btn-purple-main text-white").addClass("btn-outline-secondary");
@@ -130,28 +132,6 @@ $(document).ready(function () {
         $("#btnGridView").removeClass("active btn-purple-main text-white").addClass("btn-outline-secondary");
         $(this).removeClass("btn-outline-secondary").addClass("active btn-purple-main text-white");
         renderProductsView();
-    });
-
-    $("#orderType").on("change", function () {
-        var selectedType = $(this).val();
-        if (selectedType === "PaketServis") {
-            $("#tableSelectGroup").slideUp();
-            $("#deliveryGroup").slideDown(function () {
-                if (map) {
-                    google.maps.event.trigger(map, 'resize');
-                    map.setCenter(marker.getPosition());
-                }
-            });
-        } else {
-            $("#deliveryGroup").slideUp();
-            $("#tableSelectGroup").slideDown();
-        }
-    });
-
-    $("#btnOpenTableModal").on("click", function () {
-        renderPosTableCards("Hepsi");
-        var myModal = new bootstrap.Modal(document.getElementById('posTableMapModal'));
-        myModal.show();
     });
 
     $(document).on("click", "#posSectionTabs .nav-link", function () {
@@ -178,47 +158,65 @@ $(document).ready(function () {
     });
 });
 
-// ADIM 1: SİPARİŞ HEDEFİNİ ONAYLAMA VE MENÜYÜ AÇMA
-function confirmTargetAndStartOrder() {
-    var orderType = $("#orderType").val();
-    var tableId = $("#tableId").val();
+function openInitialModal() {
+    var initModalElem = document.getElementById('initialOrderTypeModal');
+    if (initModalElem) {
+        var initModal = bootstrap.Modal.getOrCreateInstance(initModalElem);
+        initModal.show();
+    }
+}
+
+function selectInitialOrderType(type) {
+    var initModalElem = document.getElementById('initialOrderTypeModal');
+    var initModalInstance = bootstrap.Modal.getInstance(initModalElem);
+    if (initModalInstance) initModalInstance.hide();
+
+    if (type === "Masa") {
+        $("#orderType").val("Masa");
+        renderPosTableCards("Hepsi");
+        var tableModal = new bootstrap.Modal(document.getElementById('posTableMapModal'));
+        tableModal.show();
+    } else if (type === "PaketServis") {
+        $("#orderType").val("PaketServis");
+        $("#tableId").val("");
+        var paketModal = new bootstrap.Modal(document.getElementById('posPaketModal'));
+        paketModal.show();
+
+        setTimeout(function () {
+            if (map && marker) {
+                google.maps.event.trigger(map, 'resize');
+                map.setCenter(marker.getPosition());
+            }
+        }, 300);
+    }
+}
+
+function confirmPaketServisModal() {
     var address = ($("#txtDeliveryAddress").val() || "").trim();
-    var targetText = "";
-
-    if (orderType === "Masa") {
-        if (!tableId || tableId === "" || tableId === "0") {
-            Swal.fire({
-                title: "Masa Seçilmedi!",
-                text: "Lütfen menüyü açmadan önce geçerli bir masa seçiniz.",
-                icon: "warning",
-                confirmButtonColor: "#4a154b"
-            });
-            return;
-        }
-
-        var selectedTable = posTablesData.find(t => t.tableId == tableId);
-        targetText = selectedTable ? selectedTable.tableName : `Masa #${tableId}`;
-    } else if (orderType === "PaketServis") {
-        if (!address) {
-            Swal.fire({
-                title: "Teslimat Adresi Eksik!",
-                text: "Lütfen paket servis için açık adresi giriniz.",
-                icon: "warning",
-                confirmButtonColor: "#4a154b"
-            });
-            return;
-        }
-        targetText = "Paket Servis (" + (address.length > 20 ? address.substring(0, 20) + "..." : address) + ")";
+    if (!address) {
+        Swal.fire({
+            title: "Teslimat Adresi Eksik!",
+            text: "Lütfen paket servis için açık adresi giriniz.",
+            icon: "warning",
+            confirmButtonColor: "#4a154b"
+        });
+        return;
     }
 
+    var paketModalElem = document.getElementById('posPaketModal');
+    var paketModalInstance = bootstrap.Modal.getInstance(paketModalElem);
+    if (paketModalInstance) paketModalInstance.hide();
+
+    var targetText = "Paket Servis (" + (address.length > 20 ? address.substring(0, 20) + "..." : address) + ")";
+    confirmTargetSession(targetText);
+}
+
+function confirmTargetSession(targetText) {
     isTargetConfirmed = true;
 
-    // Arayüz Kilidini Aç
-    $("#menuCatalogContainer").removeClass("step-locked");
     $("#lblSelectedTargetName").text(targetText);
     $("#targetSelectedBadge").removeClass("d-none");
 
-    // Sağ Paneli 2. Adıma Geçir
     $("#stepTargetSelectionPanel").slideUp();
     $("#stepCartPanel").attr("style", "display: flex !important;").hide().slideDown();
 
@@ -232,7 +230,31 @@ function confirmTargetAndStartOrder() {
     });
 }
 
-// SİPARİŞ HEDEFİNİ SIFIRLAMA / DEĞİŞTİRME
+function loadTableActiveOrder(tableId) {
+    $.ajax({
+        url: "/Admin/GetActiveOrderByTableId",
+        type: "GET",
+        data: { tableId: tableId },
+        cache: false,
+        success: function (res) {
+            cart = [];
+            if (res.success && res.data && res.data.length > 0) {
+                cart = res.data.map(item => ({
+                    id: item.productId,
+                    name: item.productName,
+                    price: item.unitPrice,
+                    quantity: item.quantity
+                }));
+            }
+            renderCart();
+        },
+        error: function () {
+            cart = [];
+            renderCart();
+        }
+    });
+}
+
 function resetTargetSelection() {
     if (cart.length > 0) {
         Swal.fire({
@@ -249,23 +271,29 @@ function resetTargetSelection() {
                 cart = [];
                 renderCart();
                 executeResetTargetUI();
+                openInitialModal();
             }
         });
     } else {
         executeResetTargetUI();
+        openInitialModal();
     }
 }
 
 function executeResetTargetUI() {
     isTargetConfirmed = false;
-    $("#menuCatalogContainer").addClass("step-locked");
     $("#targetSelectedBadge").addClass("d-none");
 
     $("#stepCartPanel").slideUp(function () {
         $("#stepTargetSelectionPanel").slideDown();
     });
+
+    if (typeof renderRoleSidebar === "function") {
+        renderRoleSidebar();
+    }
 }
 
+// SİPARİŞİ ONAYLAMA VE FİŞ YAZDIRMA SORUSU
 function executeSubmitOrder(orderType, tableId, address, lat, lng) {
     var orderData = {
         OrderType: orderType,
@@ -292,14 +320,26 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng) {
         success: function (response) {
             $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-2"></i>Siparişi Onayla');
             if (response.success) {
-                Swal.fire("Başarılı!", response.message, "success");
-                cart = [];
-                renderCart();
-                $("#txtDeliveryAddress").val("");
-                loadTables();
+                Swal.fire({
+                    title: 'Sipariş Oluşturuldu!',
+                    text: 'Sipariş fişi yazdırılsın mı?',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#4a154b',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fa-solid fa-print me-1"></i>Evet, Yazdır',
+                    cancelButtonText: 'Hayır, Devam Et'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        printOrderReceipt(orderType, tableId, address);
+                    }
 
-                // Oturumu tamamlandıktan sonra tekrar Adım 1'e döndür
-                executeResetTargetUI();
+                    cart = [];
+                    renderCart();
+                    $("#txtDeliveryAddress").val("");
+                    loadTables();
+                    executeResetTargetUI();
+                });
             } else {
                 Swal.fire("Hata", response.message, "error");
             }
@@ -311,6 +351,131 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng) {
     });
 }
 
+function printOrderReceipt(orderType, tableId, address) {
+    var nowStr = new Date().toLocaleString('tr-TR');
+
+    var targetTitle = "Paket Servis";
+    if (orderType === "Masa") {
+        var selectedTable = posTablesData.find(t => t.tableId == tableId);
+        targetTitle = selectedTable ? selectedTable.tableName : `Masa #${tableId}`;
+    }
+
+    var itemsHtml = "";
+    $.each(cart, function (i, item) {
+        var lineTotal = (item.price * item.quantity).toFixed(2);
+        itemsHtml += `
+            <tr style="border-bottom: 1px solid #eee;">
+                <td style="text-align:center; padding: 4px 0; font-weight:bold;">${item.quantity}</td>
+                <td style="text-align:left; padding: 4px 5px; word-break: break-word;">${item.name}</td>
+                <td style="text-align:right; padding: 4px 0;">${lineTotal} ₺</td>
+            </tr>`;
+    });
+
+    var receiptHtml = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Sipariş Fişi</title>
+            <style>
+                @page {
+                    size: 80mm 210mm; /* Fiş kağıdı boyutları sabitlendi */
+                    margin: 0;
+                }
+                html, body {
+                    width: 78mm;
+                    margin: 0 auto;
+                    padding: 8px;
+                    box-sizing: border-box;
+                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+                    font-size: 12px;
+                    color: #000;
+                    background-color: #fff;
+                }
+                .text-center { text-align: center; }
+                .text-end { text-align: right; }
+                .text-start { text-align: left; }
+                .receipt-header { text-align: center; margin-bottom: 8px; }
+                .receipt-logo { font-size: 20px; font-weight: 900; color: #4a154b; margin: 0; text-transform: uppercase; }
+                .receipt-sub { font-size: 10px; color: #555; margin-bottom: 5px; }
+                .divider { border-bottom: 1px dashed #000; margin: 6px 0; }
+                .info-block { font-size: 11px; margin-bottom: 4px; line-height: 1.4; }
+                table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+                th { font-size: 11px; border-bottom: 1px solid #000; border-top: 1px solid #000; padding: 4px 0; background: #fafafa; }
+                .total-box { border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 6px 0; font-size: 14px; font-weight: bold; margin-top: 8px; }
+                .footer-note { text-align: center; font-size: 10px; margin-top: 12px; color: #444; }
+            </style>
+        </head>
+        <body>
+            <div class="receipt-header">
+                <h1 class="receipt-logo">LezzetPOS</h1>
+                <div class="receipt-sub">Restoran Sipariş Fişi</div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="info-block">
+                <div><strong>Tarih:</strong> ${nowStr}</div>
+                <div><strong>Sipariş Hedefi:</strong> ${targetTitle}</div>
+                ${orderType === "PaketServis" && address ? `<div style="margin-top:2px;"><strong>Adres:</strong> ${address}</div>` : ''}
+            </div>
+
+            <div class="divider"></div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="text-align:center; width: 15%;">Adet</th>
+                        <th style="text-align:left; width: 55%;">Ürün</th>
+                        <th style="text-align:right; width: 30%;">Tutar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${itemsHtml}
+                </tbody>
+            </table>
+
+            <div class="total-box">
+                <div style="display:flex; justify-content:space-between;">
+                    <span>TOPLAM:</span>
+                    <span>${calculateTotal().toFixed(2)} ₺</span>
+                </div>
+            </div>
+
+            <div class="footer-note">
+                <p style="margin:0; font-weight:bold;">Bizi Tercih Ettiğiniz İçin Teşekkür Ederiz!</p>
+                <small>Afiyet Olsun</small>
+            </div>
+        </body>
+        </html>
+    `;
+
+    var printFrame = document.getElementById("receiptPrintIframe");
+    if (!printFrame) {
+        printFrame = document.createElement("iframe");
+        printFrame.id = "receiptPrintIframe";
+        printFrame.style.position = "fixed";
+        printFrame.style.right = "0";
+        printFrame.style.bottom = "0";
+        printFrame.style.width = "0";
+        printFrame.style.height = "0";
+        printFrame.style.border = "0";
+        document.body.appendChild(printFrame);
+    }
+
+    var frameDoc = printFrame.contentWindow || printFrame.contentDocument;
+    if (frameDoc.document) frameDoc = frameDoc.document;
+
+    frameDoc.open();
+    frameDoc.write(receiptHtml);
+    frameDoc.close();
+
+    setTimeout(function () {
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+    }, 300);
+}
+
+
 function loadTables() {
     $.ajax({
         url: "/Order/GetTables",
@@ -321,8 +486,10 @@ function loadTables() {
                 posTablesData = res.data;
                 var html = '<option value="">Masa Seçiniz...</option>';
                 $.each(res.data, function (i, t) {
-                    var amountVal = parseFloat(t.currentAmount || 0).toFixed(2);
-                    var statusBadge = t.status === "Dolu" ? ` (Dolu - ${amountVal} ₺)` : " (Boş)";
+                    var currentAmt = parseFloat(t.currentAmount || 0);
+                    var isOccupied = (t.status && t.status.toLowerCase() === "dolu") || currentAmt > 0;
+                    var amountVal = currentAmt.toFixed(2);
+                    var statusBadge = isOccupied ? ` (Dolu - ${amountVal} ₺)` : " (Boş)";
                     html += `<option value="${t.tableId}">${t.tableName}${statusBadge}</option>`;
                 });
                 $("#tableId").html(html);
@@ -357,15 +524,16 @@ function renderPosTableCards(sectionFilter) {
     }
 
     $.each(filtered, function (i, t) {
-        var isOccupied = t.status === "Dolu";
+        var currentAmt = parseFloat(t.currentAmount || 0);
+        var isOccupied = (t.status && t.status.toLowerCase() === "dolu") || currentAmt > 0;
         var cardClass = isOccupied ? "table-card-occupied" : "table-card-empty";
         var badgeClass = isOccupied ? "bg-danger text-white" : "bg-success text-white";
-        var amountVal = parseFloat(t.currentAmount || 0).toFixed(2);
+        var amountVal = currentAmt.toFixed(2);
         var statusText = isOccupied ? `Dolu (${amountVal} ₺)` : "Boş";
 
         var cardHtml = `
             <div class="col-md-3 col-sm-6">
-                <div class="pos-table-card ${cardClass}" data-id="${t.tableId}" data-name="${t.tableNumber}">
+                <div class="pos-table-card ${cardClass}" data-id="${t.tableId}" data-name="${t.tableNumber}" data-status="${isOccupied ? 'Dolu' : 'Bos'}">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span class="fw-bold fs-6">${t.tableNumber}</span>
                         <span class="badge ${badgeClass} rounded-pill">${statusText}</span>
@@ -383,6 +551,7 @@ function renderPosTableCards(sectionFilter) {
         $card.find(".pos-table-card").on("click", function () {
             var selectedId = $(this).data("id");
             var selectedName = $(this).data("name");
+            var status = $(this).data("status");
 
             $("#tableId").val(selectedId);
 
@@ -390,14 +559,14 @@ function renderPosTableCards(sectionFilter) {
             var modalInstance = bootstrap.Modal.getInstance(modalElem);
             if (modalInstance) modalInstance.hide();
 
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: selectedName + ' seçildi!',
-                showConfirmButton: false,
-                timer: 1200
-            });
+            confirmTargetSession(selectedName);
+
+            if (status === "Dolu") {
+                loadTableActiveOrder(selectedId);
+            } else {
+                cart = [];
+                renderCart();
+            }
         });
 
         $grid.append($card);
@@ -485,7 +654,7 @@ function renderProductsView() {
                                 <span class="fw-bold fs-6" style="color: #4a154b;">${parseFloat(p.Price).toFixed(2)} ₺</span>
                             </div>
                             
-                            <button class="btn btn-sm btn-purple w-100 rounded-3 fw-semibold py-1 mt-auto" 
+                            <button class="btn btn-sm btn-add-product w-100 rounded-3 fw-semibold py-1.5 mt-auto" 
                                     onclick="addToCart(${p.ProductId}, '${safeName}', ${p.Price})">
                                 <i class="fa-solid fa-plus me-1"></i>Ekle
                             </button>
@@ -521,7 +690,7 @@ function renderProductsView() {
                     <td><span class="badge bg-light text-dark border">${p.CategoryName || 'Genel'}</span></td>
                     <td class="text-end fw-bold" style="color: #4a154b;">${parseFloat(p.Price).toFixed(2)} ₺</td>
                     <td class="text-end pe-3">
-                        <button class="btn btn-sm btn-purple rounded-3 fw-semibold px-3" onclick="addToCart(${p.ProductId}, '${safeName}', ${p.Price})">
+                        <button class="btn btn-sm btn-add-product rounded-3 fw-semibold px-3" onclick="addToCart(${p.ProductId}, '${safeName}', ${p.Price})">
                             <i class="fa-solid fa-plus me-1"></i>Ekle
                         </button>
                     </td>
@@ -569,7 +738,7 @@ function filterCategory(catId, btn) {
 
 function addToCart(id, name, price) {
     if (!isTargetConfirmed) {
-        Swal.fire("Uyarı", "Lütfen önce sağ taraftan sipariş hedefini seçip oturumu başlatınız.", "warning");
+        openInitialModal();
         return;
     }
 

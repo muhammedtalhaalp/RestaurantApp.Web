@@ -1,5 +1,7 @@
 ﻿using RestaurantApp.Web.Data;
 using RestaurantApp.Web.Filters;
+using RestaurantApp.Web.Hubs;
+using Microsoft.AspNet.SignalR;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -83,7 +85,7 @@ namespace RestaurantApp.Web.Controllers
                         p.Price,
                         p.CategoryId,
                         CategoryName = p.AppCategories != null ? p.AppCategories.CategoryName : "Kategorisiz",
-                        IsCategoryActive = p.AppCategories == null || p.AppCategories.IsActive, // Kategori Aktiflik Kontrolü
+                        IsCategoryActive = p.AppCategories == null || p.AppCategories.IsActive,
                         p.Description,
                         p.ImageUrl,
                         p.IsAvailable
@@ -169,6 +171,18 @@ namespace RestaurantApp.Web.Controllers
                 }
 
                 db.SaveChanges();
+
+                // SignalR İLE MUTFAK EKRANINA BİLDİRİM FIRLATILIYOR (Mutfakta Ses Çalacak)
+                try
+                {
+                    var hubContext = GlobalHost.ConnectionManager.GetHubContext<OrderHub>();
+                    hubContext.Clients.All.onNewOrderCreated();
+                }
+                catch (Exception signalrEx)
+                {
+                    // SignalR bildirim hatası sipariş kaydını engellemesin
+                    System.Diagnostics.Debug.WriteLine("SignalR bildirim hatası: " + signalrEx.Message);
+                }
 
                 return Json(new { success = true, message = "Sipariş mutfağa iletildi.", orderId = newOrder.OrderId });
             }

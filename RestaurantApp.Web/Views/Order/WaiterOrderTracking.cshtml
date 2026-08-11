@@ -16,7 +16,24 @@
             </h4>
             <p class="text-muted small mb-0">Mutfaktan çıkan siparişler burada kart olarak gözükür. İçeriğini görmek için karta tıklayabilir, teslim aldığınızda onaylayabilirsiniz.</p>
         </div>
-        <span class="badge bg-warning text-dark fs-6 px-3 py-2 rounded-pill" id="waiterOrdersBadge">0 Sipariş Hazır</span>
+        <div class="d-flex align-items-center gap-2">
+            <!-- Sadeleştirilmiş İkonsuz Bildirim Sesi Dropdown Menüsü -->
+            <div class="dropdown">
+                <button class="btn btn-outline-purple btn-sm rounded-3 px-3 dropdown-toggle d-flex align-items-center gap-2 h-38" type="button" id="dropdownWaiterSound" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span>Bildirim Sesi</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-1" aria-labelledby="dropdownWaiterSound">
+                    <li><a class="dropdown-item py-2 small fw-medium" href="javascript:void(0);" onclick="selectWaiterSound('chime', true)">Zil (Klasik)</a></li>
+                    <li><a class="dropdown-item py-2 small fw-medium" href="javascript:void(0);" onclick="selectWaiterSound('double-beep', true)">Çift Bip (Eko)</a></li>
+                    <li><a class="dropdown-item py-2 small fw-medium" href="javascript:void(0);" onclick="selectWaiterSound('melody', true)">Melodik (Üçlü)</a></li>
+                    <li><a class="dropdown-item py-2 small fw-medium" href="javascript:void(0);" onclick="selectWaiterSound('alarm', true)">Yüksek Alarm</a></li>
+                    <li><a class="dropdown-item py-2 small fw-medium" href="javascript:void(0);" onclick="selectWaiterSound('whistle', true)">Mutfak Düdüğü</a></li>
+                    <li><a class="dropdown-item py-2 small fw-medium" href="javascript:void(0);" onclick="selectWaiterSound('digital', true)">Dijital Bip</a></li>
+                </ul>
+            </div>
+
+            <span class="badge bg-warning text-dark fs-6 px-3 rounded-3 h-38 d-flex align-items-center" id="waiterOrdersBadge">0 Sipariş Hazır</span>
+        </div>
     </div>
 
     <!-- Mutfaktan Çıkan Hazır Sipariş Kartları Grid Alanı -->

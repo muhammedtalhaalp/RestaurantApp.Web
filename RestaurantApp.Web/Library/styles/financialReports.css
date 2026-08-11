@@ -1,0 +1,90 @@
+﻿/* Ciro ve Finansal Grafikler Stilleri */
+
+.btn-outline-purple {
+    color: #4a154b !important;
+    border-color: #4a154b !important;
+    background-color: transparent !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease-in-out !important;
+    white-space: nowrap !important;
+}
+
+    .btn-outline-purple:hover {
+        background-color: #4a154b !important;
+        color: #ffffff !important;
+    }
+
+.h-38 {
+    height: 38px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+/* İstatistik Kartları */
+.stat-card {
+    border: none !important;
+    border-radius: 20px !important;
+    background: #ffffff !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+    }
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+}
+
+.icon-purple {
+    background-color: #f3ecf8;
+    color: #4a154b;
+}
+
+.icon-blue {
+    background-color: #e0f2fe;
+    color: #0284c7;
+}
+
+.icon-green {
+    background-color: #dcfce7;
+    color: #15803d;
+}
+
+.icon-yellow {
+    background-color: #fef9c3;
+    color: #a16207;
+}
+
+/* Grafik Kartları */
+.chart-card {
+    border: none !important;
+    border-radius: 20px !important;
+    background: #ffffff !important;
+}
+
+.chart-container {
+    position: relative;
+    height: 320px;
+    width: 100%;
+}
+
+.chart-container-sm {
+    position: relative;
+    height: 220px;
+    width: 100%;
+}
+
+/* Filtre Butonları */
+.btn-time-filter.active {
+    background-color: #4a154b !important;
+    color: #ffffff !important;
+    border-color: #4a154b !important;
+}

@@ -1,7 +1,28 @@
 ﻿/* Mutfak Ekranı Özel Kart ve Liste Stilleri */
 
+/* KURUMSAL MOR BUTON VE YÜKSEKLİK STİLLERİ */
+.btn-outline-purple {
+    color: #4a154b !important;
+    border-color: #4a154b !important;
+    background-color: transparent !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease-in-out !important;
+    white-space: nowrap !important;
+}
+
+    .btn-outline-purple:hover {
+        background-color: #4a154b !important;
+        color: #ffffff !important;
+    }
+
+.h-38 {
+    height: 38px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
 #kitchen-orders-grid .card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.3s ease;
     border: 1px solid rgba(0, 0, 0, 0.05) !important;
 }
 
@@ -9,6 +30,43 @@
         transform: translateY(-4px);
         box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08) !important;
     }
+
+/* GECİKEN SİPARİŞ KARTLARI KIRMIZI PULSE ANİMASYONU */
+.card-order-delayed {
+    border: 2px solid #dc3545 !important;
+    animation: pulseBorderRed 1.5s infinite alternate ease-in-out;
+}
+
+    .card-order-delayed .card-header {
+        background-color: #dc3545 !important;
+        color: #ffffff !important;
+    }
+
+@keyframes pulseBorderRed {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+        border-color: #dc3545;
+    }
+
+    100% {
+        box-shadow: 0 0 15px 5px rgba(220, 53, 69, 0.3);
+        border-color: #b02a37;
+    }
+}
+
+.delay-pulse-badge {
+    animation: blinkBadge 1s infinite alternate;
+}
+
+@keyframes blinkBadge {
+    0% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.6;
+    }
+}
 
 /* Kart Başlığı ve Rozetler */
 #kitchen-orders-grid .card-header {
@@ -22,7 +80,7 @@
         border-radius: 8px;
     }
 
-/* Kesikli Alt Çizgi (Border Bottom Dashed) */
+/* Kesikli Alt Çizgi */
 .border-bottom-dashed {
     border-bottom: 1px dashed #e2e8f0 !important;
 }
@@ -38,7 +96,7 @@
 }
 
     #kitchen-orders-grid .list-group-item .badge {
-        background-color: #4a154b !important; /* Tema Vurgu Moru */
+        background-color: #4a154b !important;
         color: #ffffff;
         font-size: 0.82rem;
         padding: 5px 10px;

@@ -281,6 +281,10 @@
                         <li class="@(currentAction == "Dashboard" ? "active" : "")">
                             <a href="/Admin/Dashboard"><i class="fa-solid fa-sliders"></i><span class="link-text">Kontrol Paneli</span></a>
                         </li>
+                        <!-- YENİ EKLENEN CİRO VE FİNANSAL GRAFİKLER SAYFASI LINKI -->
+                        <li class="@(currentAction == "FinancialReports" ? "active" : "")">
+                            <a href="/Admin/FinancialReports"><i class="fa-solid fa-chart-line"></i><span class="link-text">Ciro ve Grafikler</span></a>
+                        </li>
                         <li class="@(currentAction == "StaffManagement" ? "active" : "")">
                             <a href="/Admin/StaffManagement"><i class="fa-solid fa-users-gear"></i><span class="link-text">Personel Yönetimi</span></a>
                         </li>
@@ -300,7 +304,6 @@
                                     <li class="@(currentAction == "TableManagement" ? "active" : "")">
                                         <a href="/Admin/TableManagement"><span class="link-text">Yeni Masa Ekle</span></a>
                                     </li>
-                                    <!-- Kroki Yönetimi Geçici Olarak Gizlendi (d-none) -->
                                     <li class="@(currentAction == "FloorPlanManagement" ? "active" : "") d-none">
                                         <a href="/Admin/FloorPlanManagement"><span class="link-text">Kroki Yönetimi</span></a>
                                     </li>
@@ -464,19 +467,21 @@
         }
 
         function renderRoleSidebar() {
-            var localRole = (localStorage.getItem("Role") || "@userRole").trim();
             var currentPath = window.location.pathname.toLowerCase();
             var menuHtml = '';
 
             var isTableActive = currentPath.includes('/admin/tablemanagement') || currentPath.includes('/admin/floorplanmanagement');
 
-            if (localRole === 'Admin' || (localRole === '' && currentPath.includes('/admin/'))) {
+            if (currentPath.includes('/admin/')) {
                 menuHtml = `
                     <li class="${currentPath.includes('/admin/index') ? 'active' : ''}">
                         <a href="/Admin/Index"><i class="fa-solid fa-house"></i><span class="link-text">Ana Sayfa</span></a>
                     </li>
                     <li class="${currentPath.includes('/admin/dashboard') ? 'active' : ''}">
                         <a href="/Admin/Dashboard"><i class="fa-solid fa-sliders"></i><span class="link-text">Kontrol Paneli</span></a>
+                    </li>
+                    <li class="${currentPath.includes('/admin/financialreports') ? 'active' : ''}">
+                        <a href="/Admin/FinancialReports"><i class="fa-solid fa-chart-line"></i><span class="link-text">Ciro ve Grafikler</span></a>
                     </li>
                     <li class="${currentPath.includes('/admin/staffmanagement') ? 'active' : ''}">
                         <a href="/Admin/StaffManagement"><i class="fa-solid fa-users-gear"></i><span class="link-text">Personel Yönetimi</span></a>
@@ -497,7 +502,6 @@
                                 <li class="${currentPath.includes('/admin/tablemanagement') ? 'active' : ''}">
                                     <a href="/Admin/TableManagement"><span class="link-text">Yeni Masa Ekle</span></a>
                                 </li>
-                                <!-- Kroki Yönetimi Geçici Olarak Gizlendi (d-none) -->
                                 <li class="${currentPath.includes('/admin/floorplanmanagement') ? 'active' : ''} d-none">
                                     <a href="/Admin/FloorPlanManagement"><span class="link-text">Kroki Yönetimi</span></a>
                                 </li>
@@ -510,7 +514,7 @@
                             </ul>
                         </div>
                     </li>`;
-            } else if (localRole.includes('Mutfak') || (localRole === '' && currentPath.includes('/kitchen'))) {
+            } else if (currentPath.includes('/kitchen')) {
                 menuHtml = `
                     <li class="${currentPath.includes('/kitchen') ? 'active' : ''}">
                         <a href="/Kitchen/Index"><i class="fa-solid fa-fire-burner"></i><span class="link-text">Mutfak Ekranı</span></a>
@@ -531,11 +535,9 @@
                     </li>`;
             }
 
-            if (menuHtml !== '') {
-                var menuElem = document.getElementById('mainSidebarMenu');
-                if (menuElem) {
-                    menuElem.innerHTML = menuHtml;
-                }
+            var menuElem = document.getElementById('mainSidebarMenu');
+            if (menuElem) {
+                menuElem.innerHTML = menuHtml;
             }
         }
 

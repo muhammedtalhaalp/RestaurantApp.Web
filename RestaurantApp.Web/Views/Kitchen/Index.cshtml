@@ -3,6 +3,10 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+@section styles {
+    <link href="~/Library/styles/kitchen.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+}
+
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -11,8 +15,23 @@
             </h4>
             <p class="text-muted small mb-0">Hazırlanmakta olan siparişleri buradan takip edebilir ve hazır olduğunda garsona bildirebilirsiniz.</p>
         </div>
-        <div>
-            <button class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="loadKitchenOrders()">
+        <div class="d-flex align-items-center gap-2">
+            <!-- Sadeleştirilmiş İkonsuz Bildirim Sesi Dropdown Menüsü -->
+            <div class="dropdown">
+                <button class="btn btn-outline-purple btn-sm rounded-3 px-3 dropdown-toggle d-flex align-items-center gap-2 h-38" type="button" id="dropdownKitchenSound" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span>Bildirim Sesi</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-3 mt-1" aria-labelledby="dropdownKitchenSound">
+                    <li><a class="dropdown-item py-2 small fw-medium" href="javascript:void(0);" onclick="selectKitchenSound('chime', true)">Zil (Klasik)</a></li>
+                    <li><a class="dropdown-item py-2 small fw-medium" href="javascript:void(0);" onclick="selectKitchenSound('double-beep', true)">Çift Bip (Eko)</a></li>
+                    <li><a class="dropdown-item py-2 small fw-medium" href="javascript:void(0);" onclick="selectKitchenSound('melody', true)">Melodik (Üçlü)</a></li>
+                    <li><a class="dropdown-item py-2 small fw-medium" href="javascript:void(0);" onclick="selectKitchenSound('alarm', true)">Yüksek Alarm</a></li>
+                    <li><a class="dropdown-item py-2 small fw-medium" href="javascript:void(0);" onclick="selectKitchenSound('whistle', true)">Mutfak Düdüğü</a></li>
+                    <li><a class="dropdown-item py-2 small fw-medium" href="javascript:void(0);" onclick="selectKitchenSound('digital', true)">Dijital Bip</a></li>
+                </ul>
+            </div>
+
+            <button class="btn btn-outline-primary btn-sm rounded-3 px-3 h-38 fw-semibold" onclick="loadKitchenOrders()">
                 <i class="fa-solid fa-rotate me-1"></i> Yenile
             </button>
         </div>
@@ -33,5 +52,5 @@
     <!-- SignalR JS Kütüphaneleri -->
     <script src="~/Scripts/jquery.signalR-2.4.3.min.js"></script>
     <script src="~/signalr/hubs"></script>
-    <script src="~/Library/scripts/kitchen.js"></script>
+    <script src="~/Library/scripts/kitchen.js?v=@DateTime.Now.Ticks"></script>
 }

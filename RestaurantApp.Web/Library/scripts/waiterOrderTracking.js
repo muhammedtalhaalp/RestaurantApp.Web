@@ -8,20 +8,103 @@
 });
 
 var waiterReadyNotifications = [];
+var waiterAudioCtx = null;
+var selectedWaiterSound = localStorage.getItem("WaiterSelectedSound") || "chime";
 
 $(document).ready(function () {
     console.log("Garson Sipariş Takip JS Yüklendi.");
+
+    $(document).one("click keydown scroll mousemove", function () {
+        getWaiterAudioContext();
+    });
 
     loadWaiterOrders();
     setInterval(loadWaiterOrders, 8000);
     initWaiterSignalR();
 });
 
+function getWaiterAudioContext() {
+    if (!waiterAudioCtx) {
+        waiterAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (waiterAudioCtx.state === "suspended") {
+        waiterAudioCtx.resume();
+    }
+    return waiterAudioCtx;
+}
+
+// BİLDİRİM SESİ SEÇİMİ VE KAYDI
+function selectWaiterSound(soundKey, playTest) {
+    selectedWaiterSound = soundKey;
+    localStorage.setItem("WaiterSelectedSound", soundKey);
+
+    if (playTest) {
+        playSelectedWaiterSound(soundKey);
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Bildirim sesi kaydedildi!',
+            showConfirmButton: false,
+            timer: 1200
+        });
+    }
+}
+
+// 6 FARKLI SENTEZLENMİŞ SES MOTORU
+function playSelectedWaiterSound(soundKey) {
+    try {
+        var ctx = getWaiterAudioContext();
+        var key = soundKey || selectedWaiterSound;
+
+        if (key === "chime") {
+            playWaiterTone(ctx, 900, 0, 0.3, 0.3);
+            playWaiterTone(ctx, 1200, 0.2, 0.4, 0.4);
+        } else if (key === "double-beep") {
+            playWaiterTone(ctx, 800, 0, 0.15, 0.3);
+            playWaiterTone(ctx, 800, 0.2, 0.15, 0.3);
+        } else if (key === "melody") {
+            playWaiterTone(ctx, 587, 0, 0.15, 0.2);
+            playWaiterTone(ctx, 659, 0.15, 0.15, 0.2);
+            playWaiterTone(ctx, 880, 0.3, 0.25, 0.3);
+        } else if (key === "alarm") {
+            playWaiterTone(ctx, 1300, 0, 0.2, 0.5, "sawtooth");
+            playWaiterTone(ctx, 1300, 0.25, 0.2, 0.5, "sawtooth");
+        } else if (key === "whistle") {
+            playWaiterTone(ctx, 1600, 0, 0.4, 0.2, "triangle");
+        } else if (key === "digital") {
+            playWaiterTone(ctx, 1000, 0, 0.1, 0.2, "square");
+            playWaiterTone(ctx, 1500, 0.12, 0.15, 0.2, "square");
+        } else {
+            playWaiterTone(ctx, 900, 0, 0.3, 0.3);
+        }
+    } catch (e) {
+        console.error("Ses üretme hatası: ", e);
+    }
+}
+
+function playWaiterTone(ctx, freq, startTime, duration, vol, type) {
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.type = type || "sine";
+    osc.frequency.setValueAtTime(freq, ctx.currentTime + startTime);
+    gain.gain.setValueAtTime(vol || 0.2, ctx.currentTime + startTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startTime + duration);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(ctx.currentTime + startTime);
+    osc.stop(ctx.currentTime + startTime + duration);
+}
+
 function initWaiterSignalR() {
     if ($.connection && $.connection.orderHub) {
         var orderHubProxy = $.connection.orderHub;
 
         orderHubProxy.client.onOrderReady = function (orderId, tableName, orderType, address) {
+            console.log("Sipariş mutfaktan çıktı! Seçili zil çalınıyor...");
+            playSelectedWaiterSound();
+
             var isMasa = orderType === "Masa";
             var formattedTableName = isMasa
                 ? (tableName.toLowerCase().startsWith('masa') ? tableName : `Masa ${tableName}`)
@@ -85,10 +168,11 @@ function loadWaiterOrders() {
                            </button>`;
 
                     var borderColor = isReady ? '#ffc107' : '#0dcaf0';
+                    var pulseClass = isReady ? 'waiter-card-pulse' : '';
 
                     html += `
                         <div class="col-md-4 col-lg-3" id="waiter-card-${order.orderId}">
-                            <div class="card h-100 border-0 shadow-sm rounded-4 p-3 cursor-pointer" style="border-left: 5px solid ${borderColor} !important;" onclick="openWaiterOrderDetailsModal(${order.orderId})">
+                            <div class="card h-100 border-0 shadow-sm rounded-4 p-3 cursor-pointer ${pulseClass}" style="border-left: 5px solid ${borderColor} !important;" onclick="openWaiterOrderDetailsModal(${order.orderId})">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid ${icon} me-2" style="color: #4a154b;"></i>${title}</h6>
                                     <span class="badge bg-light text-dark border"><i class="fa-regular fa-clock me-1"></i>${order.orderDate}</span>
@@ -193,7 +277,6 @@ function openWaiterOrderDetailsModal(orderId) {
     });
 }
 
-// Garson Tarafı Ürün Kalemini Direk 1 Eksiltme / Silme Fonksiyonu
 function deleteWaiterOrderItem(orderDetailId, orderId) {
     $.ajax({
         url: "/Admin/DeleteOrderItem",
