@@ -19,6 +19,14 @@
     border-radius: 16px !important;
 }
 
+.cursor-pointer {
+    cursor: pointer !important;
+}
+
+.text-purple-main {
+    color: #4a154b !important;
+}
+
 /* Rozet ve Vurgu Stilleri */
 .badge-purple-light {
     background-color: #f3e8ff !important;

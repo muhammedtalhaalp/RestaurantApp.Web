@@ -47,7 +47,7 @@
             display: flex;
             align-content: stretch;
             width: 780px;
-            height: 520px; /* Kayıt formundaki Ad Soyad alanı için yükseklik hafif artırıldı */
+            height: 520px;
             border-radius: 24px;
             background: #ffffff;
             box-shadow: 0 20px 40px rgba(74, 21, 75, 0.08);
@@ -103,7 +103,7 @@
                     font-weight: 600;
                 }
 
-        /* Sol Taraftaki Aktif Çizgi */
+        /* Sol Taraftaki Aktif Çizgi (DÜZELTME: transform: translateY kullanıldı) */
         .active-bar {
             position: absolute;
             top: 33.33%;
@@ -119,7 +119,7 @@
                 position: absolute;
                 top: 50%;
                 left: 0;
-                translate: 0 -50%;
+                transform: translateY(-50%);
                 width: 6px;
                 height: 50px;
                 border-top-right-radius: 8px;
@@ -282,12 +282,11 @@
 <body>
 
     <div class="card">
-        <!-- Sol Menü -->
+        <!-- DÜZELTME: .active-bar div'i ul etiketinin dışına çıkarıldı -->
         <ul class="card-nav">
             <li>
                 <i class="fa-solid fa-leaf" style="font-size: 1.8rem; color: var(--color-primary);"></i>
             </li>
-            <div class="active-bar"></div>
             <li>
                 <button type="button" class="signin active" onclick="selectView('signin')">
                     <i class="fa-solid fa-user-check"></i>
@@ -301,6 +300,7 @@
                 </button>
             </li>
         </ul>
+        <div class="active-bar"></div>
 
         <!-- Ortadaki Banner -->
         <div class="card-hero">
@@ -346,7 +346,7 @@
                     </form>
                 </div>
 
-                <!-- 2. KAYIT OL FORMU (Ad Soyad Eklendi) -->
+                <!-- 2. KAYIT OL FORMU -->
                 <div class="form-box">
                     <p class="form-title-sub">Zaten hesabınız var mı? <a href="#" onclick="selectView('signin')">Giriş Yap</a></p>
 
@@ -422,7 +422,7 @@
         };
 
         $(document).ready(function () {
-            // GİRİŞ YAP AJAX (ApiLogin Metodu İle Tam Uyumlu)
+            // GİRİŞ YAP AJAX (Siz istediğiniz gibi SweetAlert "Giriş Başarılı" POPUP'I KALDIRILDI)
             $("#formSignIn").on("submit", function (e) {
                 e.preventDefault();
 
@@ -433,32 +433,22 @@
                 $btn.prop("disabled", true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i>Giriş Yapılıyor...');
 
                 $.ajax({
-                    url: "/Auth/ApiLogin", // Backend Controller Metodu
+                    url: "/Auth/ApiLogin",
                     type: "POST",
                     data: {
-                        Username: email,  // Controller'ın beklediği LoginViewModel alanı
+                        Username: email,
                         Password: password
                     },
                     success: function (response) {
-                        $btn.prop("disabled", false).html('Giriş Yap <i class="fa-solid fa-arrow-right ms-1"></i>');
-
                         if (response.success) {
-                            // Kullanıcı tam adını localStorage üzerine kaydet
                             if (response.fullName) {
                                 localStorage.setItem("FullName", response.fullName);
                             }
 
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Giriş Başarılı',
-                                text: 'Yönlendiriliyorsunuz...',
-                                timer: 1200,
-                                showConfirmButton: false
-                            }).then(() => {
-                                // Controller'dan gelen yönlendirme adresi
-                                window.location.href = response.redirectUrl;
-                            });
+                            // DİREKT YÖNLENDİRME (Pop-up yok)
+                            window.location.href = response.redirectUrl;
                         } else {
+                            $btn.prop("disabled", false).html('Giriş Yap <i class="fa-solid fa-arrow-right ms-1"></i>');
                             Swal.fire("Giriş Başarısız", response.message || "Hatalı e-posta veya şifre.", "error");
                         }
                     },
@@ -469,7 +459,7 @@
                 });
             });
 
-            // KAYIT OL AJAX (ApiRegister Metodu İle Tam Uyumlu)
+            // KAYIT OL AJAX
             $("#formSignUp").on("submit", function (e) {
                 e.preventDefault();
 
@@ -482,7 +472,7 @@
                 $btn.prop("disabled", true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i>Kaydediliyor...');
 
                 $.ajax({
-                    url: "/Auth/ApiRegister", // Backend Controller Metodu
+                    url: "/Auth/ApiRegister",
                     type: "POST",
                     data: {
                         FullName: fullName,
@@ -494,14 +484,6 @@
                         $btn.prop("disabled", false).html('Kayıt Ol <i class="fa-solid fa-user-check ms-1"></i>');
 
                         if (response.success) {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Kayıt Başarılı!',
-                                text: response.message,
-                                timer: 1500,
-                                showConfirmButton: false
-                            });
-                            // Formu temizle ve Giriş ekranına kaydır
                             $("#formSignUp")[0].reset();
                             selectView('signin');
                         } else {

@@ -8,7 +8,7 @@
 }
 
 <div class="container-fluid mt-2">
-    <!-- SAYFA BAŞLIĞI (İkon Sol Bar İle Aynı: fa-receipt) -->
+    <!-- SAYFA BAŞLIĞI -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="fw-bold text-dark mb-1">
@@ -25,9 +25,8 @@
                 <label for="txtReportDate" class="form-label fw-bold text-dark mb-2">
                     <i class="fa-regular fa-calendar-days me-2" style="color: #4a154b;"></i>Tarih Seçin
                 </label>
-                <div class="input-group">
-                    <span class="input-group-text bg-white border-end-0 rounded-start-3 text-muted"><i class="fa-solid fa-calendar"></i></span>
-                    <input type="date" id="txtReportDate" class="form-control date-input-custom border-start-0 rounded-end-3" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                <div>
+                    <input type="date" id="txtReportDate" class="form-control date-input-custom rounded-3 text-center fw-bold" value="@DateTime.Now.ToString("yyyy-MM-dd")" />
                 </div>
             </div>
         </div>
@@ -64,7 +63,7 @@
             </div>
         </div>
 
-        <!-- YENİ DÜZENLİ RAPOR TABLOSU -->
+        <!-- RAPOR TABLOSU -->
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-clean table-hover align-middle mb-0 text-center">
@@ -102,12 +101,12 @@
         <div class="modal-content border-0 rounded-4 shadow">
             <div class="modal-header border-bottom p-3">
                 <h5 class="modal-title fw-bold text-dark">
-                    <i class="fa-solid fa-utensils me-2" style="color: #4a154b;"></i>Sipariş İçeriği
+                    <i class="fa-solid fa-utensils me-2" style="color: #4a154b;"></i>Sipariş İçeriği Detayı
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                <div id="modalOrderInfoBar" class="p-2 mb-3 bg-light rounded-3 text-muted small border"></div>
+                <div id="modalOrderInfoBar" class="p-3 mb-3 bg-light rounded-3 border"></div>
                 <div id="modalProductsContainer">
                     <!-- JS ile doldurulacak -->
                 </div>

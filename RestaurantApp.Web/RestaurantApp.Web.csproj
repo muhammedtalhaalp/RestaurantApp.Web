@@ -166,6 +166,7 @@
     <Compile Include="Controllers\CategoryController.cs" />
     <Compile Include="Controllers\ErrorController.cs" />
     <Compile Include="Controllers\KitchenController.cs" />
+    <Compile Include="Controllers\MenuController.cs" />
     <Compile Include="Controllers\OrderController.cs" />
     <Compile Include="Data\AppUsers.cs">
       <DependentUpon>Model1.tt</DependentUpon>
@@ -258,6 +259,7 @@
     <Content Include="Library\scripts\order-tracking.js" />
     <Content Include="Library\scripts\pos.js" />
     <Content Include="Library\scripts\profileSettings.js" />
+    <Content Include="Library\scripts\qr-menu.js" />
     <Content Include="Library\scripts\staffManagement.js" />
     <Content Include="Library\scripts\table-control.js" />
     <Content Include="Library\scripts\table-management.js" />
@@ -273,6 +275,7 @@
     <Content Include="Library\styles\order-tracking.css" />
     <Content Include="Library\styles\pos.css" />
     <Content Include="Library\styles\profile-settings.css" />
+    <Content Include="Library\styles\qr-menu.css" />
     <Content Include="Library\styles\staff-management.css" />
     <Content Include="Library\styles\table-control.css" />
     <Content Include="Library\styles\table-management.css" />
@@ -330,6 +333,7 @@
     <Content Include="Views\Admin\KitchenReport.cshtml" />
     <Content Include="Views\Order\TableControl.cshtml" />
     <Content Include="Views\Order\Index.cshtml" />
+    <Content Include="Views\Menu\Index.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

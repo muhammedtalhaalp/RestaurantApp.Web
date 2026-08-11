@@ -3,7 +3,7 @@
 #waiterToastContainer {
     position: fixed;
     bottom: 25px;
-    left: 280px; /* Sidebar genişliği gözetilerek hizalandı */
+    left: 280px;
     z-index: 1090;
     display: flex;
     flex-direction: column-reverse;
@@ -39,6 +39,10 @@
     background-color: #198754;
     width: 100%;
     transition: width 0.1s linear;
+}
+
+.cursor-pointer {
+    cursor: pointer !important;
 }
 
 /* Garson Sipariş Kartları */

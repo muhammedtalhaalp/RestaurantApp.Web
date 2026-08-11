@@ -7,6 +7,7 @@
     background-color: #4a154b;
     color: #ffffff;
     border: none;
+    transition: all 0.2s ease-in-out;
 }
 
     .btn-theme-primary:hover {
@@ -16,7 +17,9 @@
 
 .btn-outline-purple {
     color: #4a154b;
-    border-color: #4a154b;
+    border: 1px solid #4a154b;
+    background-color: #ffffff;
+    transition: all 0.2s ease-in-out;
 }
 
     .btn-outline-purple:hover {
@@ -24,29 +27,71 @@
         color: #ffffff;
     }
 
-/* Sekme (Tabs) Stilleri */
-#sectionTabs .nav-link {
-    color: #4a5568;
-    background-color: #f7fafc;
-    border: 1px solid #e2e8f0;
-    transition: all 0.2s ease-in-out;
+/* Sekme (Tabs) Yatay Scroll Stilleri */
+.custom-horizontal-tabs {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    white-space: nowrap !important;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
 }
 
-    #sectionTabs .nav-link:hover {
-        background-color: #edf2f7;
-        color: #2d3748;
+    /* Scrollbar Şeffaf/Şık Görünümü */
+    .custom-horizontal-tabs::-webkit-scrollbar {
+        height: 5px;
     }
 
-    #sectionTabs .nav-link.active {
-        background-color: #4a154b;
-        color: #ffffff;
-        border-color: #4a154b;
-        box-shadow: 0 4px 6px rgba(74, 21, 75, 0.2);
+    .custom-horizontal-tabs::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
     }
+
+    .custom-horizontal-tabs::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+
+        .custom-horizontal-tabs::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+    .custom-horizontal-tabs .nav-item {
+        flex: 0 0 auto !important;
+    }
+
+    .custom-horizontal-tabs .nav-link {
+        color: #4a5568;
+        background-color: #f7fafc;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease-in-out;
+        min-width: 100px;
+        text-align: center;
+    }
+
+        .custom-horizontal-tabs .nav-link:hover {
+            background-color: #edf2f7;
+            color: #2d3748;
+        }
+
+        .custom-horizontal-tabs .nav-link.active {
+            background-color: #4a154b;
+            color: #ffffff;
+            border-color: #4a154b;
+            box-shadow: 0 4px 6px rgba(74, 21, 75, 0.2);
+        }
+
+/* Alan Yönetimi Modal İçindeki Liste Dikey Scroll Stili */
+.custom-section-scroll-list {
+    max-height: 250px !important;
+    overflow-y: auto !important;
+}
 
 /* Masa Kartları Stilleri */
 .table-card {
-    min-height: 140px;
+    min-height: 150px;
     border-radius: 16px;
     position: relative;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -89,7 +134,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
 }
 
 .table-card-number {
@@ -134,8 +179,17 @@
     font-size: 1.35rem;
     font-weight: 800;
     text-align: right;
-    margin-top: 15px;
     color: #ffffff !important;
+}
+
+/* Zaman Detayları ve Sayaç Rozetleri */
+.table-time-details {
+    font-size: 0.78rem;
+    opacity: 0.95;
+}
+
+.idle-time-badge .badge {
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 /* Masa Silme/İşlem Butonu */

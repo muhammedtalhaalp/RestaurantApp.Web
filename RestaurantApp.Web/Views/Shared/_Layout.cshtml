@@ -300,8 +300,15 @@
                                     <li class="@(currentAction == "TableManagement" ? "active" : "")">
                                         <a href="/Admin/TableManagement"><span class="link-text">Yeni Masa Ekle</span></a>
                                     </li>
-                                    <li class="@(currentAction == "FloorPlanManagement" ? "active" : "")">
+                                    <!-- Kroki Yönetimi Geçici Olarak Gizlendi (d-none) -->
+                                    <li class="@(currentAction == "FloorPlanManagement" ? "active" : "") d-none">
                                         <a href="/Admin/FloorPlanManagement"><span class="link-text">Kroki Yönetimi</span></a>
+                                    </li>
+                                    <li>
+                                        <a href="javascript:void(0);" onclick="$('#btnShowGeneralQr').click();"><span class="link-text">Menü QR Kodu Al</span></a>
+                                    </li>
+                                    <li>
+                                        <a href="javascript:void(0);" onclick="$('#btnOpenManageSectionsModal').click();"><span class="link-text">Alanları Yönet</span></a>
                                     </li>
                                 </ul>
                             </div>
@@ -416,7 +423,6 @@
                     var $countText = $("#notificationCountText");
                     var $container = $("#notificationItemsContainer");
 
-                    // Sadece mutfakta "Hazır" olan siparişleri bildirim ziline döküyoruz
                     var readyOrders = res.data ? res.data.filter(o => o.status === "Hazır") : [];
 
                     if (res.success && readyOrders.length > 0) {
@@ -457,14 +463,14 @@
             });
         }
 
-        (function renderRoleSidebar() {
-            var localRole = (localStorage.getItem("Role") || "").trim();
+        function renderRoleSidebar() {
+            var localRole = (localStorage.getItem("Role") || "@userRole").trim();
             var currentPath = window.location.pathname.toLowerCase();
             var menuHtml = '';
 
             var isTableActive = currentPath.includes('/admin/tablemanagement') || currentPath.includes('/admin/floorplanmanagement');
 
-            if (localRole === 'Admin' || currentPath.includes('/admin/')) {
+            if (localRole === 'Admin' || (localRole === '' && currentPath.includes('/admin/'))) {
                 menuHtml = `
                     <li class="${currentPath.includes('/admin/index') ? 'active' : ''}">
                         <a href="/Admin/Index"><i class="fa-solid fa-house"></i><span class="link-text">Ana Sayfa</span></a>
@@ -491,13 +497,20 @@
                                 <li class="${currentPath.includes('/admin/tablemanagement') ? 'active' : ''}">
                                     <a href="/Admin/TableManagement"><span class="link-text">Yeni Masa Ekle</span></a>
                                 </li>
-                                <li class="${currentPath.includes('/admin/floorplanmanagement') ? 'active' : ''}">
+                                <!-- Kroki Yönetimi Geçici Olarak Gizlendi (d-none) -->
+                                <li class="${currentPath.includes('/admin/floorplanmanagement') ? 'active' : ''} d-none">
                                     <a href="/Admin/FloorPlanManagement"><span class="link-text">Kroki Yönetimi</span></a>
+                                </li>
+                                <li>
+                                    <a href="javascript:void(0);" onclick="$('#btnShowGeneralQr').click();"><span class="link-text">Menü QR Kodu Al</span></a>
+                                </li>
+                                <li>
+                                    <a href="javascript:void(0);" onclick="$('#btnOpenManageSectionsModal').click();"><span class="link-text">Alanları Yönet</span></a>
                                 </li>
                             </ul>
                         </div>
                     </li>`;
-            } else if (localRole.includes('Mutfak') || currentPath.includes('/kitchen')) {
+            } else if (localRole.includes('Mutfak') || (localRole === '' && currentPath.includes('/kitchen'))) {
                 menuHtml = `
                     <li class="${currentPath.includes('/kitchen') ? 'active' : ''}">
                         <a href="/Kitchen/Index"><i class="fa-solid fa-fire-burner"></i><span class="link-text">Mutfak Ekranı</span></a>
@@ -524,9 +537,10 @@
                     menuElem.innerHTML = menuHtml;
                 }
             }
-        })();
+        }
 
         $(document).ready(function () {
+            renderRoleSidebar();
             fetchLayoutNotifications();
             setInterval(fetchLayoutNotifications, 8000);
 

@@ -44,7 +44,7 @@ $(document).ready(function () {
     }
 
     // ==========================================
-    // 1. KULLANICI GİRİŞ İŞLEMİ (LOGIN)
+    // 1. KULLANICI GİRİŞ İŞLEMİ (LOGIN - POPUP'SIZ DİREKT YÖNLENDİRME)
     // ==========================================
     $("#loginForm").on("submit", function (e) {
         e.preventDefault();
@@ -58,6 +58,7 @@ $(document).ready(function () {
         }
 
         var $btn = $("#btnLogin");
+        // Buton üzerinde yükleniyor simgesi çıkacak ve pasifleşecek
         $btn.prop("disabled", true).html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Giriş Yapılıyor...');
 
         $.ajax({
@@ -68,25 +69,16 @@ $(document).ready(function () {
                 Password: password
             },
             success: function (response) {
-                $btn.prop("disabled", false).html("Devam Et");
-
                 if (response.success) {
                     localStorage.setItem("JWToken", response.token);
                     localStorage.setItem("Username", response.username);
                     localStorage.setItem("FullName", response.fullName);
                     localStorage.setItem("Role", response.role);
 
-                    Swal.fire({
-                        icon: "success",
-                        title: "Giriş Başarılı!",
-                        text: "Yönlendiriliyorsunuz...",
-                        timer: 1500,
-                        showConfirmButton: false
-                    }).then(function () {
-                        // Eğer backend'den redirectUrl gelirse onu, gelmezse direkt /Admin/Index adresini açar
-                        window.location.href = response.redirectUrl || "/Admin/Index";
-                    });
+                    // POPUP YOK: Direkt yönlendirme sağlanıyor
+                    window.location.href = response.redirectUrl || "/Admin/Index";
                 } else {
+                    $btn.prop("disabled", false).html("Devam Et");
                     Swal.fire("Hata", response.message, "error");
                 }
             },

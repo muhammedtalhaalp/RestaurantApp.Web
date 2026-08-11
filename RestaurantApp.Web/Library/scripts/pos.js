@@ -1,5 +1,4 @@
-﻿// Global AJAX Ayarı (JWT Token Otomatik Eklenir)
-$.ajaxSetup({
+﻿$.ajaxSetup({
     beforeSend: function (xhr) {
         var token = localStorage.getItem("JWToken");
         if (token) {
@@ -19,6 +18,7 @@ var posTablesData = [];
 var currentRawProducts = [];
 var currentViewMode = "grid";
 var activeCategoryId = 0;
+var isTargetConfirmed = false;
 
 function initGoogleMap() {
     var defaultLocation = { lat: defaultLat, lng: defaultLng };
@@ -162,7 +162,6 @@ $(document).ready(function () {
         renderPosTableCards(selectedSection);
     });
 
-    // SİPARİŞİ ONAYLA BUTONU
     $("#btn-submit-order").on("click", function () {
         if (cart.length === 0) {
             Swal.fire("Uyarı", "Sepetinizde ürün bulunmamaktadır.", "warning");
@@ -175,54 +174,97 @@ $(document).ready(function () {
         var lat = parseFloat($("#latitude").val());
         var lng = parseFloat($("#longitude").val());
 
-        if (orderType === "Masa") {
-            if (!tableId || tableId === "" || tableId === "0") {
-                Swal.fire({
-                    title: "Masa Seçilmedi!",
-                    text: "Lütfen siparişi onaylamadan önce bir masa seçiniz.",
-                    icon: "warning",
-                    confirmButtonColor: "#4a154b"
-                });
-                return;
-            }
-
-            var selectedTable = posTablesData.find(t => t.tableId == tableId);
-            if (selectedTable && selectedTable.status === "Dolu") {
-                var itemListText = cart.map(c => `• ${c.name} (${c.quantity} Adet)`).join('\n');
-
-                Swal.fire({
-                    title: `${selectedTable.tableName} Masasına Ek Sipariş!`,
-                    text: `Bu masa halihazırda DOLUDUR. Aşağıdaki ürünler masanın mevcut adisyonuna eklenecektir:\n\n${itemListText}\n\nDevam etmek istiyor musunuz?`,
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#4a154b',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Evet, Masaya Ekle',
-                    cancelButtonText: 'İptal Et'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        executeSubmitOrder(orderType, tableId, address, lat, lng);
-                    }
-                });
-                return;
-            }
-        }
-
-        if (orderType === "PaketServis") {
-            if (!address) {
-                Swal.fire({
-                    title: "Teslimat Adresi Eksik!",
-                    text: "Lütfen paket servis için teslimat adresini giriniz.",
-                    icon: "warning",
-                    confirmButtonColor: "#4a154b"
-                });
-                return;
-            }
-        }
-
         executeSubmitOrder(orderType, tableId, address, lat, lng);
     });
 });
+
+// ADIM 1: SİPARİŞ HEDEFİNİ ONAYLAMA VE MENÜYÜ AÇMA
+function confirmTargetAndStartOrder() {
+    var orderType = $("#orderType").val();
+    var tableId = $("#tableId").val();
+    var address = ($("#txtDeliveryAddress").val() || "").trim();
+    var targetText = "";
+
+    if (orderType === "Masa") {
+        if (!tableId || tableId === "" || tableId === "0") {
+            Swal.fire({
+                title: "Masa Seçilmedi!",
+                text: "Lütfen menüyü açmadan önce geçerli bir masa seçiniz.",
+                icon: "warning",
+                confirmButtonColor: "#4a154b"
+            });
+            return;
+        }
+
+        var selectedTable = posTablesData.find(t => t.tableId == tableId);
+        targetText = selectedTable ? selectedTable.tableName : `Masa #${tableId}`;
+    } else if (orderType === "PaketServis") {
+        if (!address) {
+            Swal.fire({
+                title: "Teslimat Adresi Eksik!",
+                text: "Lütfen paket servis için açık adresi giriniz.",
+                icon: "warning",
+                confirmButtonColor: "#4a154b"
+            });
+            return;
+        }
+        targetText = "Paket Servis (" + (address.length > 20 ? address.substring(0, 20) + "..." : address) + ")";
+    }
+
+    isTargetConfirmed = true;
+
+    // Arayüz Kilidini Aç
+    $("#menuCatalogContainer").removeClass("step-locked");
+    $("#lblSelectedTargetName").text(targetText);
+    $("#targetSelectedBadge").removeClass("d-none");
+
+    // Sağ Paneli 2. Adıma Geçir
+    $("#stepTargetSelectionPanel").slideUp();
+    $("#stepCartPanel").attr("style", "display: flex !important;").hide().slideDown();
+
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: targetText + ' için sipariş oturumu açıldı.',
+        showConfirmButton: false,
+        timer: 1500
+    });
+}
+
+// SİPARİŞ HEDEFİNİ SIFIRLAMA / DEĞİŞTİRME
+function resetTargetSelection() {
+    if (cart.length > 0) {
+        Swal.fire({
+            title: "Masa / Adres Değiştirilsin mi?",
+            text: "Hedef değiştirilirse sepetinizdeki ürünler temizlenecektir!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#6c757d",
+            confirmButtonText: "Evet, Değiştir",
+            cancelButtonText: "Vazgeç"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                cart = [];
+                renderCart();
+                executeResetTargetUI();
+            }
+        });
+    } else {
+        executeResetTargetUI();
+    }
+}
+
+function executeResetTargetUI() {
+    isTargetConfirmed = false;
+    $("#menuCatalogContainer").addClass("step-locked");
+    $("#targetSelectedBadge").addClass("d-none");
+
+    $("#stepCartPanel").slideUp(function () {
+        $("#stepTargetSelectionPanel").slideDown();
+    });
+}
 
 function executeSubmitOrder(orderType, tableId, address, lat, lng) {
     var orderData = {
@@ -255,6 +297,9 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng) {
                 renderCart();
                 $("#txtDeliveryAddress").val("");
                 loadTables();
+
+                // Oturumu tamamlandıktan sonra tekrar Adım 1'e döndür
+                executeResetTargetUI();
             } else {
                 Swal.fire("Hata", response.message, "error");
             }
@@ -351,7 +396,7 @@ function renderPosTableCards(sectionFilter) {
                 icon: 'success',
                 title: selectedName + ' seçildi!',
                 showConfirmButton: false,
-                timer: 1500
+                timer: 1200
             });
         });
 
@@ -369,12 +414,11 @@ function loadCategories() {
 
                 if (isFrozen) {
                     html += `
-                        <button class="btn btn-outline-secondary category-btn opacity-50 position-relative" 
+                        <button class="btn btn-outline-secondary category-btn opacity-50" 
                                 disabled 
-                                style="cursor: not-allowed; border-style: dashed;" 
+                                style="cursor: not-allowed;" 
                                 title="Bu kategori dondurulmuştur.">
-                            ${item.CategoryName}
-                            <span class="badge bg-info text-dark rounded-pill ms-1" style="font-size:0.65rem;"><i class="fa-solid fa-snowflake me-1"></i>Donduruldu</span>
+                            ${item.CategoryName} (Pasif)
                         </button>`;
                 } else {
                     html += `
@@ -403,7 +447,8 @@ function loadProducts(categoryId) {
 function renderProductsView() {
     if (!currentRawProducts || currentRawProducts.length === 0) return;
 
-    var availableProducts = currentRawProducts.filter(p => p.IsAvailable !== false);
+    var availableProducts = currentRawProducts.filter(p => p.IsAvailable !== false && p.IsCategoryActive !== false);
+
     var filtered = activeCategoryId == 0
         ? availableProducts
         : availableProducts.filter(p => p.CategoryId == activeCategoryId);
@@ -523,6 +568,11 @@ function filterCategory(catId, btn) {
 }
 
 function addToCart(id, name, price) {
+    if (!isTargetConfirmed) {
+        Swal.fire("Uyarı", "Lütfen önce sağ taraftan sipariş hedefini seçip oturumu başlatınız.", "warning");
+        return;
+    }
+
     var item = cart.find(x => x.id === id);
     if (item) {
         item.quantity++;

@@ -13,7 +13,6 @@
             border: 1px solid #cbd5e1;
         }
 
-        /* Google Autocomplete Açılır Menü Tasarımı */
         .pac-container {
             z-index: 10000 !important;
             border-radius: 10px;
@@ -21,113 +20,158 @@
             font-family: 'Poppins', sans-serif;
             border: 1px solid #e2e8f0;
         }
+
+        /* 2 Adımlı Akış Kilit Katmanı Stilleri */
+        .step-locked {
+            opacity: 0.4;
+            pointer-events: none;
+            user-select: none;
+            filter: grayscale(80%);
+            transition: all 0.3s ease;
+        }
     </style>
 }
 
 <div class="row g-0">
-    <!-- SOL TARAF: Sipariş Yönetimi ve Kategoriler (8 Kolon) -->
+    <!-- SOL TARAF: Sipariş Yönetimi ve Ürün Kataloğu (8 Kolon) -->
     <div class="col-md-8 p-4">
-        <div class="mb-3">
-            <h4 class="fw-bold text-dark mb-1">
-                <i class="fa-solid fa-utensils me-2" style="color: #4a154b;"></i>Sipariş Yönetimi
-            </h4>
-            <p class="text-muted small mb-0">Menüden dilediğiniz ürünleri seçip sepete ekleyebilir, masa veya paket siparişinizi tamamlayabilirsiniz.</p>
-        </div>
-
-        <!-- KATEGORİLER VE GÖRÜNÜM BUTONLARI -->
+        <!-- Sipariş Başlığı & Seçilen Hedef Rozeti -->
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <div id="category-list" class="d-flex flex-wrap align-items-center">
-                <button class="btn btn-primary category-btn active" data-id="0" onclick="filterCategory(0, this)">
-                    <i class="fa-solid fa-list me-1"></i>Tüm Ürünler
-                </button>
+            <div>
+                <h4 class="fw-bold text-dark mb-1">
+                    <i class="fa-solid fa-utensils me-2" style="color: #4a154b;"></i>Sipariş Yönetimi
+                </h4>
+                <p class="text-muted small mb-0">Önce sağ taraftan sipariş türü ve masa/adres seçimi yapınız.</p>
             </div>
-
-            <!-- Görünüm Değiştirici Butonlar -->
-            <div class="btn-group shadow-sm ms-2" role="group">
-                <button type="button" class="btn btn-sm btn-purple-main active px-3" id="btnGridView" title="Izgara Görünümü (Resimli)">
-                    <i class="fa-solid fa-border-all"></i>
-                </button>
-                <button type="button" class="btn btn-sm btn-outline-secondary px-3" id="btnTableView" title="Tablo Görünümü (Resimsiz)">
-                    <i class="fa-solid fa-list-ul"></i>
+            <!-- Seçim Tamamlanınca Açılan Bilgi Rozeti -->
+            <div id="targetSelectedBadge" class="d-none">
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill fs-6 fw-bold">
+                    <i class="fa-solid fa-circle-check me-1"></i><span id="lblSelectedTargetName">Masa-1</span>
+                </span>
+                <button type="button" class="btn btn-sm btn-link text-danger text-decoration-none ms-1 extra-small fw-bold" onclick="resetTargetSelection()">
+                    <i class="fa-solid fa-rotate-left me-1"></i>Değiştir
                 </button>
             </div>
         </div>
 
-        <hr />
+        <!-- Ürünler Kataloğu Kapsayıcısı (Seçim Yapılana Kadar Kilitli - step-locked) -->
+        <div id="menuCatalogContainer" class="step-locked">
+            <!-- KATEGORİLER VE GÖRÜNÜM BUTONLARI -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div id="category-list" class="d-flex flex-wrap align-items-center">
+                    <button class="btn btn-primary category-btn active" data-id="0" onclick="filterCategory(0, this)">
+                        <i class="fa-solid fa-list me-1"></i>Tüm Ürünler
+                    </button>
+                </div>
 
-        <!-- Ürünler Alanı -->
-        <div id="product-list" class="row g-3">
-            <!-- AJAX ile dinamik yüklenecek -->
+                <!-- Görünüm Değiştirici Butonlar -->
+                <div class="btn-group shadow-sm ms-2" role="group">
+                    <button type="button" class="btn btn-sm btn-purple-main active px-3" id="btnGridView" title="Izgara Görünümü (Resimli)">
+                        <i class="fa-solid fa-border-all"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" id="btnTableView" title="Tablo Görünümü (Resimsiz)">
+                        <i class="fa-solid fa-list-ul"></i>
+                    </button>
+                </div>
+            </div>
+
+            <hr />
+
+            <!-- Ürünler Alanı -->
+            <div id="product-list" class="row g-3">
+                <!-- AJAX ile dinamik yüklenecek -->
+            </div>
         </div>
     </div>
 
-    <!-- SAĞ TARAF: Sepet ve Sipariş Detayları (4 Kolon - EKRANDA SAĞDA SABİT) -->
+    <!-- SAĞ TARAF: Adım 1 Hedef Seçimi & Adım 2 Sepet Paneli (4 Kolon) -->
     <div class="col-md-4 cart-container p-4 d-flex flex-column">
-        <h4 class="mb-3"><i class="fa-solid fa-cart-shopping me-2"></i>Aktif Sepet</h4>
-        <hr />
 
-        <!-- Sipariş Türü Seçimi -->
-        <div class="mb-3">
-            <label class="form-label fw-bold">Sipariş Türü:</label>
-            <select id="orderType" class="form-select">
-                <option value="Masa">Masa Siparişi</option>
-                <option value="PaketServis">Paket Servis (Teslimat)</option>
-            </select>
-        </div>
+        <!-- ADIM 1: SİPARİŞ HEDEFİ SEÇİM PANELİ -->
+        <div id="stepTargetSelectionPanel">
+            <h5 class="fw-bold mb-3" style="color: #4a154b;">
+                <span class="badge rounded-circle bg-purple-main text-white me-2 px-2 py-1">1</span>1. Adım: Sipariş Hedefini Seçin
+            </h5>
 
-        <!-- Masa Seçimi -->
-        <div class="mb-3" id="tableSelectGroup">
-            <label class="form-label fw-bold">Masa Seçin:</label>
-            <div class="input-group">
-                <select id="tableId" class="form-select">
-                    <option value="">Masalar Yükleniyor...</option>
-                </select>
-                <button class="btn btn-outline-primary fw-bold" type="button" id="btnOpenTableModal">
-                    <i class="fa-solid fa-border-all me-1"></i>Kartlardan Seç
+            <div class="card border p-3 rounded-4 bg-light mb-3 shadow-sm">
+                <!-- Sipariş Türü Seçimi -->
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-secondary">Sipariş Türü:</label>
+                    <select id="orderType" class="form-select fw-semibold">
+                        <option value="Masa">Masa Siparişi</option>
+                        <option value="PaketServis">Paket Servis (Teslimat)</option>
+                    </select>
+                </div>
+
+                <!-- Masa Seçim Alanı -->
+                <div class="mb-3" id="tableSelectGroup">
+                    <label class="form-label fw-bold small text-secondary">Masa Seçin:</label>
+                    <div class="input-group mb-2">
+                        <select id="tableId" class="form-select fw-semibold">
+                            <option value="">Masalar Yükleniyor...</option>
+                        </select>
+                        <button class="btn btn-outline-primary fw-bold" type="button" id="btnOpenTableModal">
+                            <i class="fa-solid fa-border-all me-1"></i>Kartlardan Seç
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Paket Servis Alanı (Google Maps & Autocomplete) -->
+                <div id="deliveryGroup" style="display: none;" class="mb-3">
+                    <div class="mb-2">
+                        <label class="form-label fw-bold small text-secondary"><i class="fa-solid fa-location-dot me-1" style="color: #4a154b;"></i>Açık Adres:</label>
+                        <input type="text" id="txtDeliveryAddress" class="form-control" placeholder="Adres yazın (Örn: Atatürk Caddesi No:5...)" autocomplete="off" />
+                    </div>
+
+                    <label class="form-label fw-bold small text-muted">Teslimat Konumu:</label>
+                    <div id="map"></div>
+
+                    <input type="hidden" id="latitude" />
+                    <input type="hidden" id="longitude" />
+                </div>
+
+                <button type="button" id="btnStartOrderSession" class="btn btn-purple-main w-100 fw-bold py-2 rounded-3 shadow-sm" onclick="confirmTargetAndStartOrder()">
+                    <i class="fa-solid fa-play me-2"></i>Siparişe Başla / Menüyü Aç
                 </button>
             </div>
         </div>
 
-        <!-- PAKET SERVİS ALANI (GOOGLE MAPS VE AUTOCOMPLETE) -->
-        <div id="deliveryGroup" style="display: none;" class="mb-3">
-            <div class="mb-2">
-                <label class="form-label fw-bold"><i class="fa-solid fa-location-dot me-1" style="color: #4a154b;"></i>Açık Adres:</label>
-                <input type="text" id="txtDeliveryAddress" class="form-control" placeholder="Adres yazın (Örn: Atatürk Cadesi No:5...)" autocomplete="off" />
+        <!-- ADIM 2: SEPET VE SİPARİŞ ONAY PANELİ (Hedef Seçilince Aktifleşir) -->
+        <div id="stepCartPanel" class="flex-grow-1 d-flex flex-column" style="display: none !important;">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="fw-bold mb-0 text-dark">
+                    <span class="badge rounded-circle bg-success text-white me-2 px-2 py-1">2</span>2. Adım: Aktif Sepet
+                </h5>
+            </div>
+            <hr class="my-2" />
+
+            <!-- Sepet Tablosu -->
+            <div class="flex-grow-1 overflow-auto mb-3" style="max-height: 280px;">
+                <table class="table table-hover table-sm align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ürün</th>
+                            <th style="width: 80px;">Adet</th>
+                            <th class="text-end">Fiyat</th>
+                            <th style="width: 35px;" class="text-center">Sil</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cart-items">
+                        <!-- Sepete eklenen ürünler -->
+                    </tbody>
+                </table>
             </div>
 
-            <label class="form-label fw-bold small text-muted">Teslimat Konumu (Pin Sürükleyin veya Haritaya Tıklayın):</label>
-            <div id="map"></div>
-
-            <input type="hidden" id="latitude" />
-            <input type="hidden" id="longitude" />
-        </div>
-
-        <!-- Sepet Tablosu -->
-        <div class="flex-grow-1 overflow-auto mb-3" style="max-height: 250px;">
-            <table class="table table-hover table-sm align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Ürün</th>
-                        <th style="width: 80px;">Adet</th>
-                        <th class="text-end">Fiyat</th>
-                        <th style="width: 35px;" class="text-center">Sil</th>
-                    </tr>
-                </thead>
-                <tbody id="cart-items">
-                    <!-- Sepete eklenenler -->
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Toplam Tutar ve Onay Butonu -->
-        <div class="pt-3 border-top mt-auto">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="fs-5 fw-bold">Toplam Tutar:</span>
-                <span id="total-price" class="fs-4 fw-bold text-success">0.00 ₺</span>
+            <!-- Toplam Tutar ve Onay Butonu -->
+            <div class="pt-3 border-top mt-auto">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="fs-5 fw-bold text-dark">Toplam Tutar:</span>
+                    <span id="total-price" class="fs-4 fw-bold text-success">0.00 ₺</span>
+                </div>
+                <button id="btn-submit-order" class="btn btn-success w-100 btn-lg fw-bold rounded-3 shadow-sm">
+                    <i class="fa-solid fa-check me-2"></i>Siparişi Onayla
+                </button>
             </div>
-            <button id="btn-submit-order" class="btn btn-success w-100 btn-lg fw-bold">
-                <i class="fa-solid fa-check me-2"></i>Siparişi Onayla
-            </button>
         </div>
     </div>
 </div>
@@ -197,7 +241,6 @@
 </div>
 
 @section scripts {
-    <!-- Google Maps JS API Entegrasyonu -->
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB4PzsQaSlz70n5upY-1Ha30lrk_makrQo&libraries=places&callback=initGoogleMap" async defer></script>
     <script src="~/Library/scripts/pos.js?v=@DateTime.Now.Ticks"></script>
 }

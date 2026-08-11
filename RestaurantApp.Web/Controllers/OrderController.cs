@@ -38,7 +38,6 @@ namespace RestaurantApp.Web.Controllers
                     .ToList()
                     .Select(t =>
                     {
-                        // DÜZELTME: Hesabı henüz kapatılmamış (Tamamlandı ve İptal olmayan) siparişlerin tutarını topluyoruz.
                         var activeTotal = db.AppOrders
                             .Where(o => o.TableId == t.TableId && o.Status != "Tamamlandı" && o.Status != "İptal")
                             .Sum(o => (decimal?)o.TotalAmount) ?? 0;
@@ -84,6 +83,7 @@ namespace RestaurantApp.Web.Controllers
                         p.Price,
                         p.CategoryId,
                         CategoryName = p.AppCategories != null ? p.AppCategories.CategoryName : "Kategorisiz",
+                        IsCategoryActive = p.AppCategories == null || p.AppCategories.IsActive, // Kategori Aktiflik Kontrolü
                         p.Description,
                         p.ImageUrl,
                         p.IsAvailable
@@ -107,8 +107,6 @@ namespace RestaurantApp.Web.Controllers
                 if (order == null)
                     return Json(new { success = false, message = "Sipariş bulunamadı." });
 
-                // DÜZELTME: Teslim alınınca statü "Servis Edildi" olur. 
-                // Sipariş takipten düşer ancak ödeme yapılmadığı için masa tutarında kalır.
                 order.Status = "Servis Edildi";
                 db.SaveChanges();
 

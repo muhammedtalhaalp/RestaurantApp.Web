@@ -27,3 +27,16 @@ body {
 .main-wrapper {
     animation: fadeIn 0.3s ease-in-out;
 }
+
+/* Tablo Açıklama Metnini 2 Satırda Sabitleme Kuralı */
+.text-truncate-2 {
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 260px !important;
+    max-height: 2.6em !important;
+    line-height: 1.3em !important;
+    word-break: break-word !important;
+}

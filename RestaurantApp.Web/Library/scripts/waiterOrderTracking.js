@@ -64,7 +64,7 @@ function loadWaiterOrders() {
                 var html = "";
                 $.each(res.data, function (i, order) {
                     var isMasa = order.orderType === "Masa";
-                    var isReady = order.status === "Hazır"; // Mutfak Şefi Hazır Dedi mi?
+                    var isReady = order.status === "Hazır";
                     var icon = isMasa ? "fa-chair" : "fa-motorcycle";
 
                     var rawTableName = order.tableName || '';
@@ -73,20 +73,22 @@ function loadWaiterOrders() {
                         : "Paket Servis";
 
                     var subText = isReady
-                        ? "<strong class='text-success'><i class='fa-solid fa-circle-check me-1'></i>Mutfakta hazırlandı, servise hazır!</strong>"
-                        : "<span class='text-muted'><i class='fa-solid fa-spinner fa-spin me-1 text-warning'></i>Mutfakta hazırlanıyor...</span>";
+                        ? "<strong class='text-dark'><i class='fa-solid fa-circle-check me-1 text-success'></i>Mutfakta hazırlandı, servise hazır! (Sipariş Detayları)</strong>"
+                        : "<span class='text-muted'><i class='fa-solid fa-spinner fa-spin me-1 text-info'></i>Mutfakta hazırlanıyor... (Sipariş Detayları)</span>";
 
                     var buttonHtml = isReady
-                        ? `<button class="btn btn-purple-main w-100 fw-bold py-2 rounded-3 text-white" style="background-color: #4a154b; border: none;" onclick="approveWaiterDelivery(${order.orderId})">
+                        ? `<button class="btn btn-warning text-dark w-100 fw-bold py-2 rounded-3 border-0 shadow-sm" onclick="event.stopPropagation(); approveWaiterDelivery(${order.orderId});">
                                <i class="fa-solid fa-circle-check me-2"></i>Teslim Aldım
                            </button>`
                         : `<button class="btn btn-light w-100 fw-bold py-2 rounded-3 text-muted border opacity-75" disabled>
-                               <i class="fa-solid fa-fire-burner me-2 text-warning"></i>Hazırlanıyor...
+                               <i class="fa-solid fa-fire-burner me-2 text-info"></i>Hazırlanıyor...
                            </button>`;
+
+                    var borderColor = isReady ? '#ffc107' : '#0dcaf0';
 
                     html += `
                         <div class="col-md-4 col-lg-3" id="waiter-card-${order.orderId}">
-                            <div class="card h-100 border-0 shadow-sm rounded-4 p-3" style="border-left: 5px solid ${isReady ? '#198754' : '#ffc107'} !important;">
+                            <div class="card h-100 border-0 shadow-sm rounded-4 p-3 cursor-pointer" style="border-left: 5px solid ${borderColor} !important;" onclick="openWaiterOrderDetailsModal(${order.orderId})">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid ${icon} me-2" style="color: #4a154b;"></i>${title}</h6>
                                     <span class="badge bg-light text-dark border"><i class="fa-regular fa-clock me-1"></i>${order.orderDate}</span>
@@ -114,6 +116,129 @@ function loadWaiterOrders() {
         },
         error: function (xhr) {
             console.error("Garson Sipariş Çekme Hatası:", xhr);
+        }
+    });
+}
+
+function openWaiterOrderDetailsModal(orderId) {
+    $("#waiterTblOrderItemsBody").html(`
+        <tr>
+            <td colspan="5" class="text-center py-4 text-muted">
+                <i class="fa-solid fa-spinner fa-spin me-2"></i>Ürünler yükleniyor...
+            </td>
+        </tr>
+    `);
+
+    $("#waiterModalFooterActions").empty();
+
+    var modalEl = document.getElementById('waiterOrderDetailsModal');
+    var modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modalInstance.show();
+
+    $.ajax({
+        url: "/Admin/GetOrderDetails",
+        type: "GET",
+        data: { orderId: orderId },
+        success: function (res) {
+            if (res.success && res.data) {
+                var d = res.data;
+
+                $("#waiterModalOrderTitle").html(`<i class="fa-solid fa-receipt me-2" style="color: #4a154b;"></i>${d.tableName} Detayı`);
+                $("#waiterLblOrderTime").text(d.orderTime);
+                $("#waiterLblOrderTotalAmount").text(parseFloat(d.totalAmount || 0).toFixed(2) + " ₺");
+
+                var badgeClass = d.status === "Hazır" ? "bg-warning text-dark" : "bg-info text-dark";
+                $("#waiterLblOrderStatusBadge").attr("class", `badge ${badgeClass}`).text(d.status);
+
+                var rowsHtml = "";
+                if (d.items && d.items.length > 0) {
+                    $.each(d.items, function (i, item) {
+                        var deleteBtnHtml = d.status === "Hazırlanıyor"
+                            ? `<button class="btn btn-sm btn-outline-danger rounded-circle border-0 py-1 px-2" onclick="deleteWaiterOrderItem(${item.orderDetailId}, ${d.orderId})" title="Ürünü İptal Et/Sil">
+                                   <i class="fa-solid fa-trash-can"></i>
+                               </button>`
+                            : `<span class="text-muted" title="Hazır/Teslimat aşamasında silinemez">-</span>`;
+
+                        rowsHtml += `
+                            <tr>
+                                <td class="py-2 px-3 fw-semibold text-dark">${item.productName}</td>
+                                <td class="py-2 px-3 text-center fw-bold">${item.quantity}</td>
+                                <td class="py-2 px-3 text-end text-muted">${parseFloat(item.unitPrice || 0).toFixed(2)} ₺</td>
+                                <td class="py-2 px-3 text-end fw-bold text-dark">${parseFloat(item.totalPrice || 0).toFixed(2)} ₺</td>
+                                <td class="py-2 px-3 text-center">${deleteBtnHtml}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    rowsHtml = `<tr><td colspan="5" class="text-center py-3 text-muted">Bu siparişte ürün bulunamadı.</td></tr>`;
+                }
+
+                $("#waiterTblOrderItemsBody").html(rowsHtml);
+
+                var footerBtns = `<button type="button" class="btn btn-light rounded-3 fw-bold" data-bs-dismiss="modal">Kapat</button>`;
+                if (d.status === "Hazır") {
+                    footerBtns += `
+                        <button type="button" class="btn btn-warning text-dark fw-bold px-4" onclick="approveWaiterDelivery(${d.orderId}); $('#waiterOrderDetailsModal').modal('hide');">
+                            <i class="fa-solid fa-circle-check me-2"></i>Teslim Aldım
+                        </button>`;
+                }
+                $("#waiterModalFooterActions").html(footerBtns);
+            } else {
+                Swal.fire("Hata", res.message || "Sipariş detayları çekilemedi.", "error");
+            }
+        },
+        error: function () {
+            Swal.fire("Hata", "Sunucudan veriler çekilirken hata oluştu.", "error");
+        }
+    });
+}
+
+// Garson Tarafı Ürün Kalemini Direk 1 Eksiltme / Silme Fonksiyonu
+function deleteWaiterOrderItem(orderDetailId, orderId) {
+    $.ajax({
+        url: "/Admin/DeleteOrderItem",
+        type: "POST",
+        data: { orderDetailId: orderDetailId },
+        success: function (res) {
+            if (res.success) {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: res.message || 'Ürün 1 adet eksiltildi.',
+                    showConfirmButton: false,
+                    timer: 1200
+                });
+
+                if (res.isOrderCancelled) {
+                    var modalEl = document.getElementById('waiterOrderDetailsModal');
+                    var modalInstance = bootstrap.Modal.getInstance(modalEl);
+                    if (modalInstance) modalInstance.hide();
+                } else {
+                    openWaiterOrderDetailsModal(orderId);
+                }
+
+                loadWaiterOrders();
+            } else {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'error',
+                    title: res.message || 'Hata oluştu.',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+            }
+        },
+        error: function () {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'error',
+                title: 'Sunucu hatası oluştu.',
+                showConfirmButton: false,
+                timer: 2000
+            });
         }
     });
 }
@@ -159,7 +284,7 @@ function showLeftToast(notif) {
             </div>
             <p class="text-secondary small mb-2" style="font-size: 0.82rem;">${notif.subtitle}</p>
             <div class="d-flex justify-content-end gap-2">
-                <button class="btn btn-sm text-white fw-bold py-1 px-3 rounded-pill" style="background-color: #4a154b; border: none;" onclick="approveWaiterDelivery(${notif.orderId})">
+                <button class="btn btn-sm btn-warning text-dark fw-bold py-1 px-3 rounded-pill" onclick="approveWaiterDelivery(${notif.orderId})">
                     <i class="fa-solid fa-circle-check me-1"></i>Teslim Aldım
                 </button>
             </div>

@@ -164,9 +164,41 @@ function showOrderDetailsModal(orderId) {
     if (!order) return;
 
     var isMasa = order.orderType === "Masa";
-    var infoText = isMasa
-        ? `<strong>${order.title}</strong> — Saat: ${order.orderTime}`
-        : `<strong>Paket Servis</strong> — Adres: ${order.deliveryAddress || 'Girilmedi'} — Saat: ${order.orderTime}`;
+
+    var firstTime = order.firstOrderTime || order.orderTime || "--:--";
+    var deliveryTime = order.lastDeliveryTime || "--:--";
+    var closedTime = order.tableClosedTime || order.orderTime || "--:--";
+
+    var infoText = `
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <span class="fw-bold text-dark fs-6"><i class="fa-solid ${isMasa ? 'fa-chair' : 'fa-motorcycle'} me-2" style="color:#4a154b;"></i>${order.title}</span>
+            <span class="badge bg-secondary-subtle text-dark border px-2 py-1 fw-bold">Sipariş #${order.orderId}</span>
+        </div>
+        <div class="row g-2 text-center pt-2 border-top extra-small">
+            <div class="col-4">
+                <div class="p-2 bg-white rounded border h-100 d-flex flex-column justify-content-center align-items-center">
+                    <span class="text-muted d-block mb-1">İlk Sipariş</span>
+                    <strong class="text-dark fs-6">${firstTime}</strong>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="p-2 bg-white rounded border h-100 d-flex flex-column justify-content-center align-items-center">
+                    <span class="text-muted d-block mb-1">Teslimat Saati</span>
+                    <strong class="text-dark fs-6">${deliveryTime}</strong>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="p-2 bg-white rounded border h-100 d-flex flex-column justify-content-center align-items-center">
+                    <span class="text-muted d-block mb-1">Masa Boşalma</span>
+                    <strong class="text-dark fs-6">${closedTime}</strong>
+                </div>
+            </div>
+        </div>
+    `;
+
+    if (!isMasa && order.deliveryAddress) {
+        infoText += `<div class="mt-2 pt-2 border-top extra-small text-muted"><i class="fa-solid fa-location-dot me-1"></i>Adres: ${order.deliveryAddress}</div>`;
+    }
 
     $("#modalOrderInfoBar").html(infoText);
     $("#modalTotalAmount").text(parseFloat(order.totalAmount || 0).toFixed(2) + " ₺");
@@ -211,6 +243,8 @@ function exportTableToExcel() {
         exportData.push({
             "Sipariş No": "#" + item.orderId,
             "Sipariş Saati": item.orderTime,
+            "İlk Sipariş Saati": item.firstOrderTime || item.orderTime,
+            "Son Teslimat Saati": item.lastDeliveryTime || item.orderTime,
             "Sipariş Türü": item.orderType,
             "Masa / Adres": item.title + (item.deliveryAddress ? " - " + item.deliveryAddress : ""),
             "Ürün İçeriği": itemsSummary,

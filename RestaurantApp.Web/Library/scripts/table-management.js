@@ -3,7 +3,6 @@
     var currentSectionFilter = "Hepsi";
     var customSections = ["Salon", "Bahçe", "Balkon", "Teras", "Üst Kat"];
 
-    // Kaydedilmiş özel alanları yükle
     var storedSections = localStorage.getItem("custom_restaurant_sections");
     if (storedSections) {
         try {
@@ -15,16 +14,24 @@
 
     loadTables();
 
-    // Sekmeler (Tabs) arasında geçiş
+    // Genel Restoran Menü QR Kodunu Aç
+    $("#btnShowGeneralQr").on("click", function () {
+        openQrModal(null, "Genel Restoran Menü QR Kodu");
+    });
+
+    // Sekmeye tıklandığında aktif yap, ortala ve masaları filtrele
     $(document).on("click", "#sectionTabs .nav-link", function () {
         $("#sectionTabs .nav-link").removeClass("active");
         $(this).addClass("active");
 
         currentSectionFilter = $(this).data("section");
+
+        // Seçilen sekmenin ekranın tam ortasına kayması
+        this.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
         renderTableCards();
     });
 
-    // Alan Yönetimi Modalı Açıldığında Listeyi Yenile
     $("#btnOpenManageSectionsModal").on("click", function () {
         renderSectionManageList();
     });
@@ -34,7 +41,6 @@
             if (res.success) {
                 allTablesData = res.data;
 
-                // Veritabanındaki masalarda kayıtlı olan farklı alan isimlerini de listeye dahil et
                 $.each(allTablesData, function (i, t) {
                     if (t.section && !customSections.some(s => s.toLowerCase() === t.section.toLowerCase())) {
                         customSections.push(t.section);
@@ -55,14 +61,13 @@
         localStorage.setItem("custom_restaurant_sections", JSON.stringify(customSections));
     }
 
-    // Dinamik Sekmeleri Çiz
     function renderSectionTabs() {
         var $tabs = $("#sectionTabs");
         var activeSection = currentSectionFilter;
 
         var html = `
             <li class="nav-item">
-                <button class="nav-link ${activeSection === 'Hepsi' ? 'active' : ''} fw-bold py-2 rounded-3" data-section="Hepsi">Tümü</button>
+                <button class="nav-link ${activeSection === 'Hepsi' ? 'active' : ''} fw-bold py-2 px-3 rounded-3" data-section="Hepsi">Tümü</button>
             </li>
         `;
 
@@ -70,15 +75,20 @@
             var isActive = activeSection.toLowerCase() === secName.toLowerCase() ? "active" : "";
             html += `
                 <li class="nav-item">
-                    <button class="nav-link ${isActive} fw-bold py-2 rounded-3" data-section="${secName}">${secName}</button>
+                    <button class="nav-link ${isActive} fw-bold py-2 px-3 rounded-3" data-section="${secName}">${secName}</button>
                 </li>
             `;
         });
 
         $tabs.html(html);
+
+        // Render sonrası aktif sekmenin ortalanması
+        var activeTab = $tabs.find(".nav-link.active")[0];
+        if (activeTab) {
+            activeTab.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
+        }
     }
 
-    // Select Opsiyonlarını Çiz
     function renderSectionSelectOptions() {
         var $select = $("#selectSection");
         var html = "";
@@ -90,7 +100,6 @@
         $select.html(html);
     }
 
-    // Modal İçindeki Alan Silme/Listeleme Ekranını Çiz
     function renderSectionManageList() {
         var $list = $("#sectionListContainer");
         $list.empty();
@@ -101,7 +110,6 @@
         }
 
         $.each(customSections, function (i, secName) {
-            // O alana ait bağlı aktif masa sayısını hesapla
             var countTables = allTablesData.filter(t => (t.section || "").toLowerCase() === secName.toLowerCase()).length;
             var badgeText = countTables > 0 ? `${countTables} Masa Var` : 'Masa Yok';
             var badgeClass = countTables > 0 ? 'bg-primary-subtle text-primary' : 'bg-light text-muted border';
@@ -121,7 +129,6 @@
         });
     }
 
-    // Özel Alan Ekleme
     $("#btnAddSectionCustom").on("click", function () {
         var newSec = $("#txtNewSectionName").val() ? $("#txtNewSectionName").val().trim() : "";
 
@@ -153,11 +160,8 @@
         });
     });
 
-    // Alan Silme Butonuna Tıklandığında
     $(document).on("click", ".btn-delete-section", function () {
         var secToDelete = $(this).data("name");
-
-        // Kontrol: Bu alanda aktif masa var mı?
         var attachedTables = allTablesData.filter(t => (t.section || "").toLowerCase() === secToDelete.toLowerCase());
 
         if (attachedTables.length > 0) {
@@ -228,7 +232,6 @@
             var amountVal = parseFloat(t.currentAmount || 0);
 
             var isOccupied = amountVal > 0 || (rawStatus !== "bos" && rawStatus !== "boş" && rawStatus !== "");
-
             var cardClass = isOccupied ? "table-occupied" : "table-empty";
 
             var badgeHtml = isOccupied
@@ -238,8 +241,22 @@
             var statusText = isOccupied ? "Adisyon Açık / Ödeme Bekliyor" : "Boş Masa";
 
             var priceHtml = isOccupied
-                ? `<div class="table-card-price fw-bold fs-5 mt-2" style="color: #ffffff;">${amountVal.toFixed(2)} ₺</div>`
-                : `<div class="table-card-price fw-bold fs-5 mt-2 opacity-50">0.00 ₺</div>`;
+                ? `<div class="table-card-price fw-bold fs-5 mt-1" style="color: #ffffff;">${amountVal.toFixed(2)} ₺</div>`
+                : `<div class="table-card-price fw-bold fs-5 mt-1 opacity-50">0.00 ₺</div>`;
+
+            var timeDetailHtml = "";
+            if (isOccupied) {
+                var idleMinutes = t.idleMinutes !== undefined ? t.idleMinutes : 0;
+                var idleBadgeText = idleMinutes > 0 ? `${idleMinutes} dk'dır yeni sipariş yok` : "Yeni sipariş verildi";
+
+                timeDetailHtml = `
+                    <div class="idle-time-badge mt-3 text-center">
+                        <span class="badge bg-white text-dark w-100 fw-bold py-2 shadow-sm" style="font-size:0.75rem;">
+                            <i class="fa-solid fa-hourglass-half me-1 text-danger"></i>${idleBadgeText}
+                        </span>
+                    </div>
+                `;
+            }
 
             var cardHtml = `
                 <div class="col-12 col-sm-6 col-md-4 col-lg-3">
@@ -254,6 +271,7 @@
                         <div class="table-card-body">
                             <span class="table-card-status-text">${statusText}</span>
                             ${priceHtml}
+                            ${timeDetailHtml}
                         </div>
                     </div>
                 </div>
@@ -263,7 +281,6 @@
         });
     }
 
-    // Yeni Masa Ekle
     $("#btnSaveTable").on("click", function () {
         var tableNum = $("#txtTableNumber").val() ? $("#txtTableNumber").val().trim() : "";
         var section = $("#selectSection").val();
@@ -294,7 +311,6 @@
         });
     });
 
-    // Masa Sil
     $(document).on("click", ".btn-delete-card-table", function (e) {
         e.stopPropagation();
         var id = $(this).data("id");
@@ -320,4 +336,37 @@
             }
         });
     });
+
+    function openQrModal(tableId, title) {
+        Swal.fire({
+            title: 'QR Kod Hazırlanıyor...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        $.ajax({
+            url: "/Admin/GenerateQrCodeUrl",
+            type: "GET",
+            data: { tableId: tableId },
+            success: function (res) {
+                Swal.close();
+                if (res && res.success) {
+                    $("#imgQrCode").attr("src", res.qrImageUrl);
+                    $("#btnDownloadQr").attr("href", res.qrImageUrl);
+                    $("#txtQrTargetUrl").text(res.targetUrl);
+                    if (title) $("#qrModalSubTitle").text(title);
+
+                    var modalEl = document.getElementById('qrCodeModal');
+                    var modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modalInstance.show();
+                } else {
+                    Swal.fire("Hata", res ? res.message : "QR Kod oluşturulamadı.", "error");
+                }
+            },
+            error: function () {
+                Swal.close();
+                Swal.fire("Hata", "QR Kod oluşturulurken sunucu hatası oluştu.", "error");
+            }
+        });
+    }
 });

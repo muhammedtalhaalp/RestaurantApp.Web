@@ -230,11 +230,15 @@ function loadUserProfile() {
 
                 $("#lblProfileName").text(user.fullName);
                 $("#lblProfileRole").text(user.role + " - " + (user.companyName || "LezzetPOS"));
+
+                // EKLENDİ: Rol bilgisini localStorage'a kaydediyoruz ki Layout doğru sidebar'ı çizebilsin
+                if (user.role) {
+                    localStorage.setItem("Role", user.role);
+                }
             }
         }
     });
 }
-
 // Profil Ad/E-posta Güncelleme
 function saveProfileInfo() {
     var fullName = $("#txtFullName").val().trim();
@@ -258,6 +262,7 @@ function saveProfileInfo() {
                 Swal.fire("Hata", response.message, "error");
             }
         },
+        
         error: function () {
             $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-1"></i>Değişiklikleri Kaydet');
             Swal.fire("Hata", "Güncelleme hatası.", "error");
