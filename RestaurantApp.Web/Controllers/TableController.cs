@@ -58,34 +58,38 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // Müşteri hesabı ödediğinde masayı boşaltan ve adisyonları kapatan endpoint
         [HttpPost]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
         public JsonResult CloseTableAndPay(int tableId)
         {
             try
             {
-                var table = db.AppTables.FirstOrDefault(t => t.TableId == tableId);
-                if (table == null)
-                    return Json(new { success = false, message = "Masa bulunamadı." });
+                var activeOrders = db.AppOrders
+                    .Where(o => o.TableId == tableId && o.Status != "Tamamlandı" && o.Status != "İptal")
+                    .ToList();
 
-                // Garson masadaki tüm siparişleri teslim almadan (Servis Edildi yapmadan) masa kapatılamaz!
-                bool hasUnservedOrders = db.AppOrders.Any(o => o.TableId == tableId && (o.Status == "Hazırlanıyor" || o.Status == "Hazır"));
-                if (hasUnservedOrders)
+                if (!activeOrders.Any())
                 {
-                    return Json(new { success = false, message = "Bu masada henüz servisi tamamlanmamış (hazırlanan veya hazır) ürünler var! Önce siparişleri masaya teslim almalısınız." });
+                    return Json(new { success = false, message = "Kapatılacak aktif sipariş bulunamadı." });
                 }
 
-                // Masaya ait açık tüm siparişlerin durumunu "Tamamlandı" (Hesap Ödendi) yapıyoruz
-                var activeOrders = db.AppOrders.Where(o => o.TableId == tableId && o.Status != "Tamamlandı" && o.Status != "İptal").ToList();
+                DateTime now = DateTime.Now;
+
                 foreach (var order in activeOrders)
                 {
                     order.Status = "Tamamlandı";
+                    order.CompletedDate = now; // MASA BOŞALMA SAATİ KAYDEDİLİYOR
                 }
 
-                table.Status = "Bos";
+                var table = db.AppTables.FirstOrDefault(t => t.TableId == tableId);
+                if (table != null)
+                {
+                    table.Status = "Bos";
+                }
+
                 db.SaveChanges();
 
-                return Json(new { success = true, message = "Hesap kapatıldı ve masa boşaltıldı." });
+                return Json(new { success = true, message = "Masa kapatıldı ve ödeme alındı." });
             }
             catch (Exception ex)
             {

@@ -144,3 +144,50 @@
         .pos-table-card.table-card-occupied .text-muted {
             color: rgba(255, 255, 255, 0.8) !important;
         }
+
+/* POS SEPETİ ÜRÜN ÖZEL SİPARİŞ NOTU INPUT STİLİ */
+.item-note-input {
+    font-size: 0.75rem !important;
+    padding: 3px 8px !important;
+    border-radius: 6px !important;
+    border: 1px solid #cbd5e1 !important;
+    background-color: #ffffff !important;
+    color: #334155 !important;
+    transition: all 0.2s ease-in-out;
+}
+
+    .item-note-input:focus {
+        border-color: #4a154b !important;
+        box-shadow: 0 0 0 0.2rem rgba(74, 21, 75, 0.15) !important;
+        background-color: #fff !important;
+    }
+
+    .item-note-input::placeholder {
+        color: #94a3b8 !important;
+        font-style: italic;
+    }
+
+/* MEVCUT ADİSYON NOT ETİKETİ */
+.existing-item-note {
+    font-size: 0.72rem;
+    color: #64748b;
+    font-style: italic;
+    display: block;
+    margin-top: 2px;
+}
+/* POS GENEL SİPARİŞ NOTU ÖZEL TASARIMI */
+#txtOrderGeneralNote {
+    background-color: #fdfbf7 !important; /* Hafif krem/sarımsı yumuşak arka plan */
+    border: 2px solid #4a154b !important; /* Belirgin mor çerçeve */
+    border-radius: 10px !important;
+    color: #212529 !important;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+}
+
+    /* Kutuya tıklandığında (Focus durumu) */
+    #txtOrderGeneralNote:focus {
+        background-color: #ffffff !important;
+        border-color: #198754 !important; /* Odaklanınca yeşil çerçeve */
+        box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.15) !important;
+    }

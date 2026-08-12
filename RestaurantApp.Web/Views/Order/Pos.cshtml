@@ -20,6 +20,14 @@
             font-family: 'Poppins', sans-serif;
             border: 1px solid #e2e8f0;
         }
+
+        .existing-order-box {
+            background-color: #f1f5f9;
+            border: 1px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
     </style>
 }
 
@@ -99,15 +107,38 @@
 
         <!-- ADIM 2: SEPET VE SİPARİŞ ONAY PANELİ -->
         <div id="stepCartPanel" class="flex-grow-1 d-flex flex-column" style="display: none !important;">
+
+            <!-- 1. YENİ BÖLÜM: MASADAKİ MEVCUT SİPARİŞLER (SALT OKUNUR) -->
+            <div id="existingOrdersWrapper" class="d-none">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-secondary small"><i class="fa-solid fa-receipt me-1"></i> Adisyon</span>
+                    <span id="lblExistingTotal" class="badge bg-secondary">0.00 ₺</span>
+                </div>
+                <div class="existing-order-box mb-2">
+                    <div class="alert alert-info py-1 px-2 mb-2 d-flex align-items-center gap-2" style="font-size: 0.72rem;">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span>Önceki siparişleri silmek için <b>Sipariş Takip</b> sayfasına gidiniz.</span>
+                    </div>
+                    <div style="max-height: 120px; overflow-y: auto;">
+                        <table class="table table-sm table-borderless align-middle mb-0" style="font-size: 0.8rem;">
+                            <tbody id="existing-items-body">
+                                <!-- JS ile çekilen mevcut adisyon dolacak -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. BÖLÜM: YENİ EKLENECEK SİPARİŞLER (SEPET) -->
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <h5 class="fw-bold mb-0 text-dark">
-                    <span class="badge rounded-circle bg-success text-white me-2 px-2 py-1">2</span>2. Adım: Aktif Sepet
+                    <span class="badge rounded-circle bg-success text-white me-2 px-2 py-1">2</span>Eklenecek Ürünler
                 </h5>
             </div>
-            <hr class="my-2" />
+            <hr class="my-1" />
 
             <!-- Sepet Tablosu -->
-            <div class="flex-grow-1 overflow-auto mb-3" style="max-height: 280px;">
+            <div class="flex-grow-1 overflow-auto mb-2" style="max-height: 200px;">
                 <table class="table table-hover table-sm align-middle">
                     <thead class="table-light">
                         <tr>
@@ -118,15 +149,23 @@
                         </tr>
                     </thead>
                     <tbody id="cart-items">
-                        <!-- Sepete eklenen ürünler -->
+                        <!-- Yeni sepete eklenen ürünler -->
                     </tbody>
                 </table>
             </div>
 
+            <!-- TEK GENEL SİPARİŞ NOTU KUTUSU -->
+            <div class="mb-3">
+                <label for="txtOrderGeneralNote" class="form-label fw-bold text-secondary extra-small mb-1">
+                    <i  style="color: #4a154b;"></i>Sipariş Notu:
+                </label>
+                <textarea id="txtOrderGeneralNote" class="form-control form-control-sm rounded-3" rows="2" placeholder="..."></textarea>
+            </div>
+
             <!-- Toplam Tutar ve Onay Butonu -->
-            <div class="pt-3 border-top mt-auto">
+            <div class="pt-2 border-top mt-auto">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="fs-5 fw-bold text-dark">Toplam Tutar:</span>
+                    <span class="fs-6 fw-bold text-dark">Toplam Genel Hesap:</span>
                     <span id="total-price" class="fs-4 fw-bold text-success">0.00 ₺</span>
                 </div>
                 <button id="btn-submit-order" class="btn btn-success w-100 btn-lg fw-bold rounded-3 shadow-sm">
@@ -134,51 +173,6 @@
                 </button>
             </div>
         </div>
-    </div>
-</div>
-
-<!-- TERMAL FİŞ YAZDIRMA ALANI (GİZLİ ELEMAN) -->
-<div id="thermalReceiptPrintArea" class="printable-receipt-container">
-    <div class="receipt-header text-center mb-2">
-        <h3 class="fw-bold mb-0">LezzetPOS</h3>
-        <p class="receipt-sub-title mb-1">Restoran & Otomasyon Sistemi</p>
-        <div class="receipt-divider">--------------------------------</div>
-    </div>
-
-    <div class="receipt-info mb-2">
-        <div><strong>Tarih:</strong> <span id="receiptDate">11.08.2026 16:30</span></div>
-        <div><strong>Sipariş Hedefi:</strong> <span id="receiptTargetName">Masa-1</span></div>
-        <div id="receiptAddressRow" class="d-none"><strong>Adres:</strong> <span id="receiptAddressText">--</span></div>
-    </div>
-
-    <div class="receipt-divider">--------------------------------</div>
-
-    <table class="receipt-table w-100 mb-2">
-        <thead>
-            <tr>
-                <th class="text-start">Ürün</th>
-                <th class="text-center">Adet</th>
-                <th class="text-end">B.Fiyat</th>
-                <th class="text-end">Tutar</th>
-            </tr>
-        </thead>
-        <tbody id="receiptItemsBody">
-            <!-- Fiş Ürünleri Dinamik Dolacak -->
-        </tbody>
-    </table>
-
-    <div class="receipt-divider">--------------------------------</div>
-
-    <div class="receipt-total d-flex justify-content-between fw-bold fs-6 my-2">
-        <span>GENEL TOPLAM:</span>
-        <span id="receiptTotalAmount">0.00 ₺</span>
-    </div>
-
-    <div class="receipt-divider">--------------------------------</div>
-
-    <div class="text-center receipt-footer mt-2">
-        <p class="mb-0">Afiyet Olsun!</p>
-        <small>Yine Bekleriz</small>
     </div>
 </div>
 

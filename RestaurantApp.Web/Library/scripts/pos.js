@@ -11,7 +11,8 @@ var map;
 var marker;
 var geocoder;
 var autocomplete;
-var cart = [];
+var cart = []; // Sadece YENİ EKLENECEK ürünler (Mutfağa gidecek olanlar)
+var existingCart = []; // Masada ÖNCEDEN VAR OLAN ürünler (Salt okunur)
 var defaultLat = 38.7205;
 var defaultLng = 35.4826;
 var posTablesData = [];
@@ -144,7 +145,7 @@ $(document).ready(function () {
 
     $("#btn-submit-order").on("click", function () {
         if (cart.length === 0) {
-            Swal.fire("Uyarı", "Sepetinizde ürün bulunmamaktadır.", "warning");
+            Swal.fire("Uyarı", "Yeni eklenecek ürün bulunmamaktadır.", "warning");
             return;
         }
 
@@ -208,6 +209,8 @@ function confirmPaketServisModal() {
     if (paketModalInstance) paketModalInstance.hide();
 
     var targetText = "Paket Servis (" + (address.length > 20 ? address.substring(0, 20) + "..." : address) + ")";
+    cart = [];
+    existingCart = [];
     confirmTargetSession(targetText);
 }
 
@@ -230,6 +233,7 @@ function confirmTargetSession(targetText) {
     });
 }
 
+// DOLU MASANIN ÖNCEDEN VERİLMİŞ SİPARİŞLERİNİ ÇEKİP SALT OKUNUR GÖSTERME
 function loadTableActiveOrder(tableId) {
     $.ajax({
         url: "/Admin/GetActiveOrderByTableId",
@@ -238,28 +242,62 @@ function loadTableActiveOrder(tableId) {
         cache: false,
         success: function (res) {
             cart = [];
+            existingCart = [];
             if (res.success && res.data && res.data.length > 0) {
-                cart = res.data.map(item => ({
+                existingCart = res.data.map(item => ({
                     id: item.productId,
                     name: item.productName,
                     price: item.unitPrice,
                     quantity: item.quantity
                 }));
             }
+            renderExistingOrders();
             renderCart();
         },
         error: function () {
             cart = [];
+            existingCart = [];
+            renderExistingOrders();
             renderCart();
         }
     });
 }
 
+// ÖNCEDEN VERİLMİŞ SİPARİŞLERİ EKRANA SALT OKUNUR ÇİZME
+function renderExistingOrders() {
+    var $wrapper = $("#existingOrdersWrapper");
+    var $tbody = $("#existing-items-body");
+    $tbody.empty();
+
+    if (!existingCart || existingCart.length === 0) {
+        $wrapper.addClass("d-none");
+        return;
+    }
+
+    $wrapper.removeClass("d-none");
+    var existingTotal = 0;
+
+    $.each(existingCart, function (i, item) {
+        var lineTotal = item.price * item.quantity;
+        existingTotal += lineTotal;
+
+        var row = `
+            <tr>
+                <td class="text-dark fw-semibold">${item.name}</td>
+                <td class="text-center text-muted fw-bold">${item.quantity} Adet</td>
+                <td class="text-end text-secondary fw-bold">${lineTotal.toFixed(2)} ₺</td>
+            </tr>`;
+        $tbody.append(row);
+    });
+
+    $("#lblExistingTotal").text(existingTotal.toFixed(2) + " ₺");
+}
+
 function resetTargetSelection() {
-    if (cart.length > 0) {
+    if (cart.length > 0 || existingCart.length > 0) {
         Swal.fire({
             title: "Masa / Adres Değiştirilsin mi?",
-            text: "Hedef değiştirilirse sepetinizdeki ürünler temizlenecektir!",
+            text: "Hedef değiştirilirse sepetinizdeki yeni ürünler temizlenecektir!",
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#d33",
@@ -269,6 +307,9 @@ function resetTargetSelection() {
         }).then((result) => {
             if (result.isConfirmed) {
                 cart = [];
+                existingCart = [];
+                $("#txtOrderGeneralNote").val("");
+                renderExistingOrders();
                 renderCart();
                 executeResetTargetUI();
                 openInitialModal();
@@ -293,8 +334,10 @@ function executeResetTargetUI() {
     }
 }
 
-// SİPARİŞİ ONAYLAMA VE FİŞ YAZDIRMA SORUSU
+// GENEL SİPARİŞ NOTUNU MUTFAĞA VE BACKEND'E GÖNDERME
 function executeSubmitOrder(orderType, tableId, address, lat, lng) {
+    var generalNote = ($("#txtOrderGeneralNote").val() || "").trim();
+
     var orderData = {
         OrderType: orderType,
         TableId: orderType === "Masa" ? parseInt(tableId) : null,
@@ -302,6 +345,7 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng) {
         Latitude: orderType === "PaketServis" ? lat : null,
         Longitude: orderType === "PaketServis" ? lng : null,
         TotalAmount: calculateTotal(),
+        OrderNote: generalNote || null, // GENEL SİPARİŞ NOTU
         Items: cart.map(item => ({
             ProductId: item.id,
             Quantity: item.quantity,
@@ -318,10 +362,10 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng) {
         data: JSON.stringify(orderData),
         contentType: "application/json",
         success: function (response) {
-            $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-2"></i>Siparişi Onayla');
+            $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-2"></i>Siparişi Onayla & Mutfağa Gönder');
             if (response.success) {
                 Swal.fire({
-                    title: 'Sipariş Oluşturuldu!',
+                    title: 'Sipariş Mutfağa İletildi!',
                     text: 'Sipariş fişi yazdırılsın mı?',
                     icon: 'question',
                     showCancelButton: true,
@@ -331,10 +375,13 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng) {
                     cancelButtonText: 'Hayır, Devam Et'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        printOrderReceipt(orderType, tableId, address);
+                        printOrderReceipt(orderType, tableId, address, generalNote);
                     }
 
                     cart = [];
+                    existingCart = [];
+                    $("#txtOrderGeneralNote").val("");
+                    renderExistingOrders();
                     renderCart();
                     $("#txtDeliveryAddress").val("");
                     loadTables();
@@ -345,13 +392,13 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng) {
             }
         },
         error: function () {
-            $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-2"></i>Siparişi Onayla');
+            $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-2"></i>Siparişi Onayla & Mutfağa Gönder');
             Swal.fire("Hata", "Sipariş gönderilirken sunucu hatası oluştu.", "error");
         }
     });
 }
 
-function printOrderReceipt(orderType, tableId, address) {
+function printOrderReceipt(orderType, tableId, address, generalNote) {
     var nowStr = new Date().toLocaleString('tr-TR');
 
     var targetTitle = "Paket Servis";
@@ -364,12 +411,18 @@ function printOrderReceipt(orderType, tableId, address) {
     $.each(cart, function (i, item) {
         var lineTotal = (item.price * item.quantity).toFixed(2);
         itemsHtml += `
-            <tr style="border-bottom: 1px solid #eee;">
+            <tr style="border-bottom: 1px dashed #ccc;">
                 <td style="text-align:center; padding: 4px 0; font-weight:bold;">${item.quantity}</td>
                 <td style="text-align:left; padding: 4px 5px; word-break: break-word;">${item.name}</td>
                 <td style="text-align:right; padding: 4px 0;">${lineTotal} ₺</td>
             </tr>`;
     });
+
+    var noteSectionHtml = generalNote ? `
+        <div class="divider"></div>
+        <div class="info-block" style="background-color: #f8f9fa; padding: 4px; border-radius: 4px;">
+            <strong>Sipariş Notu:</strong> ${generalNote}
+        </div>` : '';
 
     var receiptHtml = `
         <!DOCTYPE html>
@@ -377,50 +430,32 @@ function printOrderReceipt(orderType, tableId, address) {
         <head>
             <title>Sipariş Fişi</title>
             <style>
-                @page {
-                    size: 80mm 210mm; /* Fiş kağıdı boyutları sabitlendi */
-                    margin: 0;
-                }
-                html, body {
-                    width: 78mm;
-                    margin: 0 auto;
-                    padding: 8px;
-                    box-sizing: border-box;
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    font-size: 12px;
-                    color: #000;
-                    background-color: #fff;
-                }
+                @page { size: 80mm 200mm; margin: 0; }
+                body { font-family: 'Courier New', Courier, monospace; font-size: 11px; width: 72mm; margin: 0 auto; padding: 5px; color: #000; background-color: #fff; }
                 .text-center { text-align: center; }
-                .text-end { text-align: right; }
-                .text-start { text-align: left; }
-                .receipt-header { text-align: center; margin-bottom: 8px; }
-                .receipt-logo { font-size: 20px; font-weight: 900; color: #4a154b; margin: 0; text-transform: uppercase; }
-                .receipt-sub { font-size: 10px; color: #555; margin-bottom: 5px; }
-                .divider { border-bottom: 1px dashed #000; margin: 6px 0; }
-                .info-block { font-size: 11px; margin-bottom: 4px; line-height: 1.4; }
-                table { width: 100%; border-collapse: collapse; margin: 8px 0; }
-                th { font-size: 11px; border-bottom: 1px solid #000; border-top: 1px solid #000; padding: 4px 0; background: #fafafa; }
-                .total-box { border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 6px 0; font-size: 14px; font-weight: bold; margin-top: 8px; }
-                .footer-note { text-align: center; font-size: 10px; margin-top: 12px; color: #444; }
+                .receipt-header { text-align: center; margin-bottom: 6px; }
+                .receipt-logo { font-size: 18px; font-weight: bold; color: #000; margin: 0; text-transform: uppercase; }
+                .divider { border-bottom: 1px dashed #000; margin: 5px 0; }
+                .info-block { font-size: 11px; margin-bottom: 4px; line-height: 1.3; }
+                table { width: 100%; border-collapse: collapse; margin: 6px 0; }
+                th { font-size: 10px; border-bottom: 1px solid #000; border-top: 1px solid #000; padding: 3px 0; }
+                .total-box { border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 5px 0; font-size: 13px; font-weight: bold; margin-top: 6px; }
+                .footer-note { text-align: center; font-size: 10px; margin-top: 10px; }
             </style>
         </head>
         <body>
             <div class="receipt-header">
                 <h1 class="receipt-logo">LezzetPOS</h1>
-                <div class="receipt-sub">Restoran Sipariş Fişi</div>
+                <div class="receipt-sub">Yeni Sipariş Fişi</div>
             </div>
-
             <div class="divider"></div>
-
             <div class="info-block">
                 <div><strong>Tarih:</strong> ${nowStr}</div>
-                <div><strong>Sipariş Hedefi:</strong> ${targetTitle}</div>
+                <div><strong>Hedef:</strong> ${targetTitle}</div>
                 ${orderType === "PaketServis" && address ? `<div style="margin-top:2px;"><strong>Adres:</strong> ${address}</div>` : ''}
             </div>
-
+            ${noteSectionHtml}
             <div class="divider"></div>
-
             <table>
                 <thead>
                     <tr>
@@ -433,48 +468,32 @@ function printOrderReceipt(orderType, tableId, address) {
                     ${itemsHtml}
                 </tbody>
             </table>
-
             <div class="total-box">
                 <div style="display:flex; justify-content:space-between;">
-                    <span>TOPLAM:</span>
-                    <span>${calculateTotal().toFixed(2)} ₺</span>
+                    <span>YENİ SİPARİŞ TUTARI:</span>
+                    <span>${calculateNewCartTotal().toFixed(2)} ₺</span>
                 </div>
             </div>
-
             <div class="footer-note">
-                <p style="margin:0; font-weight:bold;">Bizi Tercih Ettiğiniz İçin Teşekkür Ederiz!</p>
-                <small>Afiyet Olsun</small>
+                <p style="margin:0; font-weight:bold;">Afiyet Olsun!</p>
             </div>
         </body>
         </html>
     `;
 
-    var printFrame = document.getElementById("receiptPrintIframe");
-    if (!printFrame) {
-        printFrame = document.createElement("iframe");
-        printFrame.id = "receiptPrintIframe";
-        printFrame.style.position = "fixed";
-        printFrame.style.right = "0";
-        printFrame.style.bottom = "0";
-        printFrame.style.width = "0";
-        printFrame.style.height = "0";
-        printFrame.style.border = "0";
-        document.body.appendChild(printFrame);
+    var printWin = window.open('', '_blank', 'width=380,height=600,scrollbars=no,menubar=no,toolbar=no,location=no,status=no');
+    if (printWin) {
+        printWin.document.open();
+        printWin.document.write(receiptHtml);
+        printWin.document.close();
+
+        setTimeout(function () {
+            printWin.focus();
+            printWin.print();
+            printWin.close();
+        }, 300);
     }
-
-    var frameDoc = printFrame.contentWindow || printFrame.contentDocument;
-    if (frameDoc.document) frameDoc = frameDoc.document;
-
-    frameDoc.open();
-    frameDoc.write(receiptHtml);
-    frameDoc.close();
-
-    setTimeout(function () {
-        printFrame.contentWindow.focus();
-        printFrame.contentWindow.print();
-    }, 300);
 }
-
 
 function loadTables() {
     $.ajax({
@@ -565,6 +584,9 @@ function renderPosTableCards(sectionFilter) {
                 loadTableActiveOrder(selectedId);
             } else {
                 cart = [];
+                existingCart = [];
+                $("#txtOrderGeneralNote").val("");
+                renderExistingOrders();
                 renderCart();
             }
         });
@@ -736,6 +758,7 @@ function filterCategory(catId, btn) {
     loadProducts(catId);
 }
 
+// MENÜDEN TIKLANAN YENİ ÜRÜNÜ SADECE SIFIR SEPETE EKLEME
 function addToCart(id, name, price) {
     if (!isTargetConfirmed) {
         openInitialModal();
@@ -744,7 +767,7 @@ function addToCart(id, name, price) {
 
     var item = cart.find(x => x.id === id);
     if (item) {
-        item.quantity++;
+        item.quantity += 1;
     } else {
         cart.push({ id: id, name: name, price: price, quantity: 1 });
     }
@@ -754,7 +777,7 @@ function addToCart(id, name, price) {
         toast: true,
         position: 'top-end',
         icon: 'success',
-        title: name + ' sepete eklendi',
+        title: name + ' eklendi',
         showConfirmButton: false,
         timer: 1000
     });
@@ -800,13 +823,23 @@ function renderCart() {
     });
 
     if (cart.length === 0) {
-        html = '<tr><td colspan="4" class="text-center py-4 text-muted">Sepetiniz boş.</td></tr>';
+        html = '<tr><td colspan="4" class="text-center py-4 text-muted">Henüz yeni ürün eklenmedi.</td></tr>';
     }
 
     $("#cart-items").html(html);
-    $("#total-price").text(calculateTotal().toFixed(2) + " ₺");
+
+    var grandTotal = calculateExistingTotal() + calculateNewCartTotal();
+    $("#total-price").text(grandTotal.toFixed(2) + " ₺");
+}
+
+function calculateExistingTotal() {
+    return existingCart.reduce((sum, x) => sum + (x.price * x.quantity), 0);
+}
+
+function calculateNewCartTotal() {
+    return cart.reduce((sum, x) => sum + (x.price * x.quantity), 0);
 }
 
 function calculateTotal() {
-    return cart.reduce((sum, x) => sum + (x.price * x.quantity), 0);
+    return calculateNewCartTotal();
 }

@@ -19,6 +19,8 @@ namespace RestaurantApp.Web.Data
         public int ProductId { get; set; }
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
+        public bool IsReturned { get; set; }
+        public string ReturnReason { get; set; }
     
         public virtual AppOrders AppOrders { get; set; }
         public virtual AppProducts AppProducts { get; set; }

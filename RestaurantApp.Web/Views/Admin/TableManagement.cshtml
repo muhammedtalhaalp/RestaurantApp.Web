@@ -130,6 +130,72 @@
     </div>
 </div>
 
+<!-- MASA HESAP VE İADE İŞLEMİ MODALI -->
+<div class="modal fade" id="tableCheckoutModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="checkoutModalTitle"><i class="fa-solid fa-receipt me-2" style="color: #4a154b;"></i>Masa Adisyon Detayı</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="checkoutTableId" />
+                <input type="hidden" id="checkoutOrderId" />
+
+                <!-- DİNAMİK İADE BİLGİ VE GİRİŞ KUTUSU (MODAL İÇİNDE GİRİŞ ENTEGRELİ) -->
+                <div id="returnReasonContainer" class="card border-danger bg-danger-subtle p-3 rounded-3 mb-3 d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong class="text-danger-emphasis"><i class="fa-solid fa-rotate-left me-1"></i><span id="lblReturnProductName">Ürün</span> İade Ediliyor</strong>
+                        <button type="button" class="btn-close btn-sm" onclick="cancelReturnInput()"></button>
+                    </div>
+                    <input type="hidden" id="selectedReturnDetailId" />
+                    <div class="input-group">
+                        <input type="text" id="txtReturnReasonInput" class="form-control rounded-start-3" placeholder="İade sebebini yazınız (Örn: Soğuk geldi, Yanlış sipariş...)" autocomplete="off" />
+                        <button type="button" class="btn btn-danger fw-bold px-3" id="btnConfirmReturnAction">
+                            <i class="fa-solid fa-check me-1"></i>İadeyi Onayla
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Müşteri & Sipariş Bilgilendirme -->
+                <div class="alert alert-light border rounded-3 mb-3 d-flex justify-content-between align-items-center py-2 px-3">
+                    <span class="small text-muted mb-0"><i class="fa-solid fa-circle-info me-1 text-primary"></i>İade etmek istediğiniz ürünün yanındaki <b>"İade Et"</b> butonuna basıp sebebini yazınız.</span>
+                </div>
+
+                <!-- Sipariş Kalemleri Tablosu -->
+                <div class="table-responsive mb-3" style="max-height: 280px; overflow-y: auto;">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Ürün Adı</th>
+                                <th class="text-center">Adet</th>
+                                <th class="text-end">B.Fiyat</th>
+                                <th class="text-end">Tutar</th>
+                                <th class="text-center" style="width: 110px;">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="checkoutItemsBody">
+                            <!-- JS Çizecek -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Toplam Hesap Kutusu -->
+                <div class="p-3 rounded-3 bg-light border d-flex justify-content-between align-items-center">
+                    <span class="fs-6 fw-bold text-dark">Tahsil Edilecek Net Tutar:</span>
+                    <span id="checkoutGrandTotal" class="fs-4 fw-bold text-danger">0.00 ₺</span>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-light d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary px-4 fw-bold rounded-3" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-success px-4 fw-bold rounded-3 shadow-sm" id="btnCloseTableOrder">
+                    <i class="fa-solid fa-cash-register me-2"></i>Ödeme Al & Masayı Kapat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section scripts {
-    <script src="~/Library/scripts/table-management.js?v=2.1"></script>
+    <script src="~/Library/scripts/table-management.js?v=2.3"></script>
 }

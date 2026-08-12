@@ -23,6 +23,8 @@
           <Property Name="ProductId" Type="int" Nullable="false" />
           <Property Name="Quantity" Type="int" Nullable="false" />
           <Property Name="UnitPrice" Type="decimal" Precision="18" Scale="2" Nullable="false" />
+          <Property Name="IsReturned" Type="bit" Nullable="false" />
+          <Property Name="ReturnReason" Type="nvarchar" MaxLength="500" />
         </EntityType>
         <EntityType Name="AppOrders">
           <Key>
@@ -38,6 +40,9 @@
           <Property Name="Latitude" Type="decimal" Precision="9" Scale="6" />
           <Property Name="Longitude" Type="decimal" Precision="9" Scale="6" />
           <Property Name="CreatedDate" Type="datetime" Nullable="false" />
+          <Property Name="OrderNote" Type="nvarchar" MaxLength="500" />
+          <Property Name="DeliveredDate" Type="datetime" />
+          <Property Name="CompletedDate" Type="datetime" />
         </EntityType>
         <EntityType Name="AppProducts">
           <Key>
@@ -279,6 +284,8 @@
           <Property Name="UnitPrice" Type="Decimal" Nullable="false" Precision="18" Scale="2" />
           <NavigationProperty Name="AppOrders" Relationship="RestaurantAppDBModel.FK_AppOrderDetails_AppOrders" FromRole="AppOrderDetails" ToRole="AppOrders" />
           <NavigationProperty Name="AppProducts" Relationship="RestaurantAppDBModel.FK_AppOrderDetails_AppProducts" FromRole="AppOrderDetails" ToRole="AppProducts" />
+          <Property Name="IsReturned" Type="Boolean" Nullable="false" />
+          <Property Name="ReturnReason" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
         </EntityType>
         <EntityType Name="AppOrders">
           <Key>
@@ -297,6 +304,9 @@
           <NavigationProperty Name="AppOrderDetails" Relationship="RestaurantAppDBModel.FK_AppOrderDetails_AppOrders" FromRole="AppOrders" ToRole="AppOrderDetails" />
           <NavigationProperty Name="AppTables" Relationship="RestaurantAppDBModel.FK_AppOrders_AppTables" FromRole="AppOrders" ToRole="AppTables" />
           <NavigationProperty Name="AppUsers" Relationship="RestaurantAppDBModel.FK_AppOrders_AppUsers" FromRole="AppOrders" ToRole="AppUsers" />
+          <Property Name="OrderNote" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="DeliveredDate" Type="DateTime" Precision="3" />
+          <Property Name="CompletedDate" Type="DateTime" Precision="3" />
         </EntityType>
         <EntityType Name="AppProducts">
           <Key>
@@ -474,6 +484,8 @@
           <EntitySetMapping Name="AppOrderDetails">
             <EntityTypeMapping TypeName="RestaurantAppDBModel.AppOrderDetails">
               <MappingFragment StoreEntitySet="AppOrderDetails">
+                <ScalarProperty Name="ReturnReason" ColumnName="ReturnReason" />
+                <ScalarProperty Name="IsReturned" ColumnName="IsReturned" />
                 <ScalarProperty Name="UnitPrice" ColumnName="UnitPrice" />
                 <ScalarProperty Name="Quantity" ColumnName="Quantity" />
                 <ScalarProperty Name="ProductId" ColumnName="ProductId" />
@@ -485,6 +497,9 @@
           <EntitySetMapping Name="AppOrders">
             <EntityTypeMapping TypeName="RestaurantAppDBModel.AppOrders">
               <MappingFragment StoreEntitySet="AppOrders">
+                <ScalarProperty Name="CompletedDate" ColumnName="CompletedDate" />
+                <ScalarProperty Name="DeliveredDate" ColumnName="DeliveredDate" />
+                <ScalarProperty Name="OrderNote" ColumnName="OrderNote" />
                 <ScalarProperty Name="CreatedDate" ColumnName="CreatedDate" />
                 <ScalarProperty Name="Longitude" ColumnName="Longitude" />
                 <ScalarProperty Name="Latitude" ColumnName="Latitude" />

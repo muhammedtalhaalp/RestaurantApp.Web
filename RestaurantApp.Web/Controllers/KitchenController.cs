@@ -16,13 +16,13 @@ namespace RestaurantApp.Web.Controllers
             return View();
         }
 
-        
         [HttpGet]
+        [JwtAuthorize(Roles = "Admin, Mutfak Şefi, Mutfak")]
         public JsonResult GetActiveOrders()
         {
             try
             {
-                var orders = db.AppOrders
+                var activeOrders = db.AppOrders
                     .Where(o => o.Status == "Hazırlanıyor")
                     .OrderBy(o => o.CreatedDate)
                     .ToList()
@@ -33,23 +33,22 @@ namespace RestaurantApp.Web.Controllers
                         tableName = o.OrderType == "Masa" && o.AppTables != null ? o.AppTables.TableNumber : "Paket Servis",
                         deliveryAddress = o.DeliveryAddress,
                         orderDate = o.CreatedDate.ToString("HH:mm"),
-                        items = o.AppOrderDetails.Select(d => new
+                        orderNote = o.OrderNote, // YENİ EKLENEN GENEL SİPARİŞ NOTU
+                        items = o.AppOrderDetails.Where(d => !d.IsReturned).Select(d => new
                         {
                             productName = d.AppProducts != null ? d.AppProducts.ProductName : "Ürün",
-                            quantity = d.Quantity,
-                            unitPrice = d.UnitPrice
+                            quantity = d.Quantity
                         }).ToList()
                     }).ToList();
 
-                return Json(new { success = true, data = orders }, JsonRequestBehavior.AllowGet);
+                return Json(new { success = true, data = activeOrders }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Siparişler yüklenirken hata: " + ex.Message }, JsonRequestBehavior.AllowGet);
+                return Json(new { success = false, message = ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
 
-        
         [HttpPost]
         public JsonResult MarkOrderAsReady(int orderId)
         {

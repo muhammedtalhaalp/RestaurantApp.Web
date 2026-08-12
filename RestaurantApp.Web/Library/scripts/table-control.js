@@ -44,8 +44,8 @@ function loadOccupiedTables() {
                                     Adisyon Tutarı: ${totalAmountFormatted} ₺
                                 </div>
                                 <div class="pt-2 border-top mt-auto">
-                                    <button class="btn btn-success w-100 py-2 fw-bold" onclick="closeAndPayTable(${table.tableId}, '${tableNameFormatted}', ${totalAmountFormatted})">
-                                        <i class="fa-solid fa-credit-card me-2"></i>Ödeme Al & Masayı Boşalt
+                                    <button class="btn btn-success w-100 py-2 fw-bold" onclick="openWaiterCheckoutModal(${table.tableId}, '${tableNameFormatted}')">
+                                        <i class="fa-solid fa-credit-card me-2"></i>Ödeme/ İptal & Masayı Temizle
                                     </button>
                                 </div>
                             </div>
@@ -68,16 +68,172 @@ function loadOccupiedTables() {
     });
 }
 
-function closeAndPayTable(tableId, tableName, amount) {
+// MASA ADİSYON DETAYINI ÇEKİP MODALA ÇİZME
+function openWaiterCheckoutModal(tableId, tableName) {
+    $("#waiterCheckoutTableId").val(tableId);
+    $("#waiterCheckoutModalTitle").html(`<i class="fa-solid fa-receipt me-2" style="color: #4a154b;"></i>${tableName} - Adisyon & İade Detayı`);
+    cancelWaiterReturnInput();
+
     Swal.fire({
-        title: 'Ödeme Alınsın mı?',
-        text: `${tableName} için toplam ${amount} ₺ ödeme alındı olarak işaretlenip masa boşaltılacak.`,
-        icon: 'question',
+        title: 'Adisyon Yükleniyor...',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    $.ajax({
+        url: "/Admin/GetActiveOrderByTableId",
+        type: "GET",
+        data: { tableId: tableId },
+        success: function (res) {
+            Swal.close();
+            if (res.success && res.data) {
+                renderWaiterCheckoutItems(res.data);
+                var modalEl = document.getElementById('waiterTableCheckoutModal');
+                var modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modalInstance.show();
+            } else {
+                Swal.fire("Hata", res.message || "Adisyon detayları çekilemedi.", "error");
+            }
+        },
+        error: function () {
+            Swal.close();
+            Swal.fire("Hata", "Adisyon çekilirken sunucu hatası oluştu.", "error");
+        }
+    });
+}
+
+// ADİSYON TABLOSUNU ÇİZME & İADE BUTTONUNU EKLEME
+function renderWaiterCheckoutItems(items) {
+    var $tbody = $("#waiterCheckoutItemsBody");
+    $tbody.empty();
+    var grandTotal = 0;
+
+    if (!items || items.length === 0) {
+        $tbody.html('<tr><td colspan="5" class="text-center py-4 text-muted">Adisyonda ürün bulunamadı.</td></tr>');
+        $("#waiterCheckoutGrandTotal").text("0.00 ₺");
+        return;
+    }
+
+    $.each(items, function (i, item) {
+        var isReturned = item.isReturned || false;
+        var lineTotal = item.unitPrice * item.quantity;
+
+        if (!isReturned) {
+            grandTotal += lineTotal;
+        }
+
+        var returnBtnHtml = "";
+        if (isReturned) {
+            returnBtnHtml = `<span class="badge bg-secondary opacity-75" title="${item.returnReason || 'Neden belirtilmedi'}"><i class="fa-solid fa-rotate-left me-1"></i>İade Edildi</span>`;
+        } else {
+            returnBtnHtml = `
+                <button class="btn btn-sm btn-outline-danger fw-bold rounded-3 px-2 py-1 btn-waiter-return-product" 
+                        data-detailid="${item.orderDetailId}" 
+                        data-name="${item.productName}">
+                    <i class="fa-solid fa-rotate-left me-1"></i>İade Et
+                </button>`;
+        }
+
+        var rowStyle = isReturned ? 'style="opacity:0.5; text-decoration: line-through; background-color:#f8fafc;"' : '';
+
+        var row = `
+            <tr ${rowStyle}>
+                <td class="fw-semibold text-dark">
+                    ${item.productName}
+                    ${isReturned ? `<br><small class="text-danger fw-normal" style="text-decoration:none !important;">(İade Nedeni: ${item.returnReason})</small>` : ''}
+                </td>
+                <td class="text-center fw-bold">${item.quantity}</td>
+                <td class="text-end">${parseFloat(item.unitPrice).toFixed(2)} ₺</td>
+                <td class="text-end fw-bold text-dark">${lineTotal.toFixed(2)} ₺</td>
+                <td class="text-center">${returnBtnHtml}</td>
+            </tr>`;
+
+        $tbody.append(row);
+    });
+
+    $("#waiterCheckoutGrandTotal").text(grandTotal.toFixed(2) + " ₺");
+}
+
+// İADE ET BUTONUNA BASILDIĞINDA MODAL İÇİNDEKİ KUTUYU AÇMA
+$(document).on("click", ".btn-waiter-return-product", function (e) {
+    e.stopPropagation();
+    var detailId = $(this).data("detailid");
+    var productName = $(this).data("name");
+
+    $("#selectedWaiterReturnDetailId").val(detailId);
+    $("#lblWaiterReturnProductName").text(productName);
+    $("#txtWaiterReturnReasonInput").val("");
+
+    $("#waiterReturnReasonContainer").removeClass("d-none");
+
+    setTimeout(function () {
+        $("#txtWaiterReturnReasonInput").focus();
+    }, 100);
+});
+
+// İADE KUTUSUNU İPTAL ETME
+window.cancelWaiterReturnInput = function () {
+    $("#waiterReturnReasonContainer").addClass("d-none");
+    $("#selectedWaiterReturnDetailId").val("");
+    $("#txtWaiterReturnReasonInput").val("");
+};
+
+// İADEYİ ONAYLAMA VE SUNUCUYA GÖNDERME
+$(document).on("click", "#btnConfirmWaiterReturnAction", function () {
+    var detailId = $("#selectedWaiterReturnDetailId").val();
+    var reason = $("#txtWaiterReturnReasonInput").val() ? $("#txtWaiterReturnReasonInput").val().trim() : "";
+
+    if (!reason) {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'warning',
+            title: 'Lütfen iade sebebini yazınız!',
+            showConfirmButton: false,
+            timer: 1500
+        });
+        $("#txtWaiterReturnReasonInput").focus();
+        return;
+    }
+
+    $.post("/Order/ReturnOrderItem", {
+        orderDetailId: detailId,
+        reason: reason
+    }, function (res) {
+        if (res.success) {
+            cancelWaiterReturnInput();
+
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: res.message,
+                showConfirmButton: false,
+                timer: 1500
+            });
+
+            var tableId = $("#waiterCheckoutTableId").val();
+            openWaiterCheckoutModal(tableId, "Masa");
+            loadOccupiedTables();
+        } else {
+            Swal.fire("Hata", res.message, "error");
+        }
+    });
+});
+
+// MASAYI KAPATMA VE ÖDEME ALMA İŞLEMİ
+$(document).on("click", "#btnWaiterCloseTableOrder", function () {
+    var tableId = $("#waiterCheckoutTableId").val();
+
+    Swal.fire({
+        title: "Ödeme Alındı mı?",
+        text: "Hesap kapatılacak ve masa BOŞ durumuna getirilecektir.",
+        icon: "question",
         showCancelButton: true,
-        confirmButtonColor: '#198754',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Evet, Ödeme Alındı & Kapat',
-        cancelButtonText: 'Vazgeç'
+        confirmButtonColor: "#198754",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "<i class='fa-solid fa-check me-1'></i>Evet, Masayı Kapat",
+        cancelButtonText: "Vazgeç"
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
@@ -86,6 +242,10 @@ function closeAndPayTable(tableId, tableName, amount) {
                 data: { tableId: tableId },
                 success: function (res) {
                     if (res.success) {
+                        var modalEl = document.getElementById('waiterTableCheckoutModal');
+                        var modalInstance = bootstrap.Modal.getInstance(modalEl);
+                        if (modalInstance) modalInstance.hide();
+
                         Swal.fire({
                             toast: true,
                             position: 'top-end',
@@ -103,4 +263,4 @@ function closeAndPayTable(tableId, tableName, amount) {
             });
         }
     });
-}
+});

@@ -30,6 +30,9 @@ namespace RestaurantApp.Web.Data
         public Nullable<decimal> Latitude { get; set; }
         public Nullable<decimal> Longitude { get; set; }
         public System.DateTime CreatedDate { get; set; }
+        public string OrderNote { get; set; }
+        public Nullable<System.DateTime> DeliveredDate { get; set; }
+        public Nullable<System.DateTime> CompletedDate { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<AppOrderDetails> AppOrderDetails { get; set; }

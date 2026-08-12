@@ -26,7 +26,6 @@
 
         currentSectionFilter = $(this).data("section");
 
-        // Seçilen sekmenin ekranın tam ortasına kayması
         this.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
 
         renderTableCards();
@@ -82,7 +81,6 @@
 
         $tabs.html(html);
 
-        // Render sonrası aktif sekmenin ortalanması
         var activeTab = $tabs.find(".nav-link.active")[0];
         if (activeTab) {
             activeTab.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
@@ -260,7 +258,7 @@
 
             var cardHtml = `
                 <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                    <div class="table-card ${cardClass} p-3" data-id="${t.tableId}">
+                    <div class="table-card ${cardClass} p-3" data-id="${t.tableId}" data-number="${t.tableNumber}" data-occupied="${isOccupied}">
                         <button class="btn btn-sm btn-danger btn-delete-card-table rounded-circle" data-id="${t.tableId}" title="Masayı Sil">
                             <i class="fa-solid fa-xmark"></i>
                         </button>
@@ -280,6 +278,211 @@
             $container.append(cardHtml);
         });
     }
+
+    // MASA KARTINA TIKLANDIĞINDA ADİSYON / ÖDEME VE İADE MODALINI AÇMA
+    $(document).on("click", ".table-card", function () {
+        var tableId = $(this).data("id");
+        var tableNumber = $(this).data("number");
+        var isOccupied = $(this).data("occupied");
+
+        if (!isOccupied) {
+            Swal.fire("Bilgi", `"${tableNumber}" numaralı masa boştur. Sipariş eklemek için POS ekranını kullanabilirsiniz.`, "info");
+            return;
+        }
+
+        $("#checkoutTableId").val(tableId);
+        $("#checkoutModalTitle").html(`<i class="fa-solid fa-receipt me-2" style="color: #4a154b;"></i>${tableNumber} - Adisyon & İade Detayı`);
+
+        cancelReturnInput();
+        openCheckoutModal(tableId);
+    });
+
+    // MASA ADİSYON DETAYINI ÇEKİP MODALA ÇİZME
+    function openCheckoutModal(tableId) {
+        Swal.fire({
+            title: 'Adisyon Yükleniyor...',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        $.ajax({
+            url: "/Admin/GetActiveOrderByTableId",
+            type: "GET",
+            data: { tableId: tableId },
+            success: function (res) {
+                Swal.close();
+                if (res.success && res.data) {
+                    renderCheckoutItems(res.data);
+                    var modalEl = document.getElementById('tableCheckoutModal');
+                    var modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+                    modalInstance.show();
+                } else {
+                    Swal.fire("Hata", res.message || "Adisyon detayları çekilemedi.", "error");
+                }
+            },
+            error: function () {
+                Swal.close();
+                Swal.fire("Hata", "Adisyon çekilirken sunucu hatası oluştu.", "error");
+            }
+        });
+    }
+
+    // ADİSYON TABLOSUNU ÇİZME & İADE BUTONUNU EKLEME
+    function renderCheckoutItems(items) {
+        var $tbody = $("#checkoutItemsBody");
+        $tbody.empty();
+        var grandTotal = 0;
+
+        if (!items || items.length === 0) {
+            $tbody.html('<tr><td colspan="5" class="text-center py-4 text-muted">Adisyonda ürün bulunamadı.</td></tr>');
+            $("#checkoutGrandTotal").text("0.00 ₺");
+            return;
+        }
+
+        $.each(items, function (i, item) {
+            var isReturned = item.isReturned || false;
+            var lineTotal = item.unitPrice * item.quantity;
+
+            if (!isReturned) {
+                grandTotal += lineTotal;
+            }
+
+            var returnBtnHtml = "";
+            if (isReturned) {
+                returnBtnHtml = `<span class="badge bg-secondary opacity-75" title="${item.returnReason || 'Neden belirtilmedi'}"><i class="fa-solid fa-rotate-left me-1"></i>İade Edildi</span>`;
+            } else {
+                returnBtnHtml = `
+                    <button class="btn btn-sm btn-outline-danger fw-bold rounded-3 px-2 py-1 btn-return-product" 
+                            data-detailid="${item.orderDetailId}" 
+                            data-name="${item.productName}">
+                        <i class="fa-solid fa-rotate-left me-1"></i>İade Et
+                    </button>`;
+            }
+
+            var rowStyle = isReturned ? 'style="opacity:0.5; text-decoration: line-through; background-color:#f8fafc;"' : '';
+
+            var row = `
+                <tr ${rowStyle}>
+                    <td class="fw-semibold text-dark">
+                        ${item.productName}
+                        ${isReturned ? `<br><small class="text-danger fw-normal" style="text-decoration:none !important;">(İade Nedeni: ${item.returnReason})</small>` : ''}
+                    </td>
+                    <td class="text-center fw-bold">${item.quantity}</td>
+                    <td class="text-end">${parseFloat(item.unitPrice).toFixed(2)} ₺</td>
+                    <td class="text-end fw-bold text-dark">${lineTotal.toFixed(2)} ₺</td>
+                    <td class="text-center">${returnBtnHtml}</td>
+                </tr>`;
+
+            $tbody.append(row);
+        });
+
+        $("#checkoutGrandTotal").text(grandTotal.toFixed(2) + " ₺");
+    }
+
+    // İADE ET BUTONUNA BASILDIĞINDA MODAL İÇİNDEKİ KUTUYU AÇMA (FOCUS PROBLEMİ ÇÖZÜLDÜ)
+    $(document).on("click", ".btn-return-product", function (e) {
+        e.stopPropagation();
+        var detailId = $(this).data("detailid");
+        var productName = $(this).data("name");
+
+        $("#selectedReturnDetailId").val(detailId);
+        $("#lblReturnProductName").text(productName);
+        $("#txtReturnReasonInput").val("");
+
+        $("#returnReasonContainer").removeClass("d-none");
+
+        setTimeout(function () {
+            $("#txtReturnReasonInput").focus();
+        }, 100);
+    });
+
+    // İADE KUTUSUNU İPTAL ETME
+    window.cancelReturnInput = function () {
+        $("#returnReasonContainer").addClass("d-none");
+        $("#selectedReturnDetailId").val("");
+        $("#txtReturnReasonInput").val("");
+    };
+
+    // İADEYİ ONAYLAMA VE SUNUCUYA GÖNDERME
+    $(document).on("click", "#btnConfirmReturnAction", function () {
+        var detailId = $("#selectedReturnDetailId").val();
+        var reason = $("#txtReturnReasonInput").val() ? $("#txtReturnReasonInput").val().trim() : "";
+
+        if (!reason) {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'warning',
+                title: 'Lütfen iade sebebini yazınız!',
+                showConfirmButton: false,
+                timer: 1500
+            });
+            $("#txtReturnReasonInput").focus();
+            return;
+        }
+
+        $.post("/Order/ReturnOrderItem", {
+            orderDetailId: detailId,
+            reason: reason
+        }, function (res) {
+            if (res.success) {
+                cancelReturnInput();
+
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: res.message,
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+
+                var tableId = $("#checkoutTableId").val();
+                openCheckoutModal(tableId);
+                loadTables();
+            } else {
+                Swal.fire("Hata", res.message, "error");
+            }
+        });
+    });
+
+    // MASAYI KAPATMA VE ÖDEME ALMA İŞLEMİ
+    $("#btnCloseTableOrder").on("click", function () {
+        var tableId = $("#checkoutTableId").val();
+
+        Swal.fire({
+            title: "Ödeme Alındı mı?",
+            text: "Hesap kapatılacak ve masa BOŞ durumuna getirilecektir.",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#28a745",
+            cancelButtonColor: "#6c757d",
+            confirmButtonText: "<i class='fa-solid fa-check me-1'></i>Evet, Masayı Kapat",
+            cancelButtonText: "Vazgeç"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post("/Admin/CloseTableOrder", { tableId: tableId }, function (res) {
+                    if (res.success) {
+                        var modalEl = document.getElementById('tableCheckoutModal');
+                        var modalInstance = bootstrap.Modal.getInstance(modalEl);
+                        if (modalInstance) modalInstance.hide();
+
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Masa Kapatıldı!',
+                            text: res.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+
+                        loadTables();
+                    } else {
+                        Swal.fire("Hata", res.message, "error");
+                    }
+                });
+            }
+        });
+    });
 
     $("#btnSaveTable").on("click", function () {
         var tableNum = $("#txtTableNumber").val() ? $("#txtTableNumber").val().trim() : "";

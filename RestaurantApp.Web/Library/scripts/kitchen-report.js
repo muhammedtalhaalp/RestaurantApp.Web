@@ -27,9 +27,16 @@ $(document).ready(function () {
         applyFilters();
     });
 
+    // BİLGi KUTUCUKLARI (CHECKBOX) TIKLAMA FİLTRESİ
+    $("#chkHasNote, #chkHasReturned").on("change", function () {
+        applyFilters();
+    });
+
     $("#btnClearFilters").on("click", function () {
         $("#filterSearchText").val("");
         $("#filterOrderType").val("");
+        $("#chkHasNote").prop("checked", false);
+        $("#chkHasReturned").prop("checked", false);
         applyFilters();
     });
 
@@ -76,25 +83,45 @@ function fetchKitchenReport() {
 function applyFilters() {
     var searchText = ($("#filterSearchText").val() || "").toLowerCase().trim();
     var orderType = $("#filterOrderType").val();
+    var onlyHasNote = $("#chkHasNote").is(":checked");
+    var onlyHasReturned = $("#chkHasReturned").is(":checked");
 
     var filteredList = rawReportData.filter(function (item) {
+        // 1. Sipariş Türü Filtresi
         if (orderType && item.orderType !== orderType) {
             return false;
         }
 
+        // 2. Müşteri Notu Filtresi
+        if (onlyHasNote && (!item.orderNote || item.orderNote.trim() === "")) {
+            return false;
+        }
+
+        // 3. İade / İptal Filtresi
+        if (onlyHasReturned) {
+            var hasReturnedItem = item.items && item.items.some(function (p) { return p.isReturned === true; });
+            if (!hasReturnedItem) {
+                return false;
+            }
+        }
+
+        // 4. Metin Arama Filtresi
         if (searchText) {
             var matchTitle = (item.title || "").toLowerCase().includes(searchText);
             var matchAddress = (item.deliveryAddress || "").toLowerCase().includes(searchText);
             var matchOrderId = (item.orderId || "").toString().includes(searchText);
+            var matchOrderNote = (item.orderNote || "").toLowerCase().includes(searchText);
 
             var matchProduct = false;
             if (item.items && item.items.length > 0) {
                 matchProduct = item.items.some(function (p) {
-                    return (p.productName || "").toLowerCase().includes(searchText);
+                    var matchName = (p.productName || "").toLowerCase().includes(searchText);
+                    var matchReason = (p.returnReason || "").toLowerCase().includes(searchText);
+                    return matchName || matchReason;
                 });
             }
 
-            return matchTitle || matchAddress || matchOrderId || matchProduct;
+            return matchTitle || matchAddress || matchOrderId || matchOrderNote || matchProduct;
         }
 
         return true;
@@ -126,7 +153,6 @@ function renderReportTable(dataList) {
 
         var isMasa = order.orderType === "Masa";
 
-        // Sipariş Türü Görünümü
         var typeBadge = isMasa
             ? `<span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-3"><i class="fa-solid fa-chair me-1"></i>${order.title}</span>`
             : `<span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 rounded-3"><i class="fa-solid fa-motorcycle me-1"></i>Paket Servis</span>`;
@@ -167,7 +193,7 @@ function showOrderDetailsModal(orderId) {
 
     var firstTime = order.firstOrderTime || order.orderTime || "--:--";
     var deliveryTime = order.lastDeliveryTime || "--:--";
-    var closedTime = order.tableClosedTime || order.orderTime || "--:--";
+    var closedTime = order.tableClosedTime || "--:--";
 
     var infoText = `
         <div class="d-flex justify-content-between align-items-center mb-3">
@@ -200,19 +226,43 @@ function showOrderDetailsModal(orderId) {
         infoText += `<div class="mt-2 pt-2 border-top extra-small text-muted"><i class="fa-solid fa-location-dot me-1"></i>Adres: ${order.deliveryAddress}</div>`;
     }
 
+    if (order.orderNote) {
+        infoText += `<div class="mt-2 pt-2 border-top extra-small text-dark fw-bold bg-warning-subtle p-2 rounded"><i class="fa-solid fa-note-sticky me-1 text-warning-emphasis"></i>Sipariş Notu: "${order.orderNote}"</div>`;
+    }
+
     $("#modalOrderInfoBar").html(infoText);
     $("#modalTotalAmount").text(parseFloat(order.totalAmount || 0).toFixed(2) + " ₺");
 
     var containerHtml = "";
     if (order.items && order.items.length > 0) {
         $.each(order.items, function (idx, item) {
+            var isRet = item.isReturned || false;
+            var titleStyle = isRet ? 'text-decoration: line-through; color: #dc2626 !important;' : 'color: #212529;';
+            var bgStyle = isRet ? 'background-color: #fef2f2; border-left: 4px solid #dc2626;' : 'background-color: #ffffff;';
+
+            var returnedBadge = isRet
+                ? `<span class="badge bg-danger text-white ms-2 extra-small"><i class="fa-solid fa-rotate-left me-1"></i>İADE EDİLDİ</span>`
+                : ``;
+
+            var reasonHtml = isRet
+                ? `<div class="text-danger extra-small fw-bold mt-1"><i class="fa-solid fa-circle-exclamation me-1"></i>İade Sebebi: "${item.returnReason || 'Belirtilmedi'}"</div>`
+                : ``;
+
             containerHtml += `
-                <div class="modal-product-item d-flex justify-content-between align-items-center p-2 mb-2 border-bottom">
-                    <div>
-                        <h6 class="fw-bold text-dark mb-0">${item.productName}</h6>
-                        <span class="text-muted extra-small">${item.quantity} Adet x ${parseFloat(item.unitPrice || 0).toFixed(2)} ₺</span>
+                <div class="modal-product-item p-2 mb-2 rounded border ${isRet ? 'border-danger-subtle' : ''}" style="${bgStyle}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="fw-bold mb-0" style="${titleStyle}">
+                                ${item.productName}
+                                ${returnedBadge}
+                            </h6>
+                            <span class="text-muted extra-small">${item.quantity} Adet x ${parseFloat(item.unitPrice || 0).toFixed(2)} ₺</span>
+                        </div>
+                        <span class="fw-bold ${isRet ? 'text-decoration-line-through text-muted' : ''}" style="${isRet ? '' : 'color: #4a154b;'}">
+                            ${parseFloat(item.totalLinePrice || 0).toFixed(2)} ₺
+                        </span>
                     </div>
-                    <span class="fw-bold" style="color: #4a154b;">${parseFloat(item.totalLinePrice || 0).toFixed(2)} ₺</span>
+                    ${reasonHtml}
                 </div>`;
         });
     } else {
@@ -238,15 +288,20 @@ function exportTableToExcel() {
 
     var exportData = [];
     $.each(rawReportData, function (i, item) {
-        var itemsSummary = item.items ? item.items.map(function (p) { return `${p.productName} (${p.quantity} Adet)`; }).join(', ') : '';
+        var itemsSummary = item.items ? item.items.map(function (p) {
+            var retStr = p.isReturned ? ` [İADE EDİLDİ: ${p.returnReason || ''}]` : '';
+            return `${p.productName} (${p.quantity} Adet)${retStr}`;
+        }).join(', ') : '';
 
         exportData.push({
             "Sipariş No": "#" + item.orderId,
             "Sipariş Saati": item.orderTime,
             "İlk Sipariş Saati": item.firstOrderTime || item.orderTime,
-            "Son Teslimat Saati": item.lastDeliveryTime || item.orderTime,
+            "Son Teslimat Saati": item.lastDeliveryTime || "--:--",
+            "Masa Boşalma Saati": item.tableClosedTime || "--:--",
             "Sipariş Türü": item.orderType,
             "Masa / Adres": item.title + (item.deliveryAddress ? " - " + item.deliveryAddress : ""),
+            "Sipariş Notu": item.orderNote || "-",
             "Ürün İçeriği": itemsSummary,
             "Sipariş Fiyatı (TL)": parseFloat(item.totalAmount || 0).toFixed(2)
         });

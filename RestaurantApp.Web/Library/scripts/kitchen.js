@@ -35,7 +35,6 @@ function getAudioContext() {
     return audioCtx;
 }
 
-// BİLDİRİM SESİ SEÇİMİ VE KAYDI
 function selectKitchenSound(soundKey, playTest) {
     selectedKitchenSound = soundKey;
     localStorage.setItem("KitchenSelectedSound", soundKey);
@@ -53,34 +52,27 @@ function selectKitchenSound(soundKey, playTest) {
     }
 }
 
-// 6 FARKLI SENTEZLENMİŞ SES MOTORU
 function playSelectedKitchenSound(soundKey) {
     try {
         var ctx = getAudioContext();
         var key = soundKey || selectedKitchenSound;
 
         if (key === "chime") {
-            // 1. Zil (Klasik)
             playTone(ctx, 880, 0, 0.3, 0.3);
             playTone(ctx, 1046, 0.2, 0.4, 0.4);
         } else if (key === "double-beep") {
-            // 2. Çift Bip (Eko)
             playTone(ctx, 750, 0, 0.15, 0.3);
             playTone(ctx, 750, 0.2, 0.15, 0.3);
         } else if (key === "melody") {
-            // 3. Melodik (Üçlü)
             playTone(ctx, 523, 0, 0.15, 0.2);
             playTone(ctx, 659, 0.15, 0.15, 0.2);
             playTone(ctx, 783, 0.3, 0.25, 0.3);
         } else if (key === "alarm") {
-            // 4. Yüksek Alarm
             playTone(ctx, 1200, 0, 0.2, 0.5, "sawtooth");
             playTone(ctx, 1200, 0.25, 0.2, 0.5, "sawtooth");
         } else if (key === "whistle") {
-            // 5. Mutfak Düdüğü
             playTone(ctx, 1500, 0, 0.4, 0.2, "triangle");
         } else if (key === "digital") {
-            // 6. Dijital Bip
             playTone(ctx, 950, 0, 0.1, 0.2, "square");
             playTone(ctx, 1400, 0.12, 0.15, 0.2, "square");
         } else {
@@ -135,7 +127,6 @@ function loadKitchenOrders() {
             if (res.success && res.data && res.data.length > 0) {
                 $.each(res.data, function (i, order) {
                     var isMasa = order.orderType === "Masa";
-                    var headerBadge = isMasa ? "bg-primary" : "bg-warning text-dark";
                     var rawTableName = order.tableName || '';
                     var tableNameFormatted = rawTableName.toLowerCase().startsWith('masa') ? rawTableName : `Masa ${rawTableName}`;
                     var headerTitle = isMasa ? tableNameFormatted : "Paket Servis";
@@ -147,11 +138,18 @@ function loadKitchenOrders() {
                     var itemsHtml = "";
                     $.each(order.items, function (j, item) {
                         itemsHtml += `
-                            <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom-dashed">
-                                <span class="fw-semibold text-dark">${item.productName}</span>
-                                <span class="badge bg-secondary rounded-pill fs-6">x${item.quantity}</span>
+                            <li class="list-group-item px-0 py-2 border-bottom-dashed">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="fw-semibold text-dark">${item.productName}</span>
+                                    <span class="badge rounded-pill fs-6">x${item.quantity}</span>
+                                </div>
                             </li>`;
                     });
+
+                    // BEYAZ ARKA PLAN VE MOR ÇERÇOVELİ GENEL NOT KUTUSU
+                    var generalNoteHtml = order.orderNote
+                        ? `<div class="kitchen-general-note-box"><i></i>Sipariş Notu: "${order.orderNote}"</div>`
+                        : '';
 
                     var delayClass = isDelayed ? "card-order-delayed" : "";
                     var delayBadge = isDelayed
@@ -160,19 +158,20 @@ function loadKitchenOrders() {
 
                     var cardHtml = `
                         <div class="col-md-4 col-lg-3" id="order-card-${order.orderId}" data-order-date="${order.orderDate}">
-                            <div class="card h-100 shadow-sm border-0 rounded-4 overflow-hidden ${delayClass}">
-                                <div class="card-header ${headerBadge} text-white d-flex justify-content-between align-items-center py-3">
+                            <div class="card h-100 shadow-sm rounded-4 overflow-hidden ${delayClass}">
+                                <div class="kitchen-card-header d-flex justify-content-between align-items-center">
                                     <h6 class="mb-0 fw-bold"><i class="fa-solid ${isMasa ? 'fa-chair' : 'fa-motorcycle'} me-2"></i>${headerTitle}</h6>
                                     ${delayBadge}
                                 </div>
                                 <div class="card-body">
                                     ${subInfo}
+                                    ${generalNoteHtml}
                                     <ul class="list-group list-group-flush mb-3">
                                         ${itemsHtml}
                                     </ul>
                                 </div>
                                 <div class="card-footer bg-transparent border-0 pb-3">
-                                    <button class="btn btn-success w-100 fw-bold py-2 rounded-3" onclick="markReady(${order.orderId}, '${order.tableName}', '${order.orderType}', '${order.deliveryAddress}')">
+                                    <button class="btn btn-success w-100 py-2 rounded-3" onclick="markReady(${order.orderId}, '${order.tableName}', '${order.orderType}', '${order.deliveryAddress}')">
                                         <i class="fa-solid fa-check-double me-2"></i>Sipariş Hazır
                                     </button>
                                 </div>
@@ -222,7 +221,7 @@ function updateDelayedOrdersState() {
             var $card = $cardCol.find(".card");
             if (!$card.hasClass("card-order-delayed")) {
                 $card.addClass("card-order-delayed");
-                var $header = $card.find(".card-header");
+                var $header = $card.find(".kitchen-card-header");
                 $header.find(".elapsed-time-badge").remove();
                 if ($header.find(".delay-pulse-badge").length === 0) {
                     $header.append(`<span class="badge bg-danger text-white ms-1 delay-pulse-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Gecikti (${elapsed} dk)</span>`);

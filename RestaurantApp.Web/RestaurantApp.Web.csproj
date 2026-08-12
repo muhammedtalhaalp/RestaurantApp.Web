@@ -339,7 +339,6 @@
     <Content Include="Views\Admin\FinancialReports.cshtml" />
   </ItemGroup>
   <ItemGroup>
-    <Folder Include="App_Data\" />
     <Folder Include="Library\assets\" />
   </ItemGroup>
   <ItemGroup>

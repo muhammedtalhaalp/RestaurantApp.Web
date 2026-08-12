@@ -1,6 +1,4 @@
-﻿/* Mutfak Ekranı Özel Kart ve Liste Stilleri */
-
-/* KURUMSAL MOR BUTON VE YÜKSEKLİK STİLLERİ */
+﻿/* KURUMSAL MOR VE YÜKSEKLİK STİLLERİ */
 .btn-outline-purple {
     color: #4a154b !important;
     border-color: #4a154b !important;
@@ -21,23 +19,41 @@
     align-items: center !important;
 }
 
+/* KART GENEL STİLİ (Standart Durumda Mor Vurgu) */
 #kitchen-orders-grid .card {
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.3s ease;
-    border: 1px solid rgba(0, 0, 0, 0.05) !important;
+    border: 1.5px solid #4a154b !important;
+    border-radius: 16px !important;
+    background-color: #ffffff;
 }
 
     #kitchen-orders-grid .card:hover {
         transform: translateY(-4px);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08) !important;
+        box-shadow: 0 12px 24px rgba(74, 21, 75, 0.12) !important;
     }
 
-/* GECİKEN SİPARİŞ KARTLARI KIRMIZI PULSE ANİMASYONU */
+/* KART BAŞLIĞI (Masa & Paket Servis Ortak Kurumsal Mor) */
+.kitchen-card-header {
+    background-color: #4a154b !important;
+    color: #ffffff !important;
+    border-bottom: none;
+    padding: 12px 16px;
+}
+
+    .kitchen-card-header .badge {
+        font-weight: 600;
+        font-size: 0.8rem;
+        padding: 6px 10px;
+        border-radius: 8px;
+    }
+
+/* GECİKEN SİPARİŞ KARTLARI (15 DK ÜZERİ KIRMIZI PULSE ANİMASYONU) */
 .card-order-delayed {
     border: 2px solid #dc3545 !important;
     animation: pulseBorderRed 1.5s infinite alternate ease-in-out;
 }
 
-    .card-order-delayed .card-header {
+    .card-order-delayed .kitchen-card-header {
         background-color: #dc3545 !important;
         color: #ffffff !important;
     }
@@ -68,19 +84,7 @@
     }
 }
 
-/* Kart Başlığı ve Rozetler */
-#kitchen-orders-grid .card-header {
-    border-bottom: none;
-}
-
-    #kitchen-orders-grid .card-header .badge {
-        font-weight: 600;
-        font-size: 0.8rem;
-        padding: 6px 10px;
-        border-radius: 8px;
-    }
-
-/* Kesikli Alt Çizgi */
+/* KESİKLİ ALT ÇİZGİ VE ÜRÜN LİSTESİ */
 .border-bottom-dashed {
     border-bottom: 1px dashed #e2e8f0 !important;
 }
@@ -89,12 +93,12 @@
         border-bottom: none !important;
     }
 
-/* Ürün Listesi */
 #kitchen-orders-grid .list-group-item {
     background: transparent;
     font-size: 0.92rem;
 }
 
+    /* ADET ROZETİ (Mor Kurumsal) */
     #kitchen-orders-grid .list-group-item .badge {
         background-color: #4a154b !important;
         color: #ffffff;
@@ -102,14 +106,28 @@
         padding: 5px 10px;
     }
 
-/* Hazır Butonu Hover Etkisi */
+/* SİPARİŞ NOTU KUTUSU (Beyaz Arkaplan, İnce Mor Çerçeve, Mor Yazı) */
+.kitchen-general-note-box {
+    background-color: #ffffff !important;
+    border: 1.5px solid #4a154b !important;
+    color: #4a154b !important;
+    border-radius: 10px !important;
+    font-weight: 600;
+    font-size: 0.8rem;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    word-break: break-word;
+}
+
+/* HAZIR BUTONU (Sadece Yeşil Kalan Tek Eleman) */
 #kitchen-orders-grid .btn-success {
-    background-color: #198754;
-    border: none;
+    background-color: #198754 !important;
+    border: none !important;
+    font-weight: 700 !important;
     transition: all 0.2s ease;
 }
 
     #kitchen-orders-grid .btn-success:hover {
-        background-color: #146c43;
+        background-color: #146c43 !important;
         transform: scale(1.01);
     }

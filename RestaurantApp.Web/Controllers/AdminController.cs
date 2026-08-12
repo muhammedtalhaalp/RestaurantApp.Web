@@ -325,35 +325,18 @@ namespace RestaurantApp.Web.Controllers
 
                 var reportData = queryOrders.Select(o =>
                 {
+                    // 1. İLK SİPARİŞ ZAMANI (Doğrudan bu müşterinin/adisyonun kendi açılış saati)
                     string firstOrderTime = o.CreatedDate.ToString("HH:mm");
-                    string lastDeliveryTime = (o.Status == "Servis Edildi" || o.Status == "Teslim Edildi")
-                        ? o.CreatedDate.ToString("HH:mm")
+
+                    // 2. TESLİMAT ZAMANI (DeliveredDate)
+                    string lastDeliveryTime = o.DeliveredDate.HasValue
+                        ? o.DeliveredDate.Value.ToString("HH:mm")
                         : "--:--";
 
-                    string tableClosedTime = o.Status == "Tamamlandı" ? o.CreatedDate.ToString("HH:mm") : "--:--";
-
-                    if (o.TableId.HasValue)
-                    {
-                        var tableFirstOrder = db.AppOrders
-                            .Where(x => x.TableId == o.TableId && x.CreatedDate >= startOfDay && x.CreatedDate <= endOfDay)
-                            .OrderBy(x => x.CreatedDate)
-                            .FirstOrDefault();
-
-                        if (tableFirstOrder != null)
-                        {
-                            firstOrderTime = tableFirstOrder.CreatedDate.ToString("HH:mm");
-                        }
-
-                        var tableLastCompletedOrder = db.AppOrders
-                            .Where(x => x.TableId == o.TableId && x.CreatedDate >= startOfDay && x.CreatedDate <= endOfDay && x.Status == "Tamamlandı")
-                            .OrderByDescending(x => x.CreatedDate)
-                            .FirstOrDefault();
-
-                        if (tableLastCompletedOrder != null)
-                        {
-                            tableClosedTime = tableLastCompletedOrder.CreatedDate.ToString("HH:mm");
-                        }
-                    }
+                    // 3. MASA BOŞALMA ZAMANI (CompletedDate)
+                    string tableClosedTime = o.CompletedDate.HasValue
+                        ? o.CompletedDate.Value.ToString("HH:mm")
+                        : "--:--";
 
                     return new
                     {
@@ -366,13 +349,16 @@ namespace RestaurantApp.Web.Controllers
                         title = o.OrderType == "Masa" && o.AppTables != null ? o.AppTables.TableNumber : "Paket Servis",
                         deliveryAddress = o.DeliveryAddress,
                         totalAmount = o.TotalAmount,
+                        orderNote = o.OrderNote,
                         items = o.AppOrderDetails.Select(d => new
                         {
                             productId = d.ProductId,
                             productName = d.AppProducts != null ? d.AppProducts.ProductName : "Bilinmeyen Ürün",
                             quantity = d.Quantity,
                             unitPrice = d.UnitPrice,
-                            totalLinePrice = d.Quantity * d.UnitPrice
+                            totalLinePrice = d.Quantity * d.UnitPrice,
+                            isReturned = d.IsReturned,
+                            returnReason = d.ReturnReason
                         }).ToList()
                     };
                 }).ToList();
@@ -388,6 +374,45 @@ namespace RestaurantApp.Web.Controllers
         #endregion
 
         #region MASA VE KROKİ İŞLEMLERİ
+
+        [HttpPost]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        public JsonResult CloseTableOrder(int tableId)
+        {
+            try
+            {
+                var activeOrders = db.AppOrders
+                    .Where(o => o.TableId == tableId && o.Status != "Tamamlandı" && o.Status != "İptal")
+                    .ToList();
+
+                if (!activeOrders.Any())
+                {
+                    return Json(new { success = false, message = "Kapatılacak aktif sipariş bulunamadı." });
+                }
+
+                DateTime now = DateTime.Now;
+
+                foreach (var order in activeOrders)
+                {
+                    order.Status = "Tamamlandı";
+                    order.CompletedDate = now; // MASA BOŞALMA SAATİ KAYDEDİLİYOR
+                }
+
+                var table = db.AppTables.FirstOrDefault(t => t.TableId == tableId);
+                if (table != null)
+                {
+                    table.Status = "Bos";
+                }
+
+                db.SaveChanges();
+
+                return Json(new { success = true, message = "Hesap kapatıldı ve masa boşaltıldı." });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Masa kapatılırken hata: " + ex.Message });
+            }
+        }
 
         [HttpGet]
         [JwtAuthorize(Roles = "Admin")]
@@ -421,7 +446,7 @@ namespace RestaurantApp.Web.Controllers
                             .OrderBy(o => o.CreatedDate)
                             .ToList();
 
-                        decimal currentTotal = activeOrders.Sum(o => (decimal?)o.TotalAmount) ?? 0;
+                        decimal currentTotal = activeOrders.FirstOrDefault() != null ? activeOrders.FirstOrDefault().TotalAmount : 0;
 
                         string firstOrderTime = "--:--";
                         string lastDeliveryTime = "--:--";
@@ -1050,25 +1075,26 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                // Masadaki Tamamlanmamış ve İptal Olmamış Tüm Sipariş Kalemlerini Topluyoruz
-                var activeOrders = db.AppOrders
+                var mainOrder = db.AppOrders
                     .Where(o => o.TableId == tableId && o.Status != "Tamamlandı" && o.Status != "İptal")
-                    .ToList();
+                    .OrderBy(o => o.CreatedDate)
+                    .FirstOrDefault();
 
-                if (!activeOrders.Any())
+                if (mainOrder == null)
                 {
                     return Json(new { success = false, message = "Aktif sipariş bulunamadı." }, JsonRequestBehavior.AllowGet);
                 }
 
-                var items = activeOrders
-                    .SelectMany(o => o.AppOrderDetails)
-                    .GroupBy(d => d.ProductId)
-                    .Select(g => new
+                var items = mainOrder.AppOrderDetails
+                    .Select(d => new
                     {
-                        productId = g.Key,
-                        productName = g.FirstOrDefault()?.AppProducts != null ? g.FirstOrDefault().AppProducts.ProductName : "Ürün",
-                        quantity = g.Sum(x => x.Quantity),
-                        unitPrice = g.FirstOrDefault() != null ? g.FirstOrDefault().UnitPrice : 0
+                        orderDetailId = d.OrderDetailId,
+                        productId = d.ProductId,
+                        productName = d.AppProducts != null ? d.AppProducts.ProductName : "Ürün",
+                        quantity = d.Quantity,
+                        unitPrice = d.UnitPrice,
+                        isReturned = d.IsReturned,
+                        returnReason = d.ReturnReason
                     }).ToList();
 
                 return Json(new { success = true, data = items }, JsonRequestBehavior.AllowGet);
@@ -1080,8 +1106,6 @@ namespace RestaurantApp.Web.Controllers
         }
 
         #endregion
-
-
 
         protected override void Dispose(bool disposing)
         {

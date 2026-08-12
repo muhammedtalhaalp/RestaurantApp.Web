@@ -13,10 +13,10 @@
             <h4 class="fw-bold text-dark mb-1">
                 <i class="fa-solid fa-fire-burner me-2" style="color: #4a154b;"></i>Mutfak Sipariş Ekranı
             </h4>
-            <p class="text-muted small mb-0">Hazırlanmakta olan siparişleri buradan takip edebilir ve hazır olduğunda garsona bildirebilirsiniz.</p>
+            <p class="text-muted small mb-0">Hazırlanmakta olan siparişleri buradan takip edebilir, müşteri notlarını inceleyebilir ve ürünler hazır olduğunda garsona bildirebilirsiniz.</p>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <!-- Sadeleştirilmiş İkonsuz Bildirim Sesi Dropdown Menüsü -->
+            <!-- Bildirim Sesi Dropdown Menüsü -->
             <div class="dropdown">
                 <button class="btn btn-outline-purple btn-sm rounded-3 px-3 dropdown-toggle d-flex align-items-center gap-2 h-38" type="button" id="dropdownKitchenSound" data-bs-toggle="dropdown" aria-expanded="false">
                     <span>Bildirim Sesi</span>
@@ -31,7 +31,7 @@
                 </ul>
             </div>
 
-            <button class="btn btn-outline-primary btn-sm rounded-3 px-3 h-38 fw-semibold" onclick="loadKitchenOrders()">
+            <button class="btn btn-outline-purple btn-sm rounded-3 px-3 h-38 fw-semibold" onclick="loadKitchenOrders()">
                 <i class="fa-solid fa-rotate me-1"></i> Yenile
             </button>
         </div>
@@ -40,7 +40,7 @@
     <!-- Sipariş Kartları Izgarası -->
     <div class="row g-3" id="kitchen-orders-grid">
         <div class="col-12 text-center py-5">
-            <div class="spinner-border text-primary" role="status">
+            <div class="spinner-border" style="color: #4a154b;" role="status">
                 <span class="visually-hidden">Yükleniyor...</span>
             </div>
             <p class="text-muted mt-2">Siparişler yükleniyor...</p>
