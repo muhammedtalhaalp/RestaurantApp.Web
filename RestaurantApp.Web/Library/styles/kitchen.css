@@ -1,7 +1,20 @@
 ﻿/* KURUMSAL MOR VE YÜKSEKLİK STİLLERİ */
+:root {
+    --brand-purple: #4a154b;
+    --brand-purple-hover: #381039;
+}
+
+.style-purple-icon {
+    color: var(--brand-purple) !important;
+}
+
+.text-purple-main {
+    color: var(--brand-purple) !important;
+}
+
 .btn-outline-purple {
-    color: #4a154b !important;
-    border-color: #4a154b !important;
+    color: var(--brand-purple) !important;
+    border-color: var(--brand-purple) !important;
     background-color: transparent !important;
     font-weight: 600 !important;
     transition: all 0.2s ease-in-out !important;
@@ -9,7 +22,7 @@
 }
 
     .btn-outline-purple:hover {
-        background-color: #4a154b !important;
+        background-color: var(--brand-purple) !important;
         color: #ffffff !important;
     }
 
@@ -19,37 +32,76 @@
     align-items: center !important;
 }
 
-/* KART GENEL STİLİ (Standart Durumda Mor Vurgu) */
-#kitchen-orders-grid .card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.3s ease;
-    border: 1.5px solid #4a154b !important;
-    border-radius: 16px !important;
-    background-color: #ffffff;
+/* KOMPAKT VE DARALTILMIŞ KART KOLONU */
+#kitchen-orders-grid .kitchen-card-col {
+    min-height: 150px;
 }
 
-    #kitchen-orders-grid .card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 12px 24px rgba(74, 21, 75, 0.12) !important;
+/* KART GENEL STİLİ - DAR VE DERLİ TOPLU */
+#kitchen-orders-grid .kitchen-fixed-card {
+    border: 2px solid var(--brand-purple) !important;
+    border-radius: 16px !important;
+    background-color: #ffffff !important;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden !important;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04) !important;
+    position: relative;
+}
+
+    #kitchen-orders-grid .kitchen-fixed-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 22px rgba(74, 21, 75, 0.18) !important;
     }
 
-/* KART BAŞLIĞI (Masa & Paket Servis Ortak Kurumsal Mor) */
+/* KART BAŞLIĞI */
 .kitchen-card-header {
-    background-color: #4a154b !important;
+    background-color: var(--brand-purple) !important;
     color: #ffffff !important;
-    border-bottom: none;
-    padding: 12px 16px;
+    padding: 9px 14px;
+    flex-shrink: 0;
+    border: none !important;
 }
 
     .kitchen-card-header .badge {
         font-weight: 600;
-        font-size: 0.8rem;
-        padding: 6px 10px;
-        border-radius: 8px;
+        font-size: 0.78rem;
+        padding: 5px 8px;
+        border-radius: 6px;
     }
 
-/* GECİKEN SİPARİŞ KARTLARI (15 DK ÜZERİ KIRMIZI PULSE ANİMASYONU) */
+/* KART GÖVDESİ */
+.kitchen-card-body-fixed {
+    padding: 10px 14px 6px 14px;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: #ffffff !important;
+}
+
+/* METİN KISITLAMALARI */
+.text-ellipsis-1 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+}
+
+.text-ellipsis-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* GECİKEN SİPARİŞ KARTLARI */
 .card-order-delayed {
-    border: 2px solid #dc3545 !important;
+    border: 2.5px solid #dc3545 !important;
     animation: pulseBorderRed 1.5s infinite alternate ease-in-out;
 }
 
@@ -65,7 +117,7 @@
     }
 
     100% {
-        box-shadow: 0 0 15px 5px rgba(220, 53, 69, 0.3);
+        box-shadow: 0 0 12px 4px rgba(220, 53, 69, 0.3);
         border-color: #b02a37;
     }
 }
@@ -84,50 +136,121 @@
     }
 }
 
-/* KESİKLİ ALT ÇİZGİ VE ÜRÜN LİSTESİ */
-.border-bottom-dashed {
-    border-bottom: 1px dashed #e2e8f0 !important;
-}
-
-    .border-bottom-dashed:last-child {
-        border-bottom: none !important;
-    }
-
-#kitchen-orders-grid .list-group-item {
-    background: transparent;
-    font-size: 0.92rem;
-}
-
-    /* ADET ROZETİ (Mor Kurumsal) */
-    #kitchen-orders-grid .list-group-item .badge {
-        background-color: #4a154b !important;
-        color: #ffffff;
-        font-size: 0.82rem;
-        padding: 5px 10px;
-    }
-
-/* SİPARİŞ NOTU KUTUSU (Beyaz Arkaplan, İnce Mor Çerçeve, Mor Yazı) */
+/* GENEL SİPARİŞ NOTU KUTUSU */
 .kitchen-general-note-box {
     background-color: #ffffff !important;
-    border: 1.5px solid #4a154b !important;
-    color: #4a154b !important;
-    border-radius: 10px !important;
+    border: 1.5px solid var(--brand-purple) !important;
+    color: var(--brand-purple) !important;
+    border-radius: 8px !important;
     font-weight: 600;
-    font-size: 0.8rem;
-    padding: 8px 12px;
-    margin-bottom: 10px;
-    word-break: break-word;
+    font-size: 0.78rem;
+    padding: 5px 8px;
+    margin-bottom: 6px;
+    flex-shrink: 0;
 }
 
-/* HAZIR BUTONU (Sadece Yeşil Kalan Tek Eleman) */
+/* SADE DETAY LİNKİ */
+.order-detail-link-text {
+    font-size: 0.76rem;
+    color: #64748b;
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+    .order-detail-link-text:hover {
+        color: var(--brand-purple);
+    }
+
+/* FOOTER VE DÜĞME */
+.kitchen-card-footer {
+    padding: 6px 12px 10px 12px;
+    background: #ffffff !important;
+    border-top: none !important;
+    flex-shrink: 0;
+}
+
 #kitchen-orders-grid .btn-success {
     background-color: #198754 !important;
     border: none !important;
     font-weight: 700 !important;
-    transition: all 0.2s ease;
+    font-size: 0.85rem;
 }
 
     #kitchen-orders-grid .btn-success:hover {
         background-color: #146c43 !important;
-        transform: scale(1.01);
+    }
+
+/* =================================================== */
+/* MODAL ÖZEL CSS SINIFLARI & TAŞMAYI ENGELLEYEN YAPI */
+/* =================================================== */
+.kitchen-modal-header {
+    background-color: var(--brand-purple) !important;
+}
+
+/* Listenin aşağıya doğru butonları itmesini engelleyen sınırlı scroll alanı */
+.modal-items-scroll-list {
+    max-height: 220px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding-right: 4px;
+}
+
+    .modal-items-scroll-list::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    .modal-items-scroll-list::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 10px;
+    }
+
+    .modal-items-scroll-list::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+
+.kitchen-modal-item {
+    border: 1px solid #e2e8f0;
+    background-color: #ffffff;
+    transition: background-color 0.2s ease;
+}
+
+.kitchen-modal-item-delayed {
+    background-color: #fef2f2 !important;
+    border-left: 4px solid #dc3545 !important;
+}
+
+.item-qty-badge-purple {
+    background-color: var(--brand-purple) !important;
+    color: #ffffff;
+}
+
+.chk-custom-ready {
+    cursor: pointer;
+    width: 1.25rem;
+    height: 1.25rem;
+}
+
+/* Butonların modalın altında her zaman görünmesini sağlayan footer stili */
+#modalKitchenFooterAction {
+    background-color: #f8fafc !important;
+    border-top: 1px solid #e2e8f0 !important;
+    padding: 10px 16px !important;
+    width: 100% !important;
+}
+
+.btn-purple-kitchen {
+    background-color: var(--brand-purple) !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border: 1px solid var(--brand-purple) !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+    .btn-purple-kitchen:hover {
+        background-color: var(--brand-purple-hover) !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 10px rgba(74, 21, 75, 0.25) !important;
     }

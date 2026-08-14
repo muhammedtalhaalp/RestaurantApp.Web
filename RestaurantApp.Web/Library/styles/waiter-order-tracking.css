@@ -1,6 +1,4 @@
-﻿/* Garson Sipariş Takip Paneli ve Sol Alt Toast Stilleri */
-
-/* KURUMSAL MOR BUTON VE YÜKSEKLİK STİLLERİ */
+﻿/* KURUMSAL MOR BUTON VE YÜKSEKLİK STİLLERİ */
 .btn-outline-purple {
     color: #4a154b !important;
     border-color: #4a154b !important;
@@ -29,7 +27,7 @@
     display: flex;
     flex-direction: column-reverse;
     gap: 12px;
-    max-width: 360px;
+    max-width: 380px;
     pointer-events: none;
 }
 
@@ -70,7 +68,6 @@
 #waiterReadyOrdersGrid .card {
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
     border: 1px solid #e2e8f0 !important;
-    border-left: 5px solid #198754 !important;
 }
 
     #waiterReadyOrdersGrid .card:hover {
@@ -78,17 +75,41 @@
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08) !important;
     }
 
-/* Mutfaktan Yeni Çıkan Hazır Kartlar İçin Sarı Vurgu Animasyonu */
+/* Ürün Durum Rozetleri */
+.badge-item-ready {
+    background-color: #d1e7dd !important;
+    color: #0f5132 !important;
+    border: 1px solid #a3cfbb !important;
+    font-weight: 700 !important;
+    padding: 4px 8px !important;
+}
+
+.badge-item-cooking {
+    background-color: #cff4fc !important;
+    color: #055160 !important;
+    border: 1px solid #9eeaf9 !important;
+    font-weight: 600 !important;
+    padding: 4px 8px !important;
+}
+
+.badge-item-delivered {
+    background-color: #e2e8f0 !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+    padding: 4px 8px !important;
+}
+
+/* Mutfaktan Yeni Çıkan Hazır Kartlar İçin Vurgu Animasyonu */
 .waiter-card-pulse {
     animation: waiterPulse 1.5s infinite alternate;
 }
 
 @keyframes waiterPulse {
     0% {
-        box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.6);
+        box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.6);
     }
 
     100% {
-        box-shadow: 0 0 12px 4px rgba(255, 193, 7, 0.3);
+        box-shadow: 0 0 12px 4px rgba(25, 135, 84, 0.3);
     }
 }

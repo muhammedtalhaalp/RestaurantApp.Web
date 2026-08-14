@@ -12,11 +12,13 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h4 class="fw-bold text-dark mb-1">
-                <i class="fa-solid fa-clock-rotate-left me-2" style="color: #4a154b;"></i>Sipariş Takip Paneli
+                <i class="fa-solid fa-clock-rotate-left me-2" style="color: #4a154b;"></i>Sipariş Takip
             </h4>
-            <p class="text-muted small mb-0">Mutfaktan çıkan ve garson teslimatı bekleyen hazır siparişleri buradan canlı izleyebilirsiniz.</p>
+            <p class="text-muted small mb-0">Mutfaktan çıkan ve teslimat bekleyen ürünleri buradan canlı takip edebilir, hazır olanları teslim alabilirsiniz.</p>
         </div>
-        <span class="badge bg-warning text-dark fs-6 px-3 py-2 rounded-pill" id="pendingOrdersCountBadge">0 Sipariş Bekliyor</span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge badge-purple-main fs-6 px-3 py-2 rounded-pill" id="pendingOrdersCountBadge">0 Sipariş Bekliyor</span>
+        </div>
     </div>
 
     <!-- Canlı Takip Kartları Alanı -->
@@ -35,35 +37,36 @@
 <!-- SİPARİŞ DETAY VE ÜRÜN İÇERİĞİ MODALI -->
 <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow rounded-4">
-            <div class="modal-header border-bottom py-3 px-4">
-                <h5 class="modal-title fw-bold text-dark d-flex align-items-center mb-0" id="modalOrderTitle">
-                    <i class="fa-solid fa-receipt me-2" style="color: #4a154b;"></i>Sipariş Detayı
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-header border-bottom py-3 px-4" style="background-color: #4a154b; color: #ffffff;">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center mb-0" id="modalOrderTitle">
+                    <i class="fa-solid fa-receipt me-2"></i>Sipariş Detayı
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded-3">
+                <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded-3 border">
                     <div>
                         <span class="text-muted small d-block">Sipariş Saati:</span>
                         <strong id="lblOrderTime" class="text-dark">--:--</strong>
                     </div>
                     <div class="text-end">
-                        <span class="text-muted small d-block">Durumu:</span>
+                        <span class="text-muted small d-block">Genel Durum:</span>
                         <span id="lblOrderStatusBadge" class="badge bg-secondary">--</span>
                     </div>
                 </div>
 
-                <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-utensils me-2" style="color: #4a154b;"></i>Sipariş Edilen Ürünler</h6>
+                <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-utensils me-2" style="color: #4a154b;"></i>Sipariş Edilen Ürünler ve Hazırlık Durumu</h6>
                 <div class="table-responsive border rounded-3 overflow-hidden mb-3">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light">
                             <tr>
                                 <th class="py-2 px-3 small text-muted">Ürün Adı</th>
                                 <th class="py-2 px-3 small text-muted text-center">Adet</th>
+                                <th class="py-2 px-3 small text-muted text-center">Durum</th>
                                 <th class="py-2 px-3 small text-muted text-end">Fiyat</th>
                                 <th class="py-2 px-3 small text-muted text-end">Toplam</th>
-                                <th class="py-2 px-3 small text-muted text-center" style="width: 70px;">İşlem</th>
+                                <th class="py-2 px-3 small text-muted text-center" style="width: 60px;">İşlem</th>
                             </tr>
                         </thead>
                         <tbody id="tblOrderItemsBody">
@@ -73,12 +76,12 @@
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center pt-2">
-                    <span class="fw-bold text-dark fs-6">Genel Toplam:</span>
+                    <span class="fw-bold text-dark fs-6">Adisyon Toplamı:</span>
                     <span id="lblOrderTotalAmount" class="fw-bold fs-5 text-purple-main">0.00 ₺</span>
                 </div>
             </div>
-            <div class="modal-footer border-0 pt-0 px-4 pb-4" id="modalFooterActions">
-                <!-- Teslim Et / Kapat Butonları JS İle Eklenecek -->
+            <div class="modal-footer border-top p-3 bg-light d-flex justify-content-end gap-2" id="modalFooterActions">
+                <!-- Teslim Aldım / Kapat Butonları JS İle Eklenecek -->
             </div>
         </div>
     </div>

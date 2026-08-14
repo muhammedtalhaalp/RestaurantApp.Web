@@ -5,7 +5,7 @@
 }
 
 @section styles {
-    <link href="~/Library/styles/table-management.css?v=2.1" rel="stylesheet" />
+    <link href="~/Library/styles/table-management.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
 }
 
 <div class="container-fluid py-3">
@@ -22,17 +22,13 @@
             <button class="btn btn-outline-purple fw-bold rounded-3 shadow-sm" id="btnOpenManageSectionsModal" data-bs-toggle="modal" data-bs-target="#manageSectionsModal">
                 <i class="fa-solid fa-layer-group me-2"></i>Alan Yönet
             </button>
-            <!-- Kroki Yönetimi Geçici Olarak Gizlendi (d-none) -->
-            <a href="/Admin/FloorPlanManagement" class="btn btn-outline-purple fw-bold rounded-3 shadow-sm d-none">
-                <i class="fa-solid fa-map-location-dot me-2"></i>Kroki Yönetimi
-            </a>
-            <button class="btn btn-theme-primary fw-bold px-4 rounded-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addTableModal">
+            <button class="btn btn-outline-purple fw-bold rounded-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#addTableModal">
                 <i class="fa-solid fa-plus me-2"></i> Masa Ekle
             </button>
         </div>
     </div>
 
-    <!-- Alan / Bölüm Sekmeleri (Yatay Scroll Destekli) -->
+    <!-- Alan / Bölüm Sekmeleri -->
     <div class="card border-0 shadow-sm rounded-4 mb-4">
         <div class="card-body p-2">
             <ul class="nav nav-pills custom-horizontal-tabs gap-2" id="sectionTabs">
@@ -60,12 +56,12 @@
             <div class="modal-body py-4">
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Masa Adı / Numarası:</label>
-                    <input type="text" id="txtTableNumber" class="form-control rounded-3" placeholder="Örn: Masa 5, B01, Bodrum-1" />
+                    <input type="text" id="txtTableNumber" class="form-control rounded-3" placeholder="Örn: Masa 5, B01..." />
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Restoran Alanı:</label>
                     <select id="selectSection" class="form-select rounded-3">
-                        <!-- Dinamik Alanlar JS Tarafından Doldurulacak -->
+                        <!-- Dinamik Alanlar -->
                     </select>
                 </div>
             </div>
@@ -88,17 +84,15 @@
             <div class="modal-body py-3">
                 <label class="form-label fw-semibold mb-2">Yeni Alan Ekle:</label>
                 <div class="input-group mb-4">
-                    <input type="text" id="txtNewSectionName" class="form-control rounded-start-3" placeholder="Örn: Bodrum Kat, VIP Salon..." />
+                    <input type="text" id="txtNewSectionName" class="form-control rounded-start-3" placeholder="Örn: Bodrum Kat, VIP..." />
                     <button type="button" id="btnAddSectionCustom" class="btn btn-theme-primary rounded-end-3 px-3 fw-bold">
                         <i class="fa-solid fa-plus me-1"></i>Ekle
                     </button>
                 </div>
-
                 <hr class="opacity-10 my-3" />
-
                 <label class="form-label fw-semibold mb-2">Mevcut Alanlar:</label>
                 <ul class="list-group list-group-flush rounded-3 border custom-section-scroll-list" id="sectionListContainer">
-                    <!-- JS Tarafından Doldurulacak -->
+                    <!-- JS Dolduracak -->
                 </ul>
             </div>
             <div class="modal-footer border-0 pt-0">
@@ -108,7 +102,7 @@
     </div>
 </div>
 
-<!-- QR KOD GÖSTERİM VE İNDİRME MODALI -->
+<!-- QR KOD MODALI -->
 <div class="modal fade" id="qrCodeModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content border-0 shadow rounded-4 text-center">
@@ -117,7 +111,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-4">
-                <p class="text-muted small mb-3" id="qrModalSubTitle">Müşterilerinizin kamerayla okutup menüyü inceleyebileceği QR kod.</p>
+                <p class="text-muted small mb-3" id="qrModalSubTitle">Müşterilerinizin okutabileceği QR kod.</p>
                 <div class="p-3 bg-light rounded-4 d-inline-block border mb-3 shadow-sm">
                     <img id="imgQrCode" src="" alt="QR Kod" style="width: 200px; height: 200px;" class="img-fluid" />
                 </div>
@@ -130,7 +124,7 @@
     </div>
 </div>
 
-<!-- MASA HESAP VE İADE İŞLEMİ MODALI -->
+<!-- 1. MASA HESAP VE İADE İŞLEMİ MODALI -->
 <div class="modal fade" id="tableCheckoutModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content border-0 shadow-lg rounded-4">
@@ -142,7 +136,6 @@
                 <input type="hidden" id="checkoutTableId" />
                 <input type="hidden" id="checkoutOrderId" />
 
-                <!-- DİNAMİK İADE BİLGİ VE GİRİŞ KUTUSU (MODAL İÇİNDE GİRİŞ ENTEGRELİ) -->
                 <div id="returnReasonContainer" class="card border-danger bg-danger-subtle p-3 rounded-3 mb-3 d-none">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <strong class="text-danger-emphasis"><i class="fa-solid fa-rotate-left me-1"></i><span id="lblReturnProductName">Ürün</span> İade Ediliyor</strong>
@@ -150,19 +143,17 @@
                     </div>
                     <input type="hidden" id="selectedReturnDetailId" />
                     <div class="input-group">
-                        <input type="text" id="txtReturnReasonInput" class="form-control rounded-start-3" placeholder="İade sebebini yazınız (Örn: Soğuk geldi, Yanlış sipariş...)" autocomplete="off" />
+                        <input type="text" id="txtReturnReasonInput" class="form-control rounded-start-3" placeholder="İade sebebini yazınız..." autocomplete="off" />
                         <button type="button" class="btn btn-danger fw-bold px-3" id="btnConfirmReturnAction">
                             <i class="fa-solid fa-check me-1"></i>İadeyi Onayla
                         </button>
                     </div>
                 </div>
 
-                <!-- Müşteri & Sipariş Bilgilendirme -->
                 <div class="alert alert-light border rounded-3 mb-3 d-flex justify-content-between align-items-center py-2 px-3">
                     <span class="small text-muted mb-0"><i class="fa-solid fa-circle-info me-1 text-primary"></i>İade etmek istediğiniz ürünün yanındaki <b>"İade Et"</b> butonuna basıp sebebini yazınız.</span>
                 </div>
 
-                <!-- Sipariş Kalemleri Tablosu -->
                 <div class="table-responsive mb-3" style="max-height: 280px; overflow-y: auto;">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="table-light">
@@ -180,16 +171,116 @@
                     </table>
                 </div>
 
-                <!-- Toplam Hesap Kutusu -->
                 <div class="p-3 rounded-3 bg-light border d-flex justify-content-between align-items-center">
-                    <span class="fs-6 fw-bold text-dark">Tahsil Edilecek Net Tutar:</span>
-                    <span id="checkoutGrandTotal" class="fs-4 fw-bold text-danger">0.00 ₺</span>
+                    <span class="fs-6 fw-bold text-dark">Kalan Net Tutar:</span>
+                    <span id="checkoutGrandTotal" class="fs-4 fw-bold style-purple-text">0.00 ₺</span>
                 </div>
             </div>
             <div class="modal-footer border-0 p-3 bg-light d-flex justify-content-between">
                 <button type="button" class="btn btn-secondary px-4 fw-bold rounded-3" data-bs-dismiss="modal">Kapat</button>
-                <button type="button" class="btn btn-success px-4 fw-bold rounded-3 shadow-sm" id="btnCloseTableOrder">
-                    <i class="fa-solid fa-cash-register me-2"></i>Ödeme Al & Masayı Kapat
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-primary px-4 fw-bold rounded-3 shadow-sm" id="btnOpenAdminPaymentModal">
+                        <i class="fa-solid fa-cash-register me-2"></i>Ödeme Al 
+                    </button>
+                    <button type="button" class="btn btn-success px-4 fw-bold rounded-3 shadow-sm d-none" id="btnVacateAdminTable">
+                        <i class="fa-solid fa-door-open me-2"></i>Masayı Boşalt
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. GELİŞMİŞ PARÇALI ÖDEME MODALI - ADMİN -->
+<div class="modal fade" id="adminSplitPaymentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-dark">
+                    <i class="fa-solid fa-calculator me-2" style="color: #4a154b;"></i>Ödeme Al
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- ÖDEME YÖNTEMİ SEKMELERİ -->
+                <ul class="nav nav-pills nav-fill mb-3 p-1 bg-light rounded-3 border" id="adminPayMethodTabs">
+                    <li class="nav-item">
+                        <button class="nav-link active fw-bold py-2 rounded-3" id="tabAdminPayByItems" data-bs-toggle="pill" data-bs-target="#paneAdminPayByItems">
+                            Ürün Seçerek Öde
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold py-2 rounded-3" id="tabAdminPayByAmount" data-bs-toggle="pill" data-bs-target="#paneAdminPayByAmount">
+                             Serbest Tutar Girerek Öde
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content mb-3">
+                    <!-- 1. SEKME: ÜRÜN SEÇEREK ÖDEME -->
+                    <div class="tab-pane fade show active" id="paneAdminPayByItems">
+                       
+                        <div class="table-responsive border rounded-3" style="max-height: 200px; overflow-y: auto;">
+                            <table class="table table-sm table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Ürün</th>
+                                        <th class="text-center">Masadaki Adet</th>
+                                        <th class="text-end">Fiyat</th>
+                                        <th class="text-center" style="width: 140px;">Ödenecek Adet</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="adminSplitPayItemsTableBody">
+                                    <!-- JS Dolduracak -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 2. SEKME: SERBEST TUTAR GİREREK ÖDEME -->
+                    <div class="tab-pane fade" id="paneAdminPayByAmount">
+                        <div class="p-3 bg-light border rounded-3 mb-2">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold text-secondary small">Masa Toplam Borcu:</span>
+                                <span id="lblAdminFreePayTableTotal" class="fw-bold fs-5 text-dark">0.00 ₺</span>
+                            </div>
+                            <label class="form-label fw-bold small text-dark mb-1">Şimdi Tahsil Edilecek Tutar (₺):</label>
+                            <input type="number" step="0.01" id="txtAdminCustomPayAmount" class="form-control form-control-lg fw-bold text-center style-purple-text" placeholder="0.00" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAHSİLAT TUTARI GÖSTERGESİ -->
+                <div class="p-3 rounded-3 bg-purple-subtle border mb-3 text-center">
+                    <span class="text-muted small d-block mb-1 fw-bold">ŞİMDİ ALINACAK TOPLAM TAHSİLAT</span>
+                    <span id="lblAdminTargetPayAmount" class="fs-3 fw-bold style-purple-text">0.00 ₺</span>
+                </div>
+
+                <!-- ÖDEME TÜRÜ DAĞILIMI -->
+                <div class="row g-2 mb-3">
+                    <div class="col-4">
+                        <label class="form-label extra-small fw-bold text-dark">Nakit</label>
+                        <input type="number" step="0.01" id="numAdminCashPay" class="form-control fw-bold admin-pay-input" placeholder="0.00" />
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label extra-small fw-bold text-dark">Kredi Kartı</label>
+                        <input type="number" step="0.01" id="numAdminCreditPay" class="form-control fw-bold admin-pay-input" placeholder="0.00" />
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label extra-small fw-bold text-dark">Yemek Kartı</label>
+                        <input type="number" step="0.01" id="numAdminMealPay" class="form-control fw-bold admin-pay-input" placeholder="0.00" />
+                    </div>
+                </div>
+
+                <div class="p-2 px-3 rounded-3 border d-flex justify-content-between align-items-center bg-light">
+                    <span class="small fw-bold text-muted">Ödeme Dağılımı Dengesi:</span>
+                    <span id="lblAdminPayRemaining" class="fw-bold fs-6 text-danger">0.00 ₺</span>
+                </div>
+            </div>
+            <div class="modal-footer border-0 p-3 bg-light d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary px-3 fw-bold rounded-3" data-bs-dismiss="modal">İptal</button>
+                <button type="button" class="btn btn-success px-4 fw-bold rounded-3" id="btnFinalizeAdminSplitPayment" disabled>
+                    <i class="fa-solid fa-check me-1"></i>Tahsilatı Kaydet
                 </button>
             </div>
         </div>
@@ -197,5 +288,5 @@
 </div>
 
 @section scripts {
-    <script src="~/Library/scripts/table-management.js?v=2.3"></script>
+    <script src="~/Library/scripts/table-management.js?v=@DateTime.Now.Ticks"></script>
 }

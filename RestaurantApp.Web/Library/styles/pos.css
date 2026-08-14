@@ -58,7 +58,6 @@
         box-shadow: 0 6px 16px rgba(74, 21, 75, 0.12) !important;
     }
 
-/* BELİRGİN VE ÇERÇOVELİ + EKLE BUTONU STİLİ */
 .btn-add-product {
     background-color: #f8f5fa !important;
     color: #4a154b !important;
@@ -73,15 +72,62 @@
         box-shadow: 0 4px 8px rgba(74, 21, 75, 0.2);
     }
 
-/* POS SEPET KONTEYNIRI */
+/* POS SEPET KONTEYNIRI - SABİT EKRAN YÜKSEKLİĞİ */
 .cart-container {
     border-left: 1px solid #e2e8f0;
     position: sticky;
     top: 16px;
-    height: calc(100vh - 32px);
+    height: calc(100vh - 32px) !important;
+    max-height: calc(100vh - 32px) !important;
     background-color: #f8fafc;
     border-radius: 20px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+    overflow: hidden !important;
+}
+
+/* SEPETİN İÇ FLEX DÜZENİ */
+.pos-cart-panel-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+}
+
+/* ÜRÜN LİSTESİ - NOT KUTUSUNA KADAR DİNAMİK DOLAR, SONRASINDA KENDİ İÇİNDE SCROLL OLUR */
+.pos-cart-items-wrapper {
+    flex: 1 1 0 !important; /* Aradaki tüm boşluğu esnekçe alır */
+    min-height: 0 !important; /* Taşmayı kesinlikle durdurur */
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+    /* Custom Scrollbar */
+    .pos-cart-items-wrapper::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    .pos-cart-items-wrapper::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 10px;
+    }
+
+    .pos-cart-items-wrapper::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+
+        .pos-cart-items-wrapper::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+/* ALT SABİT PANEL (NOT + HESAP + BUTON) - KESİNLİKLE EKRANIN ALTINA ÇAKILIDIR */
+.pos-cart-footer-fixed {
+    flex-shrink: 0 !important;
+    padding-top: 8px;
+    border-top: 1px solid #e2e8f0;
+    background-color: #f8fafc;
 }
 
 .btn-purple-main {
@@ -93,15 +139,6 @@
     .btn-purple-main:hover {
         background-color: var(--brand-purple-hover) !important;
     }
-
-/* GOOGLE MAPS STİLİ */
-#map {
-    width: 100%;
-    height: 200px;
-    border-radius: 10px;
-    border: 1px solid #cbd5e0;
-    margin-bottom: 10px;
-}
 
 /* MASA SEÇİM MODAL STİLLERİ */
 #posSectionTabs .nav-link {
@@ -145,49 +182,44 @@
             color: rgba(255, 255, 255, 0.8) !important;
         }
 
-/* POS SEPETİ ÜRÜN ÖZEL SİPARİŞ NOTU INPUT STİLİ */
-.item-note-input {
-    font-size: 0.75rem !important;
-    padding: 3px 8px !important;
-    border-radius: 6px !important;
-    border: 1px solid #cbd5e1 !important;
-    background-color: #ffffff !important;
-    color: #334155 !important;
-    transition: all 0.2s ease-in-out;
-}
-
-    .item-note-input:focus {
-        border-color: #4a154b !important;
-        box-shadow: 0 0 0 0.2rem rgba(74, 21, 75, 0.15) !important;
-        background-color: #fff !important;
-    }
-
-    .item-note-input::placeholder {
-        color: #94a3b8 !important;
-        font-style: italic;
-    }
-
-/* MEVCUT ADİSYON NOT ETİKETİ */
-.existing-item-note {
-    font-size: 0.72rem;
-    color: #64748b;
-    font-style: italic;
-    display: block;
-    margin-top: 2px;
-}
-/* POS GENEL SİPARİŞ NOTU ÖZEL TASARIMI */
-#txtOrderGeneralNote {
-    background-color: #fdfbf7 !important; /* Hafif krem/sarımsı yumuşak arka plan */
-    border: 2px solid #4a154b !important; /* Belirgin mor çerçeve */
-    border-radius: 10px !important;
+/* POS GENEL SİPARİŞ NOTU */
+.pos-note-fixed {
+    background-color: #fdfbf7 !important;
+    border: 1.5px solid #4a154b !important;
+    border-radius: 8px !important;
     color: #212529 !important;
     font-weight: 500;
+    resize: none !important;
+    max-height: 52px;
+    font-size: 0.82rem !important;
+    overflow-y: auto !important;
     transition: all 0.2s ease-in-out;
 }
 
-    /* Kutuya tıklandığında (Focus durumu) */
-    #txtOrderGeneralNote:focus {
+    .pos-note-fixed:focus {
         background-color: #ffffff !important;
-        border-color: #198754 !important; /* Odaklanınca yeşil çerçeve */
+        border-color: #198754 !important;
         box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.15) !important;
     }
+
+#map {
+    width: 100%;
+    height: 220px;
+    border-radius: 12px;
+    border: 1px solid #cbd5e1;
+}
+
+.pac-container {
+    z-index: 10000 !important;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    font-family: 'Poppins', sans-serif;
+    border: 1px solid #e2e8f0;
+}
+
+.existing-order-box {
+    background-color: #f1f5f9;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 8px;
+}

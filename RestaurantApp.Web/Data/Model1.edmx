@@ -43,6 +43,10 @@
           <Property Name="OrderNote" Type="nvarchar" MaxLength="500" />
           <Property Name="DeliveredDate" Type="datetime" />
           <Property Name="CompletedDate" Type="datetime" />
+          <Property Name="CashAmount" Type="decimal" Precision="18" Scale="2" />
+          <Property Name="CreditCardAmount" Type="decimal" Precision="18" Scale="2" />
+          <Property Name="MealCardAmount" Type="decimal" Precision="18" Scale="2" />
+          <Property Name="PaymentType" Type="nvarchar" MaxLength="50" />
         </EntityType>
         <EntityType Name="AppProducts">
           <Key>
@@ -307,6 +311,10 @@
           <Property Name="OrderNote" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
           <Property Name="DeliveredDate" Type="DateTime" Precision="3" />
           <Property Name="CompletedDate" Type="DateTime" Precision="3" />
+          <Property Name="CashAmount" Type="Decimal" Precision="18" Scale="2" />
+          <Property Name="CreditCardAmount" Type="Decimal" Precision="18" Scale="2" />
+          <Property Name="MealCardAmount" Type="Decimal" Precision="18" Scale="2" />
+          <Property Name="PaymentType" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
         </EntityType>
         <EntityType Name="AppProducts">
           <Key>
@@ -497,6 +505,10 @@
           <EntitySetMapping Name="AppOrders">
             <EntityTypeMapping TypeName="RestaurantAppDBModel.AppOrders">
               <MappingFragment StoreEntitySet="AppOrders">
+                <ScalarProperty Name="PaymentType" ColumnName="PaymentType" />
+                <ScalarProperty Name="MealCardAmount" ColumnName="MealCardAmount" />
+                <ScalarProperty Name="CreditCardAmount" ColumnName="CreditCardAmount" />
+                <ScalarProperty Name="CashAmount" ColumnName="CashAmount" />
                 <ScalarProperty Name="CompletedDate" ColumnName="CompletedDate" />
                 <ScalarProperty Name="DeliveredDate" ColumnName="DeliveredDate" />
                 <ScalarProperty Name="OrderNote" ColumnName="OrderNote" />

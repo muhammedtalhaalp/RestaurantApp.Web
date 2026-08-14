@@ -1,11 +1,11 @@
-﻿/* Admin Sipariş Takip Paneli Stilleri - Mor Tema */
+﻿/* Admin Sipariş Takip Paneli Stilleri - Mor & Yeşil Vurgulu Tema */
 
 .pending-order-card {
     background: #ffffff;
-    border-left: 5px solid #4a154b !important;
     border-radius: 14px !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    border: 1px solid #e2e8f0 !important;
 }
 
     .pending-order-card:hover {
@@ -37,4 +37,43 @@
 .badge-purple-main {
     background-color: #4a154b !important;
     color: #ffffff !important;
+}
+
+/* Ürün Durum Rozetleri */
+.badge-item-ready {
+    background-color: #d1e7dd !important;
+    color: #0f5132 !important;
+    border: 1px solid #a3cfbb !important;
+    font-weight: 700 !important;
+    padding: 4px 8px !important;
+}
+
+.badge-item-cooking {
+    background-color: #cff4fc !important;
+    color: #055160 !important;
+    border: 1px solid #9eeaf9 !important;
+    font-weight: 600 !important;
+    padding: 4px 8px !important;
+}
+
+.badge-item-delivered {
+    background-color: #e2e8f0 !important;
+    color: #64748b !important;
+    font-weight: 500 !important;
+    padding: 4px 8px !important;
+}
+
+/* Hazır Olan Kartlar İçin Vurgu Animasyonu */
+.admin-card-pulse {
+    animation: adminPulse 1.5s infinite alternate;
+}
+
+@keyframes adminPulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.6);
+    }
+
+    100% {
+        box-shadow: 0 0 12px 4px rgba(25, 135, 84, 0.3);
+    }
 }

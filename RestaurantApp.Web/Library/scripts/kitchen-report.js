@@ -19,7 +19,12 @@ $(document).ready(function () {
         fetchKitchenReport();
     });
 
-    $("#filterSearchText").on("keyup search", function () {
+    // ARAMA KUTUSUNA YAZILINCA VEYA İÇERİĞİ TEMİZLENİNCE BUTON FİLTRELERİNİ SIFIRLA
+    $("#filterSearchText").on("keyup input search", function () {
+        if ($(this).val().trim() !== "") {
+            $("#chkHasNote").prop("checked", false);
+            $("#chkHasReturned").prop("checked", false);
+        }
         applyFilters();
     });
 
@@ -27,11 +32,25 @@ $(document).ready(function () {
         applyFilters();
     });
 
-    // BİLGi KUTUCUKLARI (CHECKBOX) TIKLAMA FİLTRESİ
-    $("#chkHasNote, #chkHasReturned").on("change", function () {
+    // MÜŞTERİ NOTU BUTONUNA TIKLANDIĞINDA İADE FİLTRESİNİ VE ARAMA KUTUSUNU SIFIRLA
+    $("#chkHasNote").on("change", function () {
+        if ($(this).is(":checked")) {
+            $("#chkHasReturned").prop("checked", false);
+            $("#filterSearchText").val("");
+        }
         applyFilters();
     });
 
+    // İADE / İPTAL BUTONUNA TIKLANDIĞINDA MÜŞTERİ NOTU FİLTRESİNİ VE ARAMA KUTUSUNU SIFIRLA
+    $("#chkHasReturned").on("change", function () {
+        if ($(this).is(":checked")) {
+            $("#chkHasNote").prop("checked", false);
+            $("#filterSearchText").val("");
+        }
+        applyFilters();
+    });
+
+    // FİLTRELERİ TEMİZLE BUTONU
     $("#btnClearFilters").on("click", function () {
         $("#filterSearchText").val("");
         $("#filterOrderType").val("");

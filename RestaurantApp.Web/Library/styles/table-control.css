@@ -1,4 +1,4 @@
-﻿/* Masa Kontrol Sayfası Stilleri */
+﻿/* Masa Kontrol Sayfası Özel Stilleri */
 
 .table-card-occupied {
     background: #ffffff;
@@ -13,16 +13,126 @@
         box-shadow: 0 8px 20px rgba(220, 53, 69, 0.12) !important;
     }
 
-.btn-empty-table {
-    border-color: #198754 !important;
-    color: #198754 !important;
-    font-weight: 600 !important;
-    border-radius: 10px !important;
-    transition: all 0.2s ease !important;
+.style-purple-text {
+    color: #4a154b !important;
 }
 
-    .btn-empty-table:hover {
-        background-color: #198754 !important;
+.bg-purple-subtle {
+    background-color: #f3e8f4 !important;
+}
+
+/* Ödendi Rozeti Stili */
+.badge-paid-tag {
+    background-color: #d1e7dd !important;
+    color: #0f5132 !important;
+    border: 1px solid #badbcc !important;
+    font-size: 0.75rem !important;
+    font-weight: 700 !important;
+    padding: 3px 8px !important;
+    border-radius: 6px !important;
+}
+
+/* Taşı ve Birleştir Mor Butonları */
+.btn-outline-purple {
+    border: 2px solid #4a154b !important;
+    color: #4a154b !important;
+    background-color: transparent !important;
+    font-size: 0.85rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.3px;
+    padding: 7px 10px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+    .btn-outline-purple:hover {
+        background-color: #4a154b !important;
         color: #ffffff !important;
-        box-shadow: 0 4px 12px rgba(25, 135, 84, 0.2) !important;
+        box-shadow: 0 4px 10px rgba(74, 21, 75, 0.25) !important;
+    }
+
+.btn-purple-action {
+    background-color: #4a154b !important;
+    color: #ffffff !important;
+    border: none !important;
+    font-weight: 800 !important;
+}
+
+    .btn-purple-action:hover:not(:disabled) {
+        background-color: #381039 !important;
+        color: #ffffff !important;
+        box-shadow: 0 4px 12px rgba(74, 21, 75, 0.3) !important;
+    }
+
+/* Parçalı Ödeme Sekmeleri */
+#payMethodTabs .nav-link {
+    color: #4a5568;
+    background-color: transparent;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+    #payMethodTabs .nav-link.active {
+        background-color: #4a154b !important;
+        color: #ffffff !important;
+        box-shadow: 0 2px 6px rgba(74, 21, 75, 0.25);
+    }
+
+/* Adet Artır / Azalt Butonları */
+.qty-btn {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+/* Modal Masa Kartları Görünümü (POS Tarzı) */
+.target-table-card {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    background-color: #ffffff;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+    .target-table-card:hover {
+        border-color: #4a154b;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(74, 21, 75, 0.12);
+    }
+
+    .target-table-card.selected {
+        border-color: #4a154b !important;
+        background-color: #f3e8f4 !important;
+        box-shadow: 0 0 0 2px #4a154b !important;
+    }
+
+.btn-purple-tab {
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    background-color: #ffffff;
+}
+
+    .btn-purple-tab.active {
+        background-color: #4a154b !important;
+        color: #ffffff !important;
+        border-color: #4a154b !important;
+    }
+
+.pay-input {
+    text-align: center;
+    border-radius: 8px !important;
+}
+
+    .pay-input:focus {
+        border-color: #4a154b !important;
+        box-shadow: 0 0 0 0.2rem rgba(74, 21, 75, 0.15) !important;
     }

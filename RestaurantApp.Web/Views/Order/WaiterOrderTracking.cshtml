@@ -14,10 +14,10 @@
             <h4 class="fw-bold text-dark mb-1">
                 <i class="fa-solid fa-bell-concierge me-2" style="color: #4a154b;"></i>Sipariş Takip Paneli
             </h4>
-            <p class="text-muted small mb-0">Mutfaktan çıkan siparişler burada kart olarak gözükür. İçeriğini görmek için karta tıklayabilir, teslim aldığınızda onaylayabilirsiniz.</p>
+            <p class="text-muted small mb-0">Kartın içeriğini görmek için karta tıklayabilir, hazır ürünleri teslim aldığınızda onaylayabilirsiniz.</p>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <!-- Sadeleştirilmiş İkonsuz Bildirim Sesi Dropdown Menüsü -->
+            <!-- Bildirim Sesi Dropdown Menüsü -->
             <div class="dropdown">
                 <button class="btn btn-outline-purple btn-sm rounded-3 px-3 dropdown-toggle d-flex align-items-center gap-2 h-38" type="button" id="dropdownWaiterSound" data-bs-toggle="dropdown" aria-expanded="false">
                     <span>Bildirim Sesi</span>
@@ -32,7 +32,7 @@
                 </ul>
             </div>
 
-            <span class="badge bg-warning text-dark fs-6 px-3 rounded-3 h-38 d-flex align-items-center" id="waiterOrdersBadge">0 Sipariş Hazır</span>
+            <span class="badge bg-warning text-dark fs-6 px-3 rounded-3 h-38 d-flex align-items-center fw-bold" id="waiterOrdersBadge">0 Aktif Sipariş</span>
         </div>
     </div>
 
@@ -40,7 +40,7 @@
     <div class="row g-3" id="waiterReadyOrdersGrid">
         <div class="col-12 text-center py-5 text-muted">
             <i class="fa-solid fa-spinner fa-spin fs-3 mb-3 d-block" style="color: #4a154b;"></i>
-            <span>Hazır siparişler yükleniyor...</span>
+            <span>Siparişler yükleniyor...</span>
         </div>
     </div>
 </div>
@@ -51,35 +51,36 @@
 <!-- GARSON SİPARİŞ İÇERİĞİ VE DETAY MODALI -->
 <div class="modal fade" id="waiterOrderDetailsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow rounded-4">
-            <div class="modal-header border-bottom py-3 px-4">
-                <h5 class="modal-title fw-bold text-dark d-flex align-items-center mb-0" id="waiterModalOrderTitle">
-                    <i class="fa-solid fa-receipt me-2" style="color: #4a154b;"></i>Sipariş Detayı
+        <div class="modal-content border-0 shadow rounded-4 overflow-hidden">
+            <div class="modal-header border-bottom py-3 px-4" style="background-color: #4a154b; color: #ffffff;">
+                <h5 class="modal-title fw-bold text-white d-flex align-items-center mb-0" id="waiterModalOrderTitle">
+                    <i class="fa-solid fa-receipt me-2"></i>Sipariş Detayı
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded-3">
+                <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded-3 border">
                     <div>
                         <span class="text-muted small d-block">Sipariş Saati:</span>
                         <strong id="waiterLblOrderTime" class="text-dark">--:--</strong>
                     </div>
                     <div class="text-end">
-                        <span class="text-muted small d-block">Durumu:</span>
+                        <span class="text-muted small d-block">Genel Durum:</span>
                         <span id="waiterLblOrderStatusBadge" class="badge bg-secondary">--</span>
                     </div>
                 </div>
 
-                <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-utensils me-2" style="color: #4a154b;"></i>Sipariş Edilen Ürünler</h6>
+                <h6 class="fw-bold text-dark mb-2"><i class="fa-solid fa-utensils me-2" style="color: #4a154b;"></i>Sipariş Edilen Ürünler ve Hazırlık Durumu</h6>
                 <div class="table-responsive border rounded-3 overflow-hidden mb-3">
                     <table class="table table-hover align-middle mb-0">
                         <thead class="bg-light">
                             <tr>
                                 <th class="py-2 px-3 small text-muted">Ürün Adı</th>
                                 <th class="py-2 px-3 small text-muted text-center">Adet</th>
+                                <th class="py-2 px-3 small text-muted text-center">Durum</th>
                                 <th class="py-2 px-3 small text-muted text-end">Fiyat</th>
                                 <th class="py-2 px-3 small text-muted text-end">Toplam</th>
-                                <th class="py-2 px-3 small text-muted text-center" style="width: 70px;">İşlem</th>
+                                <th class="py-2 px-3 small text-muted text-center" style="width: 60px;">İşlem</th>
                             </tr>
                         </thead>
                         <tbody id="waiterTblOrderItemsBody">
@@ -89,11 +90,11 @@
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center pt-2">
-                    <span class="fw-bold text-dark fs-6">Genel Toplam:</span>
+                    <span class="fw-bold text-dark fs-6">Adisyon Toplamı:</span>
                     <span id="waiterLblOrderTotalAmount" class="fw-bold fs-5" style="color: #4a154b;">0.00 ₺</span>
                 </div>
             </div>
-            <div class="modal-footer border-0 pt-0 px-4 pb-4" id="waiterModalFooterActions">
+            <div class="modal-footer border-top p-3 bg-light d-flex justify-content-end gap-2" id="waiterModalFooterActions">
                 <!-- Teslim Aldım Butonu İle Doldurulacak -->
             </div>
         </div>

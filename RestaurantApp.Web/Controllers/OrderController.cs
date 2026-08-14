@@ -112,8 +112,26 @@ namespace RestaurantApp.Web.Controllers
                 if (order == null)
                     return Json(new { success = false, message = "Sipariş bulunamadı." });
 
-                order.Status = "Servis Edildi";
-                order.DeliveredDate = DateTime.Now; // TESLİMAT SAATİ KAYDEDİLİYOR
+                // Hazır olan tüm ürünleri "Servis Edildi" durumuna getir
+                var readyItems = db.AppOrderDetails
+                    .Where(d => d.OrderId == orderId && !d.IsReturned && d.ReturnReason == "Hazır")
+                    .ToList();
+
+                foreach (var item in readyItems)
+                {
+                    item.ReturnReason = "Servis Edildi";
+                }
+
+                // Masadaki tüm ürünler teslim edildiyse sipariş durumunu "Servis Edildi" yap
+                var allActiveDetails = db.AppOrderDetails.Where(d => d.OrderId == orderId && !d.IsReturned).ToList();
+                bool allDelivered = allActiveDetails.All(d => d.ReturnReason == "Servis Edildi");
+
+                if (allDelivered)
+                {
+                    order.Status = "Servis Edildi";
+                }
+
+                order.DeliveredDate = DateTime.Now;
                 db.SaveChanges();
 
                 return Json(new { success = true, message = "Sipariş teslimatı onaylandı." });
@@ -145,7 +163,6 @@ namespace RestaurantApp.Web.Controllers
 
                 if (mainOrder != null)
                 {
-                    // Var olan masaya yeni sipariş eklenirken Genel Sipariş Notu varsa güncellenir
                     if (!string.IsNullOrWhiteSpace(model.OrderNote))
                     {
                         mainOrder.OrderNote = model.OrderNote.Trim();
@@ -184,7 +201,6 @@ namespace RestaurantApp.Web.Controllers
                 }
                 else
                 {
-                    // İlk defa oluşturulan yeni sipariş
                     mainOrder = new AppOrders
                     {
                         UserId = currentUserId,
@@ -194,7 +210,7 @@ namespace RestaurantApp.Web.Controllers
                         Latitude = model.OrderType == "PaketServis" ? model.Latitude : (decimal?)null,
                         Longitude = model.OrderType == "PaketServis" ? model.Longitude : (decimal?)null,
                         TotalAmount = model.TotalAmount,
-                        OrderNote = !string.IsNullOrWhiteSpace(model.OrderNote) ? model.OrderNote.Trim() : null, // GENEL SİPARİŞ NOTU
+                        OrderNote = !string.IsNullOrWhiteSpace(model.OrderNote) ? model.OrderNote.Trim() : null,
                         Status = "Hazırlanıyor",
                         CreatedDate = DateTime.Now
                     };
@@ -300,19 +316,9 @@ namespace RestaurantApp.Web.Controllers
                     newTotalAmount = order.TotalAmount
                 });
             }
-            catch (System.Data.Entity.Validation.DbEntityValidationException dbEx)
-            {
-                var errorMessages = dbEx.EntityValidationErrors
-                    .SelectMany(x => x.ValidationErrors)
-                    .Select(x => x.PropertyName + ": " + x.ErrorMessage);
-
-                string fullErrorMessage = string.Join(" | ", errorMessages);
-                return Json(new { success = false, message = "Veritabanı Doğrulama Hatası: " + fullErrorMessage });
-            }
             catch (Exception ex)
             {
-                string innerMsg = ex.InnerException != null ? (ex.InnerException.InnerException != null ? ex.InnerException.InnerException.Message : ex.InnerException.Message) : ex.Message;
-                return Json(new { success = false, message = "İade işlemi sırasında hata: " + innerMsg });
+                return Json(new { success = false, message = "İade işlemi sırasında hata: " + ex.Message });
             }
         }
 
@@ -336,7 +342,7 @@ namespace RestaurantApp.Web.Controllers
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }
         public decimal TotalAmount { get; set; }
-        public string OrderNote { get; set; } // GENEL SİPARİŞ NOTU ALANI
+        public string OrderNote { get; set; }
         public List<OrderItemViewModel> Items { get; set; }
     }
 

@@ -2,6 +2,10 @@
     var allTablesData = [];
     var currentSectionFilter = "Hepsi";
     var customSections = ["Salon", "Bahçe", "Balkon", "Teras", "Üst Kat"];
+    var currentAdminTableTotal = 0;
+    var rawAdminTableItems = [];
+    var selectedAdminItemsForPay = {};
+    var currentAdminPayTargetAmount = 0;
 
     var storedSections = localStorage.getItem("custom_restaurant_sections");
     if (storedSections) {
@@ -14,20 +18,46 @@
 
     loadTables();
 
-    // Genel Restoran Menü QR Kodunu Aç
-    $("#btnShowGeneralQr").on("click", function () {
-        openQrModal(null, "Genel Restoran Menü QR Kodu");
+    // Dağılım inputları kontrolü
+    $(document).on("input", ".admin-pay-input", function () {
+        calculateAdminRemainingPayment();
     });
 
-    // Sekmeye tıklandığında aktif yap, ortala ve masaları filtrele
+    // Serbest Tutar Inputu Kontrolü
+    $(document).on("input", "#txtAdminCustomPayAmount", function () {
+        var customVal = parseFloat($(this).val()) || 0;
+        if (customVal > currentAdminTableTotal) {
+            customVal = currentAdminTableTotal;
+            $(this).val(customVal.toFixed(2));
+        }
+        currentAdminPayTargetAmount = customVal;
+        updateAdminPayTargetDisplay();
+    });
+
+    // Sekmeler Arası Geçiş
+    $('#tabAdminPayByItems').on('shown.bs.tab', function () {
+        recalcAdminItemsSelectionTotal();
+    });
+
+    $('#tabAdminPayByAmount').on('shown.bs.tab', function () {
+        var customVal = parseFloat($("#txtAdminCustomPayAmount").val()) || 0;
+        if (customVal === 0) {
+            $("#txtAdminCustomPayAmount").val(currentAdminTableTotal.toFixed(2));
+            customVal = currentAdminTableTotal;
+        }
+        currentAdminPayTargetAmount = customVal;
+        updateAdminPayTargetDisplay();
+    });
+
+    $("#btnShowGeneralQr").on("click", function () {
+        openQrModal(null);
+    });
+
     $(document).on("click", "#sectionTabs .nav-link", function () {
         $("#sectionTabs .nav-link").removeClass("active");
         $(this).addClass("active");
-
         currentSectionFilter = $(this).data("section");
-
         this.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-
         renderTableCards();
     });
 
@@ -35,21 +65,34 @@
         renderSectionManageList();
     });
 
+    function checkUrlModalTrigger() {
+        var urlParams = new URLSearchParams(window.location.search);
+        var modalParam = urlParams.get('modal');
+
+        if (modalParam === 'qr') {
+            openQrModal(null);
+        } else if (modalParam === 'sections') {
+            renderSectionManageList();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('manageSectionsModal')).show();
+        } else if (modalParam === 'addtable') {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('addTableModal')).show();
+        }
+    }
+
     function loadTables() {
         $.get("/Admin/GetTables", function (res) {
             if (res.success) {
                 allTablesData = res.data;
-
                 $.each(allTablesData, function (i, t) {
                     if (t.section && !customSections.some(s => s.toLowerCase() === t.section.toLowerCase())) {
                         customSections.push(t.section);
                     }
                 });
-
                 saveCustomSections();
                 renderSectionTabs();
                 renderSectionSelectOptions();
                 renderTableCards();
+                checkUrlModalTrigger();
             } else {
                 Swal.fire("Hata", "Masalar yüklenirken sorun oluştu: " + res.message, "error");
             }
@@ -80,7 +123,6 @@
         });
 
         $tabs.html(html);
-
         var activeTab = $tabs.find(".nav-link.active")[0];
         if (activeTab) {
             activeTab.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'center' });
@@ -90,11 +132,9 @@
     function renderSectionSelectOptions() {
         var $select = $("#selectSection");
         var html = "";
-
         $.each(customSections, function (i, secName) {
             html += `<option value="${secName}">${secName}</option>`;
         });
-
         $select.html(html);
     }
 
@@ -127,86 +167,6 @@
         });
     }
 
-    $("#btnAddSectionCustom").on("click", function () {
-        var newSec = $("#txtNewSectionName").val() ? $("#txtNewSectionName").val().trim() : "";
-
-        if (!newSec) {
-            Swal.fire("Uyarı", "Lütfen bir alan adı giriniz.", "warning");
-            return;
-        }
-
-        if (customSections.some(s => s.toLowerCase() === newSec.toLowerCase())) {
-            Swal.fire("Uyarı", "Bu alan adı zaten mevcut!", "warning");
-            return;
-        }
-
-        customSections.push(newSec);
-        saveCustomSections();
-        renderSectionTabs();
-        renderSectionSelectOptions();
-        renderSectionManageList();
-
-        $("#txtNewSectionName").val("");
-
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: "success",
-            title: `"${newSec}" alanı eklendi!`,
-            showConfirmButton: false,
-            timer: 1500
-        });
-    });
-
-    $(document).on("click", ".btn-delete-section", function () {
-        var secToDelete = $(this).data("name");
-        var attachedTables = allTablesData.filter(t => (t.section || "").toLowerCase() === secToDelete.toLowerCase());
-
-        if (attachedTables.length > 0) {
-            Swal.fire({
-                title: "Alan Silinemez!",
-                text: `"${secToDelete}" alanında ${attachedTables.length} adet kayıtlı masa bulunmaktadır. Alanı silebilmek için önce bu masaları silmeli veya alanlarını değiştirmelisiniz.`,
-                icon: "warning",
-                confirmButtonColor: "#4a154b"
-            });
-            return;
-        }
-
-        Swal.fire({
-            title: "Alan Silinsin mi?",
-            text: `"${secToDelete}" alanını silmek istediğinize emin misiniz?`,
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonColor: "#d33",
-            cancelButtonColor: "#6c757d",
-            confirmButtonText: "Evet, Sil",
-            cancelButtonText: "Vazgeç"
-        }).then(function (result) {
-            if (result.isConfirmed) {
-                customSections = customSections.filter(s => s.toLowerCase() !== secToDelete.toLowerCase());
-                saveCustomSections();
-
-                if (currentSectionFilter.toLowerCase() === secToDelete.toLowerCase()) {
-                    currentSectionFilter = "Hepsi";
-                }
-
-                renderSectionTabs();
-                renderSectionSelectOptions();
-                renderSectionManageList();
-                renderTableCards();
-
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: "success",
-                    title: `"${secToDelete}" alanı silindi!`,
-                    showConfirmButton: false,
-                    timer: 1500
-                });
-            }
-        });
-    });
-
     function renderTableCards() {
         var $container = $("#tableCardContainer");
         $container.empty();
@@ -217,29 +177,33 @@
         });
 
         if (filteredTables.length === 0) {
-            $container.html(`
-                <div class="col-12 text-center py-5">
-                    <p class="text-muted fw-semibold">Bu alanda (${currentSectionFilter}) henüz kayıtlı bir masa bulunmuyor.</p>
-                </div>
-            `);
+            $container.html(`<div class="col-12 text-center py-5"><p class="text-muted fw-semibold">Bu alanda (${currentSectionFilter}) henüz kayıtlı bir masa bulunmuyor.</p></div>`);
             return;
         }
 
         $.each(filteredTables, function (i, t) {
             var rawStatus = (t.status || "").trim().toLowerCase();
             var amountVal = parseFloat(t.currentAmount || 0);
+            var isPaid = t.isPaid || false;
 
             var isOccupied = amountVal > 0 || (rawStatus !== "bos" && rawStatus !== "boş" && rawStatus !== "");
             var cardClass = isOccupied ? "table-occupied" : "table-empty";
 
-            var badgeHtml = isOccupied
-                ? '<span class="table-card-badge badge-paid" style="background-color: #ffffff; color: #dc2626; font-weight: 700;">AÇIK HESAP / DOLU</span>'
-                : '<span class="table-card-badge badge-empty">BOŞ MASA</span>';
+            var badgeHtml = "";
+            if (isOccupied) {
+                badgeHtml = isPaid
+                    ? '<span class="table-card-badge badge-payment-completed"><i class="fa-solid fa-circle-check me-1"></i>ÖDEME ALINDI / DOLU</span>'
+                    : '<span class="table-card-badge badge-paid">AÇIK HESAP / DOLU</span>';
+            } else {
+                badgeHtml = '<span class="table-card-badge badge-empty">BOŞ MASA</span>';
+            }
 
-            var statusText = isOccupied ? "Adisyon Açık / Ödeme Bekliyor" : "Boş Masa";
+            var statusText = isOccupied
+                ? (isPaid ? "Adisyon Ödendi / Müşteri Masada" : "Adisyon Açık / Ödeme Bekliyor")
+                : "Boş Masa";
 
             var priceHtml = isOccupied
-                ? `<div class="table-card-price fw-bold fs-5 mt-1" style="color: #ffffff;">${amountVal.toFixed(2)} ₺</div>`
+                ? `<div class="table-card-price fw-bold fs-5 mt-1">${amountVal.toFixed(2)} ₺</div>`
                 : `<div class="table-card-price fw-bold fs-5 mt-1 opacity-50">0.00 ₺</div>`;
 
             var timeDetailHtml = "";
@@ -258,7 +222,7 @@
 
             var cardHtml = `
                 <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                    <div class="table-card ${cardClass} p-3" data-id="${t.tableId}" data-number="${t.tableNumber}" data-occupied="${isOccupied}">
+                    <div class="table-card ${cardClass} p-3" data-id="${t.tableId}" data-number="${t.tableNumber}" data-occupied="${isOccupied}" data-ispaid="${isPaid}">
                         <button class="btn btn-sm btn-danger btn-delete-card-table rounded-circle" data-id="${t.tableId}" title="Masayı Sil">
                             <i class="fa-solid fa-xmark"></i>
                         </button>
@@ -279,11 +243,11 @@
         });
     }
 
-    // MASA KARTINA TIKLANDIĞINDA ADİSYON / ÖDEME VE İADE MODALINI AÇMA
     $(document).on("click", ".table-card", function () {
         var tableId = $(this).data("id");
         var tableNumber = $(this).data("number");
         var isOccupied = $(this).data("occupied");
+        var isPaid = $(this).data("ispaid");
 
         if (!isOccupied) {
             Swal.fire("Bilgi", `"${tableNumber}" numaralı masa boştur. Sipariş eklemek için POS ekranını kullanabilirsiniz.`, "info");
@@ -293,12 +257,19 @@
         $("#checkoutTableId").val(tableId);
         $("#checkoutModalTitle").html(`<i class="fa-solid fa-receipt me-2" style="color: #4a154b;"></i>${tableNumber} - Adisyon & İade Detayı`);
 
+        if (isPaid) {
+            $("#btnOpenAdminPaymentModal").addClass("d-none");
+            $("#btnVacateAdminTable").removeClass("d-none");
+        } else {
+            $("#btnOpenAdminPaymentModal").removeClass("d-none");
+            $("#btnVacateAdminTable").addClass("d-none");
+        }
+
         cancelReturnInput();
-        openCheckoutModal(tableId);
+        openCheckoutModal(tableId, isPaid);
     });
 
-    // MASA ADİSYON DETAYINI ÇEKİP MODALA ÇİZME
-    function openCheckoutModal(tableId) {
+    function openCheckoutModal(tableId, isPaid) {
         Swal.fire({
             title: 'Adisyon Yükleniyor...',
             allowOutsideClick: false,
@@ -312,10 +283,10 @@
             success: function (res) {
                 Swal.close();
                 if (res.success && res.data) {
-                    renderCheckoutItems(res.data);
+                    rawAdminTableItems = res.data;
+                    renderCheckoutItems(res.data, isPaid);
                     var modalEl = document.getElementById('tableCheckoutModal');
-                    var modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-                    modalInstance.show();
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
                 } else {
                     Swal.fire("Hata", res.message || "Adisyon detayları çekilemedi.", "error");
                 }
@@ -327,11 +298,10 @@
         });
     }
 
-    // ADİSYON TABLOSUNU ÇİZME & İADE BUTONUNU EKLEME
-    function renderCheckoutItems(items) {
+    function renderCheckoutItems(items, isPaid) {
         var $tbody = $("#checkoutItemsBody");
         $tbody.empty();
-        var grandTotal = 0;
+        currentAdminTableTotal = 0;
 
         if (!items || items.length === 0) {
             $tbody.html('<tr><td colspan="5" class="text-center py-4 text-muted">Adisyonda ürün bulunamadı.</td></tr>');
@@ -344,19 +314,16 @@
             var lineTotal = item.unitPrice * item.quantity;
 
             if (!isReturned) {
-                grandTotal += lineTotal;
+                currentAdminTableTotal += lineTotal;
             }
 
             var returnBtnHtml = "";
             if (isReturned) {
                 returnBtnHtml = `<span class="badge bg-secondary opacity-75" title="${item.returnReason || 'Neden belirtilmedi'}"><i class="fa-solid fa-rotate-left me-1"></i>İade Edildi</span>`;
+            } else if (isPaid) {
+                returnBtnHtml = `<span class="badge bg-light text-muted border">Ödeme Alındı</span>`;
             } else {
-                returnBtnHtml = `
-                    <button class="btn btn-sm btn-outline-danger fw-bold rounded-3 px-2 py-1 btn-return-product" 
-                            data-detailid="${item.orderDetailId}" 
-                            data-name="${item.productName}">
-                        <i class="fa-solid fa-rotate-left me-1"></i>İade Et
-                    </button>`;
+                returnBtnHtml = `<button class="btn btn-sm btn-outline-danger fw-bold rounded-3 px-2 py-1 btn-return-product" data-detailid="${item.orderDetailId}" data-name="${item.productName}"><i class="fa-solid fa-rotate-left me-1"></i>İade Et</button>`;
             }
 
             var rowStyle = isReturned ? 'style="opacity:0.5; text-decoration: line-through; background-color:#f8fafc;"' : '';
@@ -376,10 +343,206 @@
             $tbody.append(row);
         });
 
-        $("#checkoutGrandTotal").text(grandTotal.toFixed(2) + " ₺");
+        $("#checkoutGrandTotal").text(currentAdminTableTotal.toFixed(2) + " ₺");
     }
 
-    // İADE ET BUTONUNA BASILDIĞINDA MODAL İÇİNDEKİ KUTUYU AÇMA (FOCUS PROBLEMİ ÇÖZÜLDÜ)
+    // GELİŞMİŞ PARÇALI ÖDEME MODALINI AÇMA
+    $(document).on("click", "#btnOpenAdminPaymentModal", function () {
+        bootstrap.Modal.getInstance(document.getElementById('tableCheckoutModal')).hide();
+
+        selectedAdminItemsForPay = {};
+        var $itemsTbody = $("#adminSplitPayItemsTableBody").empty();
+
+        var activeItems = rawAdminTableItems.filter(x => !x.isReturned);
+        $.each(activeItems, function (i, item) {
+            var row = `
+                <tr>
+                    <td class="fw-bold text-dark">${item.productName}</td>
+                    <td class="text-center fw-semibold">${item.quantity}</td>
+                    <td class="text-end">${parseFloat(item.unitPrice).toFixed(2)} ₺</td>
+                    <td class="text-center">
+                        <div class="d-flex align-items-center justify-content-center gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-secondary qty-btn" onclick="changeAdminItemPayQty(${item.orderDetailId}, -1, ${item.quantity}, ${item.unitPrice})">-</button>
+                            <span id="lblAdminPayQty-${item.orderDetailId}" class="fw-bold px-2">0</span>
+                            <button type="button" class="btn btn-sm btn-outline-purple qty-btn" onclick="changeAdminItemPayQty(${item.orderDetailId}, 1, ${item.quantity}, ${item.unitPrice})">+</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            $itemsTbody.append(row);
+        });
+
+        $("#lblAdminFreePayTableTotal").text(currentAdminTableTotal.toFixed(2) + " ₺");
+        $("#txtAdminCustomPayAmount").val(currentAdminTableTotal.toFixed(2));
+
+        bootstrap.Tab.getOrCreateInstance(document.getElementById('tabAdminPayByItems')).show();
+        recalcAdminItemsSelectionTotal();
+
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('adminSplitPaymentModal')).show();
+    });
+
+    window.changeAdminItemPayQty = function (detailId, delta, maxQty, unitPrice) {
+        if (!selectedAdminItemsForPay[detailId]) {
+            selectedAdminItemsForPay[detailId] = { quantity: 0, unitPrice: unitPrice };
+        }
+
+        var currentQty = selectedAdminItemsForPay[detailId].quantity;
+        var newQty = currentQty + delta;
+
+        if (newQty < 0) newQty = 0;
+        if (newQty > maxQty) newQty = maxQty;
+
+        selectedAdminItemsForPay[detailId].quantity = newQty;
+        $(`#lblAdminPayQty-${detailId}`).text(newQty);
+
+        recalcAdminItemsSelectionTotal();
+    };
+
+    function recalcAdminItemsSelectionTotal() {
+        var total = 0;
+        $.each(selectedAdminItemsForPay, function (id, obj) {
+            total += (obj.quantity * obj.unitPrice);
+        });
+
+        currentAdminPayTargetAmount = total;
+        updateAdminPayTargetDisplay();
+    }
+
+    function updateAdminPayTargetDisplay() {
+        $("#lblAdminTargetPayAmount").text(currentAdminPayTargetAmount.toFixed(2) + " ₺");
+        $("#numAdminCashPay").val(currentAdminPayTargetAmount.toFixed(2));
+        $("#numAdminCreditPay").val("");
+        $("#numAdminMealPay").val("");
+
+        calculateAdminRemainingPayment();
+    }
+
+    function calculateAdminRemainingPayment() {
+        var cash = parseFloat($("#numAdminCashPay").val()) || 0;
+        var credit = parseFloat($("#numAdminCreditPay").val()) || 0;
+        var meal = parseFloat($("#numAdminMealPay").val()) || 0;
+
+        var paidSum = cash + credit + meal;
+        var diff = currentAdminPayTargetAmount - paidSum;
+
+        var $lbl = $("#lblAdminPayRemaining");
+        $lbl.text(diff.toFixed(2) + " ₺");
+
+        if (currentAdminPayTargetAmount > 0 && Math.abs(diff) < 0.01) {
+            $lbl.removeClass("text-danger").addClass("text-success").text("Ödeme Dağılımı Doğrulandı (0.00 ₺)");
+            $("#btnFinalizeAdminSplitPayment").prop("disabled", false);
+        } else {
+            $lbl.removeClass("text-success").addClass("text-danger");
+            $("#btnFinalizeAdminSplitPayment").prop("disabled", true);
+        }
+    }
+
+    // PARÇALI TAHSİLAT GÖNDERME
+    $(document).on("click", "#btnFinalizeAdminSplitPayment", function () {
+        var tableId = $("#checkoutTableId").val();
+        var cash = parseFloat($("#numAdminCashPay").val()) || 0;
+        var credit = parseFloat($("#numAdminCreditPay").val()) || 0;
+        var meal = parseFloat($("#numAdminMealPay").val()) || 0;
+
+        var paymentType = "Parçalı Ödeme";
+        if (cash === currentAdminPayTargetAmount) paymentType = "Nakit";
+        else if (credit === currentAdminPayTargetAmount) paymentType = "Kredi Kartı";
+        else if (meal === currentAdminPayTargetAmount) paymentType = "Yemek Kartı";
+
+        var isItemsMode = $("#paneAdminPayByItems").hasClass("active");
+
+        if (isItemsMode) {
+            var itemsList = [];
+            $.each(selectedAdminItemsForPay, function (id, obj) {
+                if (obj.quantity > 0) {
+                    itemsList.push({ OrderDetailId: parseInt(id), Quantity: obj.quantity });
+                }
+            });
+
+            if (itemsList.length === 0) {
+                Swal.fire("Uyarı", "Lütfen ödenecek en az bir ürün seçiniz.", "warning");
+                return;
+            }
+
+            $.ajax({
+                url: "/Table/PayByItems",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({
+                    tableId: tableId,
+                    paidItems: itemsList,
+                    cashAmount: cash,
+                    creditCardAmount: credit,
+                    mealCardAmount: meal,
+                    paymentType: paymentType
+                }),
+                success: function (res) {
+                    handleAdminPaymentResult(res);
+                }
+            });
+        } else {
+            $.post("/Table/PayByAmount", {
+                tableId: tableId,
+                paidAmount: currentAdminPayTargetAmount,
+                cashAmount: cash,
+                creditCardAmount: credit,
+                mealCardAmount: meal,
+                paymentType: paymentType
+            }, function (res) {
+                handleAdminPaymentResult(res);
+            });
+        }
+    });
+
+    function handleAdminPaymentResult(res) {
+        if (res.success) {
+            bootstrap.Modal.getInstance(document.getElementById('adminSplitPaymentModal')).hide();
+            Swal.fire({
+                icon: 'success',
+                title: 'Ödeme Alındı!',
+                text: res.message,
+                timer: 1500,
+                showConfirmButton: false
+            });
+            loadTables();
+        } else {
+            Swal.fire("Hata", res.message, "error");
+        }
+    }
+
+    $(document).on("click", "#btnVacateAdminTable", function () {
+        var tableId = $("#checkoutTableId").val();
+
+        Swal.fire({
+            title: "Masa Boşaltılsın mı?",
+            text: "Masa fiziken temizlenecek ve yeni müşteriler için BOŞ durumuna getirilecektir.",
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#10b981",
+            cancelButtonColor: "#6c757d",
+            confirmButtonText: "Evet, Masayı Boşalt",
+            cancelButtonText: "İptal"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.post("/Table/VacateTable", { tableId: tableId }, function (res) {
+                    if (res.success) {
+                        bootstrap.Modal.getInstance(document.getElementById('tableCheckoutModal')).hide();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Masa Boşaltıldı!',
+                            text: 'Masa başarıyla boşaltıldı.',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                        loadTables();
+                    } else {
+                        Swal.fire("Hata", res.message, "error");
+                    }
+                });
+            }
+        });
+    });
+
     $(document).on("click", ".btn-return-product", function (e) {
         e.stopPropagation();
         var detailId = $(this).data("detailid");
@@ -388,7 +551,6 @@
         $("#selectedReturnDetailId").val(detailId);
         $("#lblReturnProductName").text(productName);
         $("#txtReturnReasonInput").val("");
-
         $("#returnReasonContainer").removeClass("d-none");
 
         setTimeout(function () {
@@ -396,14 +558,12 @@
         }, 100);
     });
 
-    // İADE KUTUSUNU İPTAL ETME
     window.cancelReturnInput = function () {
         $("#returnReasonContainer").addClass("d-none");
         $("#selectedReturnDetailId").val("");
         $("#txtReturnReasonInput").val("");
     };
 
-    // İADEYİ ONAYLAMA VE SUNUCUYA GÖNDERME
     $(document).on("click", "#btnConfirmReturnAction", function () {
         var detailId = $("#selectedReturnDetailId").val();
         var reason = $("#txtReturnReasonInput").val() ? $("#txtReturnReasonInput").val().trim() : "";
@@ -427,59 +587,10 @@
         }, function (res) {
             if (res.success) {
                 cancelReturnInput();
-
-                Swal.fire({
-                    toast: true,
-                    position: 'top-end',
-                    icon: 'success',
-                    title: res.message,
-                    showConfirmButton: false,
-                    timer: 1500
-                });
-
-                var tableId = $("#checkoutTableId").val();
-                openCheckoutModal(tableId);
+                openCheckoutModal($("#checkoutTableId").val(), false);
                 loadTables();
             } else {
                 Swal.fire("Hata", res.message, "error");
-            }
-        });
-    });
-
-    // MASAYI KAPATMA VE ÖDEME ALMA İŞLEMİ
-    $("#btnCloseTableOrder").on("click", function () {
-        var tableId = $("#checkoutTableId").val();
-
-        Swal.fire({
-            title: "Ödeme Alındı mı?",
-            text: "Hesap kapatılacak ve masa BOŞ durumuna getirilecektir.",
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonColor: "#28a745",
-            cancelButtonColor: "#6c757d",
-            confirmButtonText: "<i class='fa-solid fa-check me-1'></i>Evet, Masayı Kapat",
-            cancelButtonText: "Vazgeç"
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.post("/Admin/CloseTableOrder", { tableId: tableId }, function (res) {
-                    if (res.success) {
-                        var modalEl = document.getElementById('tableCheckoutModal');
-                        var modalInstance = bootstrap.Modal.getInstance(modalEl);
-                        if (modalInstance) modalInstance.hide();
-
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Masa Kapatıldı!',
-                            text: res.message,
-                            timer: 1500,
-                            showConfirmButton: false
-                        });
-
-                        loadTables();
-                    } else {
-                        Swal.fire("Hata", res.message, "error");
-                    }
-                });
             }
         });
     });
@@ -500,13 +611,6 @@
             if (res.success) {
                 $("#addTableModal").modal("hide");
                 $("#txtTableNumber").val("");
-                Swal.fire({
-                    icon: "success",
-                    title: "Başarılı!",
-                    text: res.message,
-                    timer: 1500,
-                    showConfirmButton: false
-                });
                 loadTables();
             } else {
                 Swal.fire("Hata", res.message, "error");
@@ -557,11 +661,12 @@
                     $("#imgQrCode").attr("src", res.qrImageUrl);
                     $("#btnDownloadQr").attr("href", res.qrImageUrl);
                     $("#txtQrTargetUrl").text(res.targetUrl);
-                    if (title) $("#qrModalSubTitle").text(title);
+
+                    var dynamicTitle = title || (res.companyName ? `${res.companyName} Menü QR Kodu` : "Menü QR Kodu");
+                    $("#qrModalSubTitle").text(dynamicTitle);
 
                     var modalEl = document.getElementById('qrCodeModal');
-                    var modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-                    modalInstance.show();
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
                 } else {
                     Swal.fire("Hata", res ? res.message : "QR Kod oluşturulamadı.", "error");
                 }

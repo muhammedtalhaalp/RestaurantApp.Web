@@ -448,6 +448,12 @@ namespace RestaurantApp.Web.Controllers
 
                         decimal currentTotal = activeOrders.FirstOrDefault() != null ? activeOrders.FirstOrDefault().TotalAmount : 0;
 
+                        // Masadaki siparişlerin ödenip ödenmediği kontrol ediliyor
+                        bool isPaid = activeOrders.Any() && activeOrders.All(o =>
+                            (o.CashAmount.HasValue && o.CashAmount.Value > 0) ||
+                            (o.CreditCardAmount.HasValue && o.CreditCardAmount.Value > 0) ||
+                            (o.MealCardAmount.HasValue && o.MealCardAmount.Value > 0));
+
                         string firstOrderTime = "--:--";
                         string lastDeliveryTime = "--:--";
                         int idleMinutes = 0;
@@ -474,6 +480,7 @@ namespace RestaurantApp.Web.Controllers
                             tableNumber = t.TableNumber,
                             status = t.Status ?? "Bos",
                             currentAmount = currentTotal,
+                            isPaid = isPaid, // EKLENEN KRİTİK ALAN: Frontend'in "ÖDEME ALINDI / DOLU" rozetini çizmesini sağlar
                             section = t.Section ?? "Salon",
                             shape = t.Shape ?? "Square",
                             posX = t.PosX ?? 50,
@@ -634,7 +641,25 @@ namespace RestaurantApp.Web.Controllers
 
                 string qrImageUrl = $"https://quickchart.io/qr?text={Url.Encode(targetMenuUrl)}&size=300&margin=1";
 
-                return Json(new { success = true, qrImageUrl = qrImageUrl, targetUrl = targetMenuUrl }, JsonRequestBehavior.AllowGet);
+                // Oturum açan kullanıcının / Admin'in Şirket Adını Çekiyoruz
+                string companyName = "Restoran";
+                int currentUserId = Session["UserId"] != null ? Convert.ToInt32(Session["UserId"]) : 0;
+                var currentUser = db.AppUsers.FirstOrDefault(u => u.UserId == currentUserId);
+
+                if (currentUser != null && !string.IsNullOrEmpty(currentUser.CompanyName))
+                {
+                    companyName = currentUser.CompanyName;
+                }
+                else
+                {
+                    var adminUser = db.AppUsers.FirstOrDefault(u => u.Role == "Admin");
+                    if (adminUser != null && !string.IsNullOrEmpty(adminUser.CompanyName))
+                    {
+                        companyName = adminUser.CompanyName;
+                    }
+                }
+
+                return Json(new { success = true, qrImageUrl = qrImageUrl, targetUrl = targetMenuUrl, companyName = companyName }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
@@ -692,19 +717,26 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
+                // Masada hazır ürünü bulunan veya mutfakta hazırlanmakta olan aktif siparişleri listele
                 var pendingOrders = db.AppOrders
-                    .Where(o => o.Status == "Hazırlanıyor" || o.Status == "Hazır")
+                    .Where(o => o.Status != "Tamamlandı" && o.Status != "İptal" &&
+                                o.AppOrderDetails.Any(d => !d.IsReturned && d.ReturnReason != "Servis Edildi"))
                     .OrderByDescending(o => o.CreatedDate)
                     .ToList()
-                    .Select(o => new
+                    .Select(o =>
                     {
-                        orderId = o.OrderId,
-                        orderType = o.OrderType,
-                        status = o.Status,
-                        tableName = o.OrderType == "Masa" && o.AppTables != null ? o.AppTables.TableNumber : "Paket Servis",
-                        deliveryAddress = o.DeliveryAddress,
-                        orderDate = o.CreatedDate.ToString("HH:mm"),
-                        totalAmount = o.TotalAmount
+                        bool hasReadyItems = o.AppOrderDetails.Any(d => !d.IsReturned && d.ReturnReason == "Hazır");
+
+                        return new
+                        {
+                            orderId = o.OrderId,
+                            orderType = o.OrderType,
+                            status = hasReadyItems ? "Hazır" : "Hazırlanıyor",
+                            tableName = o.OrderType == "Masa" && o.AppTables != null ? o.AppTables.TableNumber : "Paket Servis",
+                            deliveryAddress = o.DeliveryAddress,
+                            orderDate = o.CreatedDate.ToString("HH:mm"),
+                            totalAmount = o.TotalAmount
+                        };
                     }).ToList();
 
                 return Json(new { success = true, data = pendingOrders }, JsonRequestBehavior.AllowGet);
@@ -727,23 +759,29 @@ namespace RestaurantApp.Web.Controllers
                     return Json(new { success = false, message = "Sipariş bulunamadı." }, JsonRequestBehavior.AllowGet);
                 }
 
-                var items = order.AppOrderDetails.Select(d => new
-                {
-                    orderDetailId = d.OrderDetailId,
-                    productName = d.AppProducts != null ? d.AppProducts.ProductName : "Bilinmeyen Ürün",
-                    quantity = d.Quantity,
-                    unitPrice = d.UnitPrice,
-                    totalPrice = d.Quantity * d.UnitPrice
-                }).ToList();
+                // Garson sipariş detayında masaya ait tüm aktif ürünleri ve durumlarını göster
+                var items = order.AppOrderDetails
+                    .Where(d => !d.IsReturned)
+                    .Select(d => new
+                    {
+                        orderDetailId = d.OrderDetailId,
+                        productName = d.AppProducts != null ? d.AppProducts.ProductName : "Bilinmeyen Ürün",
+                        quantity = d.Quantity,
+                        unitPrice = d.UnitPrice,
+                        totalPrice = d.Quantity * d.UnitPrice,
+                        itemStatus = d.ReturnReason == "Hazır" ? "Hazır" : (d.ReturnReason == "Servis Edildi" ? "Servis Edildi" : "Hazırlanıyor")
+                    }).ToList();
+
+                bool hasReadyItems = items.Any(x => x.itemStatus == "Hazır");
 
                 var orderData = new
                 {
                     orderId = order.OrderId,
                     orderType = order.OrderType,
-                    status = order.Status,
+                    status = hasReadyItems ? "Hazır" : (items.All(x => x.itemStatus == "Servis Edildi") ? "Servis Edildi" : "Hazırlanıyor"),
                     tableName = order.OrderType == "Masa" && order.AppTables != null ? order.AppTables.TableNumber : "Paket Servis",
                     orderTime = order.CreatedDate.ToString("HH:mm"),
-                    totalAmount = order.TotalAmount,
+                    totalAmount = items.Sum(x => x.totalPrice),
                     items = items
                 };
 
@@ -1075,17 +1113,17 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                var mainOrder = db.AppOrders
+                var activeOrders = db.AppOrders
                     .Where(o => o.TableId == tableId && o.Status != "Tamamlandı" && o.Status != "İptal")
-                    .OrderBy(o => o.CreatedDate)
-                    .FirstOrDefault();
+                    .ToList();
 
-                if (mainOrder == null)
+                if (!activeOrders.Any())
                 {
                     return Json(new { success = false, message = "Aktif sipariş bulunamadı." }, JsonRequestBehavior.AllowGet);
                 }
 
-                var items = mainOrder.AppOrderDetails
+                var allItems = activeOrders
+                    .SelectMany(o => o.AppOrderDetails.Where(d => !d.IsReturned))
                     .Select(d => new
                     {
                         orderDetailId = d.OrderDetailId,
@@ -1097,7 +1135,10 @@ namespace RestaurantApp.Web.Controllers
                         returnReason = d.ReturnReason
                     }).ToList();
 
-                return Json(new { success = true, data = items }, JsonRequestBehavior.AllowGet);
+                // Masadaki siparişlerin gerçek kalan toplam borcu
+                decimal remainingTotal = activeOrders.Sum(o => (decimal?)o.TotalAmount) ?? 0;
+
+                return Json(new { success = true, data = allItems, remainingTotal = remainingTotal }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {

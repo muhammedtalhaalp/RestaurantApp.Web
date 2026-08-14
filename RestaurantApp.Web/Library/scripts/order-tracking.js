@@ -51,7 +51,7 @@ function loadAdminPendingOrders() {
             if (res.success && res.data && res.data.length > 0) {
                 var readyCount = res.data.filter(o => o.status === "Hazır").length;
 
-                $badge.text(`${res.data.length} Aktif Sipariş (${readyCount} Hazır)`)
+                $badge.text(`${res.data.length} Aktif Sipariş (${readyCount} Servise Hazır)`)
                     .removeClass("bg-success text-white")
                     .addClass("badge-purple-main");
 
@@ -68,32 +68,33 @@ function loadAdminPendingOrders() {
                         : "Paket Servis";
 
                     var subText = isReady
-                        ? "<strong class='text-dark'><i class='fa-solid fa-circle-check me-1 text-success'></i>Mutfakta hazırlandı, teslimat bekleniyor.</strong>"
-                        : "<span class='text-muted'><i class='fa-solid fa-spinner fa-spin me-1 text-info'></i>Mutfakta hazırlanıyor...</span>";
+                        ? "<strong class='text-success'><i class='fa-solid fa-circle-check me-1'></i>Hazır ürün(ler) var, servise çık!</strong>"
+                        : "<span class='text-muted'><i class='fa-solid fa-fire-burner me-1 text-info'></i>Mutfakta hazırlanıyor...</span>";
 
                     var statusBadge = isReady
-                        ? `<span class="badge bg-warning text-dark"><i class="fa-solid fa-hourglass-half me-1"></i>Teslimat Bekliyor</span>`
+                        ? `<span class="badge bg-success text-white"><i class="fa-solid fa-bell-concierge me-1"></i>Servise Hazır</span>`
                         : `<span class="badge bg-info text-dark"><i class="fa-solid fa-spinner fa-spin me-1"></i>Hazırlanıyor</span>`;
 
                     var buttonHtml = isReady
-                        ? `<button class="btn btn-warning text-dark w-100 fw-bold py-2 rounded-3 border-0 shadow-sm mt-2" onclick="event.stopPropagation(); deliverAdminOrder(${order.orderId});">
-                               <i class="fa-solid fa-circle-check me-2"></i>Teslim Aldım
+                        ? `<button class="btn btn-success text-white w-100 fw-bold py-2 rounded-3 border-0 shadow-sm mt-2" onclick="event.stopPropagation(); deliverAdminOrder(${order.orderId});">
+                               <i class="fa-solid fa-circle-check me-2"></i>Hazırları Teslim Aldım
                            </button>`
-                        : `<button class="btn btn-light w-100 fw-bold py-2 rounded-3 text-muted border opacity-75 mt-2" disabled>
-                               <i class="fa-solid fa-fire-burner me-2 text-info"></i>Hazırlanıyor...
+                        : `<button class="btn btn-light w-100 fw-bold py-2 rounded-3 text-muted border opacity-75 mt-2" onclick="event.stopPropagation(); openOrderDetailsModal(${order.orderId});">
+                               <i class="fa-solid fa-eye me-2 text-info"></i>Sipariş Detayını Gör
                            </button>`;
 
-                    var cardBorder = isReady ? "border-left: 5px solid #ffc107 !important;" : "border-left: 5px solid #0dcaf0 !important;";
+                    var cardBorder = isReady ? "border-left: 5px solid #198754 !important;" : "border-left: 5px solid #0dcaf0 !important;";
+                    var pulseClass = isReady ? "admin-card-pulse" : "";
 
                     html += `
                         <div class="col-md-4 col-lg-3 d-flex align-items-stretch">
-                            <div class="pending-order-card p-3 border shadow-sm rounded-4 w-100 d-flex flex-column justify-content-between h-100 cursor-pointer" style="${cardBorder}" onclick="openOrderDetailsModal(${order.orderId})">
+                            <div class="pending-order-card p-3 border shadow-sm rounded-4 w-100 d-flex flex-column justify-content-between h-100 cursor-pointer ${pulseClass}" style="${cardBorder}" onclick="openOrderDetailsModal(${order.orderId})">
                                 <div>
                                     <div class="d-flex justify-content-between align-items-center mb-2">
                                         <h6 class="fw-bold mb-0 text-dark"><i class="fa-solid ${icon} me-2" style="color: #4a154b;"></i>${title}</h6>
                                         <span class="badge bg-light text-dark border"><i class="fa-regular fa-clock me-1"></i>${order.orderDate}</span>
                                     </div>
-                                    <p class="text-muted small mb-2">${subText}</p>
+                                    <p class="small mb-2">${subText}</p>
                                 </div>
                                 <div class="mt-auto">
                                     <div class="d-flex justify-content-between align-items-center pt-2 border-top mb-1">
@@ -128,7 +129,7 @@ function loadAdminPendingOrders() {
 function openOrderDetailsModal(orderId) {
     $("#tblOrderItemsBody").html(`
         <tr>
-            <td colspan="5" class="text-center py-4 text-muted">
+            <td colspan="6" class="text-center py-4 text-muted">
                 <i class="fa-solid fa-spinner fa-spin me-2"></i>Ürünler yükleniyor...
             </td>
         </tr>
@@ -148,26 +149,39 @@ function openOrderDetailsModal(orderId) {
             if (res.success && res.data) {
                 var d = res.data;
 
-                $("#modalOrderTitle").html(`<i class="fa-solid fa-receipt me-2" style="color: #4a154b;"></i>${d.tableName} Detayı`);
+                $("#modalOrderTitle").html(`<i class="fa-solid fa-receipt me-2"></i>${d.tableName} Detayı`);
                 $("#lblOrderTime").text(d.orderTime);
                 $("#lblOrderTotalAmount").text(parseFloat(d.totalAmount || 0).toFixed(2) + " ₺");
 
-                var badgeClass = d.status === "Hazır" ? "bg-warning text-dark" : "bg-info text-dark";
+                var badgeClass = d.status === "Hazır" ? "bg-success text-white" : (d.status === "Servis Edildi" ? "bg-secondary text-white" : "bg-info text-dark");
                 $("#lblOrderStatusBadge").attr("class", `badge ${badgeClass}`).text(d.status);
 
                 var rowsHtml = "";
+                var hasReadyItem = false;
+
                 if (d.items && d.items.length > 0) {
                     $.each(d.items, function (i, item) {
-                        var deleteBtnHtml = d.status === "Hazırlanıyor"
+                        var statusBadge = "";
+                        if (item.itemStatus === "Hazır") {
+                            hasReadyItem = true;
+                            statusBadge = `<span class="badge badge-item-ready rounded-pill"><i class="fa-solid fa-circle-check me-1"></i>Hazırlandı / Servise Çık</span>`;
+                        } else if (item.itemStatus === "Servis Edildi") {
+                            statusBadge = `<span class="badge badge-item-delivered rounded-pill"><i class="fa-solid fa-check me-1"></i>Servis Edildi</span>`;
+                        } else {
+                            statusBadge = `<span class="badge badge-item-cooking rounded-pill"><i class="fa-solid fa-spinner fa-spin me-1"></i>Mutfakta Hazırlanıyor</span>`;
+                        }
+
+                        var deleteBtnHtml = item.itemStatus === "Hazırlanıyor"
                             ? `<button class="btn btn-sm btn-outline-danger rounded-circle border-0 py-1 px-2" onclick="deleteAdminOrderItem(${item.orderDetailId}, ${d.orderId})" title="Ürünü İptal Et/Sil">
                                    <i class="fa-solid fa-trash-can"></i>
                                </button>`
-                            : `<span class="text-muted" title="Hazır/Teslimat aşamasında silinemez">-</span>`;
+                            : `<span class="text-muted">-</span>`;
 
                         rowsHtml += `
                             <tr>
                                 <td class="py-2 px-3 fw-semibold text-dark">${item.productName}</td>
                                 <td class="py-2 px-3 text-center fw-bold">${item.quantity}</td>
+                                <td class="py-2 px-3 text-center">${statusBadge}</td>
                                 <td class="py-2 px-3 text-end text-muted">${parseFloat(item.unitPrice || 0).toFixed(2)} ₺</td>
                                 <td class="py-2 px-3 text-end fw-bold text-dark">${parseFloat(item.totalPrice || 0).toFixed(2)} ₺</td>
                                 <td class="py-2 px-3 text-center">${deleteBtnHtml}</td>
@@ -175,16 +189,16 @@ function openOrderDetailsModal(orderId) {
                         `;
                     });
                 } else {
-                    rowsHtml = `<tr><td colspan="5" class="text-center py-3 text-muted">Bu siparişte ürün bulunamadı.</td></tr>`;
+                    rowsHtml = `<tr><td colspan="6" class="text-center py-3 text-muted">Bu siparişte ürün bulunamadı.</td></tr>`;
                 }
 
                 $("#tblOrderItemsBody").html(rowsHtml);
 
-                var footerBtns = `<button type="button" class="btn btn-light rounded-3 fw-bold" data-bs-dismiss="modal">Kapat</button>`;
-                if (d.status === "Hazır") {
+                var footerBtns = `<button type="button" class="btn btn-secondary rounded-3 fw-bold px-4" data-bs-dismiss="modal">Kapat</button>`;
+                if (hasReadyItem) {
                     footerBtns += `
-                        <button type="button" class="btn btn-warning text-dark fw-bold px-4" onclick="deliverAdminOrder(${d.orderId}); $('#orderDetailsModal').modal('hide');">
-                            <i class="fa-solid fa-circle-check me-2"></i>Teslim Aldım
+                        <button type="button" class="btn btn-success text-white fw-bold px-4 shadow-sm" onclick="deliverAdminOrder(${d.orderId}); $('#orderDetailsModal').modal('hide');">
+                            <i class="fa-solid fa-circle-check me-2"></i>Hazır Ürünleri Teslim Aldım
                         </button>`;
                 }
                 $("#modalFooterActions").html(footerBtns);
@@ -198,7 +212,6 @@ function openOrderDetailsModal(orderId) {
     });
 }
 
-// Ürün Kalemini Direk 1 Eksiltme / Silme Fonksiyonu (Onay Penceresiz)
 function deleteAdminOrderItem(orderDetailId, orderId) {
     $.ajax({
         url: "/Admin/DeleteOrderItem",
@@ -206,7 +219,6 @@ function deleteAdminOrderItem(orderDetailId, orderId) {
         data: { orderDetailId: orderDetailId },
         success: function (res) {
             if (res.success) {
-                // Sağ üstte ufak toast bildirimi
                 Swal.fire({
                     toast: true,
                     position: 'top-end',
@@ -250,40 +262,32 @@ function deleteAdminOrderItem(orderDetailId, orderId) {
 }
 
 function deliverAdminOrder(orderId) {
-    Swal.fire({
-        title: "Sipariş Teslim Edilsin mi?",
-        text: "Bu siparişi teslim edilmiş olarak işaretliyorsunuz.",
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonColor: "#ffc107",
-        cancelButtonColor: "#6c757d",
-        confirmButtonText: "Evet, Teslim Edildi",
-        cancelButtonText: "Vazgeç"
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: "/Order/ApproveOrderDelivery",
-                type: "POST",
-                data: { orderId: orderId },
-                success: function (res) {
-                    if (res.success) {
-                        Swal.fire({
-                            icon: "success",
-                            title: "Başarılı!",
-                            text: "Sipariş teslim edildi olarak işaretlendi.",
-                            timer: 1500,
-                            showConfirmButton: false
-                        });
-
-                        loadAdminPendingOrders();
-                    } else {
-                        Swal.fire("Hata", res.message, "error");
-                    }
-                },
-                error: function () {
-                    Swal.fire("Hata", "İşlem gerçekleştirilirken sunucu hatası oluştu.", "error");
+    $.ajax({
+        url: "/Order/ApproveOrderDelivery",
+        type: "POST",
+        data: { orderId: orderId },
+        success: function (res) {
+            if (res.success) {
+                if ($.connection && $.connection.orderHub) {
+                    $.connection.orderHub.server.sendOrderDeliveredNotification(orderId);
                 }
-            });
+
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Hazır ürünlerin teslimatı onaylandı!',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+
+                loadAdminPendingOrders();
+            } else {
+                Swal.fire("Hata", res.message, "error");
+            }
+        },
+        error: function () {
+            Swal.fire("Hata", "İşlem gerçekleştirilirken sunucu hatası oluştu.", "error");
         }
     });
 }

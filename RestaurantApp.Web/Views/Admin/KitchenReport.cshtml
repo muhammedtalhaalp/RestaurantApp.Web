@@ -5,73 +5,6 @@
 
 @section styles {
     <link href="~/Library/styles/kitchen-report.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
-    <style>
-        /* TÜM ELEMANLARI SIFIR TAŞMA İLE TEK SATIRA HİZALAMA */
-        .filter-control-height {
-            height: 38px !important;
-            font-size: 0.82rem !important;
-        }
-
-        /* CHECKBOX FİLTRE BUTONLARI VE AKTİF OLUNCA BÜYÜME EFEKTİ */
-        .btn-check-filter {
-            display: none;
-        }
-
-        .btn-filter-toggle {
-            height: 38px !important;
-            border-radius: 8px !important;
-            font-size: 0.78rem !important;
-            font-weight: 700 !important;
-            display: inline-flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            padding: 0 8px !important;
-            cursor: pointer;
-            transition: all 0.25s ease-in-out;
-            user-select: none;
-            width: 100%;
-            background-color: #ffffff;
-            white-space: nowrap !important;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        /* Müşteri Notu Buton Stili */
-        .btn-filter-note {
-            border: 1.5px solid #d97706 !important;
-            color: #b45309 !important;
-        }
-
-        .btn-check-filter:checked + .btn-filter-note {
-            background-color: #fef3c7 !important;
-            border-color: #b45309 !important;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-            font-size: 0.83rem !important;
-            padding: 0 12px !important;
-        }
-
-        /* İade / İptal Buton Stili */
-        .btn-filter-return {
-            border: 1.5px solid #dc2626 !important;
-            color: #dc2626 !important;
-        }
-
-        .btn-check-filter:checked + .btn-filter-return {
-            background-color: #fee2e2 !important;
-            border-color: #991b1b !important;
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-            font-size: 0.83rem !important;
-            padding: 0 12px !important;
-        }
-
-        /* Sadece bu üst bar elemanlarının alt satıra kaymasını engeller */
-        .filter-row-nowrap {
-            display: flex;
-            flex-wrap: nowrap;
-            align-items: center;
-            gap: 8px;
-        }
-    </style>
 }
 
 <div class="container-fluid mt-2">
@@ -105,7 +38,7 @@
         <div class="p-3 border-bottom bg-light rounded-top-4">
             <div class="filter-row-nowrap">
 
-                <!-- 1. ARAMA KUTUSU (Sol Taraf - Tam Okunur Genişlik) -->
+                <!-- 1. ARAMA KUTUSU -->
                 <div style="flex: 2.5; min-width: 220px;">
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0 text-muted filter-control-height"><i class="fa-solid fa-magnifying-glass"></i></span>
@@ -113,7 +46,7 @@
                     </div>
                 </div>
 
-                <!-- 2. SİPARİŞ TÜRÜ DROPDOWN (Tam Okunur Genişlik) -->
+                <!-- 2. SİPARİŞ TÜRÜ DROPDOWN -->
                 <div style="flex: 1.8; min-width: 160px;">
                     <select id="filterOrderType" class="form-select filter-control-height fw-semibold text-secondary">
                         <option value="">Tüm Sipariş Türleri</option>
@@ -122,30 +55,30 @@
                     </select>
                 </div>
 
-                <!-- 3. MÜŞTERİ NOTU BUTONU (Tıklayınca Genişler) -->
+                <!-- 3. MÜŞTERİ NOTU BUTONU (Kurumsal Mor Temalı) -->
                 <div style="flex: 1.2; min-width: 110px;">
                     <input type="checkbox" class="btn-check-filter" id="chkHasNote">
-                    <label class="btn-filter-toggle btn-filter-note" for="chkHasNote" title="Müşteri Notu Filtresi">
+                    <label class="btn-filter-toggle btn-filter-purple" for="chkHasNote" title="Müşteri Notu Filtresi">
                         <i class="fa-solid fa-note-sticky me-1"></i>Müşteri Notu
                     </label>
                 </div>
 
-                <!-- 4. İADE / İPTAL BUTONU (Tıklayınca Genişler) -->
+                <!-- 4. İADE / İPTAL BUTONU (Kurumsal Mor Temalı) -->
                 <div style="flex: 1.2; min-width: 100px;">
                     <input type="checkbox" class="btn-check-filter" id="chkHasReturned">
-                    <label class="btn-filter-toggle btn-filter-return" for="chkHasReturned" title="İade / İptal Filtresi">
+                    <label class="btn-filter-toggle btn-filter-purple" for="chkHasReturned" title="İade / İptal Filtresi">
                         <i class="fa-solid fa-rotate-left me-1"></i>İade / İptal
                     </label>
                 </div>
 
-                <!-- 5. TEMİZLE BUTONU (Sağ Kısım - Excel Yanında Eşit Boyut) -->
+                <!-- 5. TEMİZLE BUTONU -->
                 <div style="flex: 1.2; min-width: 110px;">
                     <button type="button" class="btn btn-outline-danger w-100 filter-control-height d-flex align-items-center justify-content-center fw-bold" id="btnClearFilters" title="Filtreleri Temizle">
                         <i class="fa-solid fa-filter-circle-xmark me-1"></i>Temizle
                     </button>
                 </div>
 
-                <!-- 6. EXCEL'E AKTAR BUTONU (Temizle İle Eşit Boyut) -->
+                <!-- 6. EXCEL'E AKTAR BUTONU -->
                 <div style="flex: 1.2; min-width: 110px;">
                     <button type="button" class="btn btn-success w-100 filter-control-height d-flex align-items-center justify-content-center fw-bold" id="btnExportExcel">
                         <i class="fa-solid fa-file-excel me-1"></i>Excel

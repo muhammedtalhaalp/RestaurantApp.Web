@@ -7,13 +7,14 @@
     <link href="~/Library/styles/kitchen.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
 }
 
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid px-3 py-2 h-100 d-flex flex-column">
+    <!-- ÜST BAŞLIK BAR -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h4 class="fw-bold text-dark mb-1">
-                <i class="fa-solid fa-fire-burner me-2" style="color: #4a154b;"></i>Mutfak Sipariş Ekranı
+            <h4 class="fw-bold text-dark mb-0">
+                <i class="fa-solid fa-fire-burner me-2 style-purple-icon"></i>Mutfak Sipariş Ekranı
             </h4>
-            <p class="text-muted small mb-0">Hazırlanmakta olan siparişleri buradan takip edebilir, müşteri notlarını inceleyebilir ve ürünler hazır olduğunda garsona bildirebilirsiniz.</p>
+            <p class="text-muted small mb-0">Siparişleri takip edebilir, karta tıklayarak ürün bazlı hazırlık yapabilirsiniz.</p>
         </div>
         <div class="d-flex align-items-center gap-2">
             <!-- Bildirim Sesi Dropdown Menüsü -->
@@ -38,9 +39,9 @@
     </div>
 
     <!-- Sipariş Kartları Izgarası -->
-    <div class="row g-3" id="kitchen-orders-grid">
+    <div class="row g-3 flex-grow-1 align-content-start" id="kitchen-orders-grid">
         <div class="col-12 text-center py-5">
-            <div class="spinner-border" style="color: #4a154b;" role="status">
+            <div class="spinner-border text-purple-main" role="status">
                 <span class="visually-hidden">Yükleniyor...</span>
             </div>
             <p class="text-muted mt-2">Siparişler yükleniyor...</p>
@@ -48,8 +49,34 @@
     </div>
 </div>
 
+<!-- SİPARİŞ DETAY MODALI -->
+<div class="modal fade" id="modalKitchenOrderDetail" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header border-bottom p-3 kitchen-modal-header">
+                <h5 class="modal-title fw-bold text-white mb-0" id="modalKitchenTitle">
+                    <i class="fa-solid fa-utensils me-2"></i>Sipariş Detayı
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div id="modalKitchenSubInfo" class="mb-2"></div>
+                <div id="modalKitchenNoteBox"></div>
+
+                <h6 class="fw-bold text-dark border-bottom pb-2 mb-2">Ürün Listesi</h6>
+                <ul class="list-group list-group-flush modal-items-scroll-list" id="modalKitchenItemsList">
+                    <!-- JS Dolduracak -->
+                </ul>
+            </div>
+            <!-- İŞTE BURASI EKSİKTİ, GERİ EKLENDİ -->
+            <div class="modal-footer p-2 bg-light border-top d-flex gap-2" id="modalKitchenFooterAction">
+                <!-- JS Butonları Buraya Basacak -->
+            </div>
+        </div>
+    </div>
+</div>
+
 @section scripts {
-    <!-- SignalR JS Kütüphaneleri -->
     <script src="~/Scripts/jquery.signalR-2.4.3.min.js"></script>
     <script src="~/signalr/hubs"></script>
     <script src="~/Library/scripts/kitchen.js?v=@DateTime.Now.Ticks"></script>

@@ -79,6 +79,30 @@
         box-shadow: 0 4px 12px rgba(74, 21, 75, 0.2) !important;
     }
 
+/* PASİFE AL / DURUM DEĞİŞTİRME BUTONLARI (Sarı renkler yerine Kurumsal Mor) */
+.btn-outline-warning,
+.btn-toggle-status {
+    color: var(--brand-purple) !important;
+    border: 1.5px solid var(--brand-purple) !important;
+    background-color: #ffffff !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+    .btn-outline-warning:hover,
+    .btn-toggle-status:hover {
+        background-color: var(--brand-purple) !important;
+        color: #ffffff !important;
+        border-color: var(--brand-purple) !important;
+        box-shadow: 0 4px 10px rgba(74, 21, 75, 0.2) !important;
+    }
+
+    .btn-outline-warning i,
+    .btn-toggle-status i {
+        color: inherit !important;
+    }
+
 /* Form Elemanları */
 .input-clean {
     background-color: #ffffff !important;
@@ -176,6 +200,7 @@
     opacity: 0.55 !important;
     background-color: #f8fafc !important;
 }
+
 /* Dashboard Tablosunda Pasif veya Tükenmiş Ürün Satırı Sönük Görünümü */
 .table-passive-row {
     opacity: 0.50 !important;

@@ -33,6 +33,10 @@ namespace RestaurantApp.Web.Data
         public string OrderNote { get; set; }
         public Nullable<System.DateTime> DeliveredDate { get; set; }
         public Nullable<System.DateTime> CompletedDate { get; set; }
+        public Nullable<decimal> CashAmount { get; set; }
+        public Nullable<decimal> CreditCardAmount { get; set; }
+        public Nullable<decimal> MealCardAmount { get; set; }
+        public string PaymentType { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<AppOrderDetails> AppOrderDetails { get; set; }

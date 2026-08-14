@@ -94,3 +94,58 @@
     .modal-product-item:last-child {
         margin-bottom: 0;
     }
+
+/* TÜM ELEMANLARI SIFIR TAŞMA İLE TEK SATIRA HİZALAMA */
+.filter-control-height {
+    height: 38px !important;
+    font-size: 0.82rem !important;
+}
+
+/* CHECKBOX FİLTRE BUTONLARI VE KURUMSAL MOR TEMASI */
+.btn-check-filter {
+    display: none;
+}
+
+.btn-filter-toggle {
+    height: 38px !important;
+    border-radius: 8px !important;
+    font-size: 0.78rem !important;
+    font-weight: 700 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 8px !important;
+    cursor: pointer;
+    transition: all 0.25s ease-in-out;
+    user-select: none;
+    width: 100%;
+    background-color: #ffffff;
+    white-space: nowrap !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Ortak Kurumsal Mor Filtre Buton Stili (Müşteri Notu & İade / İptal) */
+.btn-filter-purple {
+    border: 1.5px solid #4a154b !important;
+    color: #4a154b !important;
+}
+
+    .btn-filter-purple:hover {
+        background-color: #f3e8f4 !important;
+    }
+
+/* Buton Seçili (Aktif) Olduğundaki Vurgulu Mor Görünüm */
+.btn-check-filter:checked + .btn-filter-purple {
+    background-color: #4a154b !important;
+    color: #ffffff !important;
+    border-color: #4a154b !important;
+    box-shadow: 0 2px 6px rgba(74, 21, 75, 0.3) !important;
+}
+
+.filter-row-nowrap {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+}

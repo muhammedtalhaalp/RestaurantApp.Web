@@ -5,35 +5,11 @@
 
 @section styles {
     <link href="~/Library/styles/pos.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
-    <style>
-        #map {
-            width: 100%;
-            height: 220px;
-            border-radius: 12px;
-            border: 1px solid #cbd5e1;
-        }
-
-        .pac-container {
-            z-index: 10000 !important;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-            font-family: 'Poppins', sans-serif;
-            border: 1px solid #e2e8f0;
-        }
-
-        .existing-order-box {
-            background-color: #f1f5f9;
-            border: 1px dashed #cbd5e1;
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 12px;
-        }
-    </style>
 }
 
-<div class="row g-0">
+<div class="row g-0 h-100">
     <!-- SOL TARAF: Sipariş Yönetimi ve Ürün Kataloğu (8 Kolon) -->
-    <div class="col-md-8 p-4">
+    <div class="col-md-8 p-4 overflow-y-auto" style="height: calc(100vh - 32px);">
         <!-- Sipariş Başlığı & Seçilen Hedef Rozeti -->
         <div class="d-flex justify-content-between align-items-center mb-3">
             <div>
@@ -84,7 +60,7 @@
     </div>
 
     <!-- SAĞ TARAF: Adım 1 Hedef Seçimi & Adım 2 Sepet Paneli (4 Kolon) -->
-    <div class="col-md-4 cart-container p-4 d-flex flex-column">
+    <div class="col-md-4 cart-container p-3 d-flex flex-column">
 
         <!-- ADIM 1: SİPARİŞ HEDEFİ SEÇİM PANELİ -->
         <div id="stepTargetSelectionPanel">
@@ -106,20 +82,16 @@
         </div>
 
         <!-- ADIM 2: SEPET VE SİPARİŞ ONAY PANELİ -->
-        <div id="stepCartPanel" class="flex-grow-1 d-flex flex-column" style="display: none !important;">
+        <div id="stepCartPanel" class="pos-cart-panel-layout" style="display: none !important;">
 
-            <!-- 1. YENİ BÖLÜM: MASADAKİ MEVCUT SİPARİŞLER (SALT OKUNUR) -->
-            <div id="existingOrdersWrapper" class="d-none">
+            <!-- 1. BÖLÜM: MASADAKİ MEVCUT SİPARİŞLER (SALT OKUNUR - VARSA) -->
+            <div id="existingOrdersWrapper" class="d-none flex-shrink-0 mb-2">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <span class="fw-bold text-secondary small"><i class="fa-solid fa-receipt me-1"></i> Adisyon</span>
                     <span id="lblExistingTotal" class="badge bg-secondary">0.00 ₺</span>
                 </div>
-                <div class="existing-order-box mb-2">
-                    <div class="alert alert-info py-1 px-2 mb-2 d-flex align-items-center gap-2" style="font-size: 0.72rem;">
-                        <i class="fa-solid fa-circle-info"></i>
-                        <span>Önceki siparişleri silmek için <b>Sipariş Takip</b> sayfasına gidiniz.</span>
-                    </div>
-                    <div style="max-height: 120px; overflow-y: auto;">
+                <div class="existing-order-box mb-1">
+                    <div style="max-height: 80px; overflow-y: auto;">
                         <table class="table table-sm table-borderless align-middle mb-0" style="font-size: 0.8rem;">
                             <tbody id="existing-items-body">
                                 <!-- JS ile çekilen mevcut adisyon dolacak -->
@@ -129,21 +101,21 @@
                 </div>
             </div>
 
-            <!-- 2. BÖLÜM: YENİ EKLENECEK SİPARİŞLER (SEPET) -->
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="fw-bold mb-0 text-dark">
-                    <span class="badge rounded-circle bg-success text-white me-2 px-2 py-1">2</span>Eklenecek Ürünler
-                </h5>
+            <!-- 2. BÖLÜM: YENİ EKLENECEK SİPARİŞLER BAŞLIĞI -->
+            <div class="flex-shrink-0 d-flex justify-content-between align-items-center mb-1">
+                <h6 class="fw-bold mb-0 text-dark">
+                    Eklenecek Ürünler
+                </h6>
             </div>
-            <hr class="my-1" />
+            <hr class="my-1 flex-shrink-0" />
 
-            <!-- Sepet Tablosu -->
-            <div class="flex-grow-1 overflow-auto mb-2" style="max-height: 200px;">
-                <table class="table table-hover table-sm align-middle">
-                    <thead class="table-light">
+            <!-- 3. BÖLÜM: SEPET TABLOSU (ARADAKİ TÜM BOŞLUĞU KAPLAR, TAŞINCA KENDİ İÇİNDE SCROLL OLUR) -->
+            <div class="pos-cart-items-wrapper">
+                <table class="table table-hover table-sm align-middle mb-0">
+                    <thead class="table-light sticky-top">
                         <tr>
                             <th>Ürün</th>
-                            <th style="width: 80px;">Adet</th>
+                            <th style="width: 80px;" class="text-center">Adet</th>
                             <th class="text-end">Fiyat</th>
                             <th style="width: 35px;" class="text-center">Sil</th>
                         </tr>
@@ -154,24 +126,25 @@
                 </table>
             </div>
 
-            <!-- TEK GENEL SİPARİŞ NOTU KUTUSU -->
-            <div class="mb-3">
-                <label for="txtOrderGeneralNote" class="form-label fw-bold text-secondary extra-small mb-1">
-                    <i  style="color: #4a154b;"></i>Sipariş Notu:
-                </label>
-                <textarea id="txtOrderGeneralNote" class="form-control form-control-sm rounded-3" rows="2" placeholder="..."></textarea>
-            </div>
+            <!-- 4. BÖLÜM: ALT SABİT KAPSAYICI (ASLA AŞAĞI KAYMAZ / EKRANA ÇAKILIDIR) -->
+            <div class="pos-cart-footer-fixed">
+                <!-- SİPARİŞ NOTU KUTUSU -->
+                <div class="mb-2">
+                    <label for="txtOrderGeneralNote" class="form-label fw-bold text-secondary extra-small mb-1">
+                        <i class="fa-solid fa-note-sticky me-1" style="color: #4a154b;"></i>Sipariş Notu:
+                    </label>
+                    <textarea id="txtOrderGeneralNote" class="form-control form-control-sm rounded-3 pos-note-fixed" rows="2" placeholder="Sipariş notu ekleyebilirsiniz..."></textarea>
+                </div>
 
-            <!-- Toplam Tutar ve Onay Butonu -->
-            <div class="pt-2 border-top mt-auto">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="fs-6 fw-bold text-dark">Toplam Genel Hesap:</span>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="fs-6 fw-bold text-dark">Toplam Hesap:</span>
                     <span id="total-price" class="fs-4 fw-bold text-success">0.00 ₺</span>
                 </div>
-                <button id="btn-submit-order" class="btn btn-success w-100 btn-lg fw-bold rounded-3 shadow-sm">
+                <button id="btn-submit-order" class="btn btn-success w-100 btn-lg fw-bold rounded-3 shadow-sm py-2.5">
                     <i class="fa-solid fa-check me-2"></i>Siparişi Onayla
                 </button>
             </div>
+
         </div>
     </div>
 </div>
@@ -203,7 +176,7 @@
     </div>
 </div>
 
-<!-- 2. MASA SEÇİM MODALI (Kartlı) -->
+<!-- 2. MASA SEÇİM MODALI -->
 <div class="modal fade" id="posTableMapModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4">
@@ -241,7 +214,7 @@
     </div>
 </div>
 
-<!-- 3. PAKET SERVİS MODALI (Adres & Harita) -->
+<!-- 3. PAKET SERVİS MODALI -->
 <div class="modal fade" id="posPaketModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4">
@@ -252,7 +225,7 @@
             <div class="modal-body p-4">
                 <div class="mb-3">
                     <label class="form-label fw-bold small text-secondary"><i class="fa-solid fa-location-dot me-1" style="color: #4a154b;"></i>Açık Adres:</label>
-                    <input type="text" id="txtDeliveryAddress" class="form-control" placeholder="Açık adres yazın (Örn: Atatürk Cad. No:5...)" autocomplete="off" />
+                    <input type="text" id="txtDeliveryAddress" class="form-control" placeholder="Açık adres yazın..." autocomplete="off" />
                 </div>
                 <label class="form-label fw-bold small text-muted">Teslimat Konumu:</label>
                 <div id="map" class="mb-3"></div>

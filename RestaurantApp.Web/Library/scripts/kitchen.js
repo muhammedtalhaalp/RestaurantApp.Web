@@ -10,6 +10,7 @@
 var orderHubProxy = null;
 var audioCtx = null;
 var selectedKitchenSound = localStorage.getItem("KitchenSelectedSound") || "chime";
+var currentActiveOrdersData = [];
 
 $(document).ready(function () {
     console.log("Kitchen JS Yüklendi.");
@@ -21,7 +22,7 @@ $(document).ready(function () {
     initKitchenSignalR();
     loadKitchenOrders();
 
-    setInterval(updateDelayedOrdersState, 30000);
+    setInterval(updateDelayedOrdersState, 15000);
     setInterval(loadKitchenOrders, 20000);
 });
 
@@ -107,6 +108,10 @@ function initKitchenSignalR() {
             loadKitchenOrders();
         };
 
+        orderHubProxy.client.onOrderDelivered = function () {
+            loadKitchenOrders();
+        };
+
         $.connection.hub.start().done(function () {
             console.log("Mutfak SignalR Bağlantısı Başarılı.");
         }).fail(function (err) {
@@ -125,54 +130,54 @@ function loadKitchenOrders() {
             $grid.empty();
 
             if (res.success && res.data && res.data.length > 0) {
+                currentActiveOrdersData = res.data;
+
                 $.each(res.data, function (i, order) {
                     var isMasa = order.orderType === "Masa";
                     var rawTableName = order.tableName || '';
                     var tableNameFormatted = rawTableName.toLowerCase().startsWith('masa') ? rawTableName : `Masa ${rawTableName}`;
                     var headerTitle = isMasa ? tableNameFormatted : "Paket Servis";
-                    var subInfo = isMasa ? "" : `<div class="small text-muted mb-2"><i class="fa-solid fa-location-dot me-1"></i>${order.deliveryAddress || 'Adres Girilmedi'}</div>`;
+                    var subInfo = isMasa ? "" : `<div class="small text-muted mb-1 text-ellipsis-1"><i class="fa-solid fa-location-dot me-1"></i>${order.deliveryAddress || 'Adres Girilmedi'}</div>`;
 
                     var elapsedMinutes = calculateElapsedMinutes(order.orderDate);
-                    var isDelayed = elapsedMinutes >= 15;
+                    var isOrderDelayed = elapsedMinutes >= 15;
 
-                    var itemsHtml = "";
+                    var totalItemCount = 0;
                     $.each(order.items, function (j, item) {
-                        itemsHtml += `
-                            <li class="list-group-item px-0 py-2 border-bottom-dashed">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <span class="fw-semibold text-dark">${item.productName}</span>
-                                    <span class="badge rounded-pill fs-6">x${item.quantity}</span>
-                                </div>
-                            </li>`;
+                        totalItemCount += item.quantity;
                     });
 
-                    // BEYAZ ARKA PLAN VE MOR ÇERÇOVELİ GENEL NOT KUTUSU
                     var generalNoteHtml = order.orderNote
-                        ? `<div class="kitchen-general-note-box"><i></i>Sipariş Notu: "${order.orderNote}"</div>`
+                        ? `<div class="kitchen-general-note-box text-ellipsis-1" title="Sipariş Notu: ${order.orderNote}"><i class="fa-solid fa-note-sticky me-1"></i>Not: "${order.orderNote}"</div>`
                         : '';
 
-                    var delayClass = isDelayed ? "card-order-delayed" : "";
-                    var delayBadge = isDelayed
+                    var delayClass = isOrderDelayed ? "card-order-delayed" : "";
+                    var delayBadge = isOrderDelayed
                         ? `<span class="badge bg-danger text-white ms-1 delay-pulse-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Gecikti (${elapsedMinutes} dk)</span>`
                         : `<span class="badge bg-white text-dark elapsed-time-badge" data-time="${order.orderDate}"><i class="fa-regular fa-clock me-1"></i>${order.orderDate} (${elapsedMinutes} dk)</span>`;
 
                     var cardHtml = `
-                        <div class="col-md-4 col-lg-3" id="order-card-${order.orderId}" data-order-date="${order.orderDate}">
-                            <div class="card h-100 shadow-sm rounded-4 overflow-hidden ${delayClass}">
+                        <div class="col-6 col-md-4 col-lg-3 kitchen-card-col mb-2" id="order-card-${order.orderId}" data-order-date="${order.orderDate}">
+                            <div class="kitchen-fixed-card ${delayClass}" onclick="openKitchenOrderDetailModal(${order.orderId})">
                                 <div class="kitchen-card-header d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0 fw-bold"><i class="fa-solid ${isMasa ? 'fa-chair' : 'fa-motorcycle'} me-2"></i>${headerTitle}</h6>
+                                    <h6 class="mb-0 fw-bold text-ellipsis-1"><i class="fa-solid ${isMasa ? 'fa-chair' : 'fa-motorcycle'} me-2"></i>${headerTitle}</h6>
                                     ${delayBadge}
                                 </div>
-                                <div class="card-body">
+                                <div class="kitchen-card-body-fixed text-center">
                                     ${subInfo}
                                     ${generalNoteHtml}
-                                    <ul class="list-group list-group-flush mb-3">
-                                        ${itemsHtml}
-                                    </ul>
+                                    <div class="d-flex align-items-center justify-content-center gap-2 py-1">
+                                        <span class="badge bg-light text-dark border px-3 py-1 fw-bold rounded-pill">
+                                            <i class="fa-solid fa-layer-group me-1 text-purple-main"></i>${order.items.length} Kalem (${totalItemCount} Adet)
+                                        </span>
+                                    </div>
+                                    <div class="mt-1">
+                                        <span class="order-detail-link-text">Detaylar için tıklayınız</span>
+                                    </div>
                                 </div>
-                                <div class="card-footer bg-transparent border-0 pb-3">
-                                    <button class="btn btn-success w-100 py-2 rounded-3" onclick="markReady(${order.orderId}, '${order.tableName}', '${order.orderType}', '${order.deliveryAddress}')">
-                                        <i class="fa-solid fa-check-double me-2"></i>Sipariş Hazır
+                                <div class="kitchen-card-footer">
+                                    <button class="btn btn-success w-100 py-2 rounded-3 shadow-sm" onclick="event.stopPropagation(); markSingleOrderAllReady(${order.orderId})">
+                                        <i class="fa-solid fa-check-double me-1"></i>Tümünü Hazırla
                                     </button>
                                 </div>
                             </div>
@@ -184,12 +189,187 @@ function loadKitchenOrders() {
                 $grid.html(`
                     <div class="col-12 text-center py-5 text-muted">
                         <i class="fa-solid fa-utensils fs-1 mb-3 opacity-25"></i>
-                        <h5>Şu an bekleyen sipariş bulunmuyor.</h5>
+                        <h5>Şu an bekleyen mutfak siparişi bulunmuyor.</h5>
                     </div>`);
             }
         },
         error: function () {
             $("#kitchen-orders-grid").html('<div class="col-12 text-center text-danger py-4">Siparişler yüklenirken bir sunucu hatası oluştu.</div>');
+        }
+    });
+}
+
+function openKitchenOrderDetailModal(orderId) {
+    var order = currentActiveOrdersData.find(x => x.orderId === orderId);
+    if (!order) return;
+
+    var isMasa = order.orderType === "Masa";
+    var rawTableName = order.tableName || '';
+    var tableNameFormatted = rawTableName.toLowerCase().startsWith('masa') ? rawTableName : `Masa ${rawTableName}`;
+    var headerTitle = isMasa ? tableNameFormatted : "Paket Servis";
+
+    $("#modalKitchenTitle").html(`<i class="fa-solid ${isMasa ? 'fa-chair' : 'fa-motorcycle'} me-2"></i>${headerTitle} Ürün Detayı`);
+
+    var subInfoHtml = `
+        <div class="d-flex justify-content-between text-muted small pb-2 border-bottom">
+            <span>Sipariş Saati: <b>${order.orderDate}</b></span>
+            <span>Tür: <b>${order.orderType}</b></span>
+        </div>`;
+
+    if (!isMasa && order.deliveryAddress) {
+        subInfoHtml += `<div class="small text-muted mt-2"><i class="fa-solid fa-location-dot me-1 text-danger"></i><b>Adres:</b> ${order.deliveryAddress}</div>`;
+    }
+
+    $("#modalKitchenSubInfo").html(subInfoHtml);
+
+    if (order.orderNote) {
+        $("#modalKitchenNoteBox").html(`
+            <div class="alert alert-warning border-warning p-2 rounded-3 mt-2 mb-3 extra-small">
+                <i class="fa-solid fa-note-sticky me-1"></i><b>Sipariş Notu:</b> "${order.orderNote}"
+            </div>
+        `);
+    } else {
+        $("#modalKitchenNoteBox").empty();
+    }
+
+    var elapsedMinutes = calculateElapsedMinutes(order.orderDate);
+    var isOrderDelayed = elapsedMinutes >= 15;
+
+    var itemsHtml = "";
+    $.each(order.items, function (i, item) {
+        var itemDelayedClass = isOrderDelayed ? "kitchen-modal-item-delayed" : "";
+        var delayBadgeHtml = isOrderDelayed ? `<span class="badge bg-danger ms-2 extra-small"><i class="fa-solid fa-triangle-exclamation me-1"></i>Gecikti</span>` : "";
+
+        itemsHtml += `
+            <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3 rounded-3 mb-2 kitchen-modal-item ${itemDelayedClass}">
+                <div class="d-flex align-items-center">
+                    <span class="fw-bold text-dark fs-6">${item.productName}</span>
+                    <span class="badge rounded-pill item-qty-badge-purple ms-2">x${item.quantity}</span>
+                    ${delayBadgeHtml}
+                </div>
+                <div>
+                    <div class="form-check form-check-inline m-0 d-flex align-items-center gap-1">
+                        <input class="form-check-input chk-ready-item chk-custom-ready" type="checkbox" value="${item.orderDetailId}" id="chkItem-${item.orderDetailId}">
+                        <label class="form-check-label fw-bold text-success small user-select-none" for="chkItem-${item.orderDetailId}" style="cursor:pointer;">Hazır</label>
+                    </div>
+                </div>
+            </li>`;
+    });
+
+    $("#modalKitchenItemsList").html(itemsHtml);
+
+    var actionBtnHtml = `
+        <button type="button" class="btn btn-purple-kitchen flex-grow-1 py-2 fw-bold rounded-3 shadow-sm" onclick="sendSelectedItemsToWaiter(${order.orderId})">
+            <i class="fa-solid fa-paper-plane me-1"></i>Seçilenleri Garsona Gönder
+        </button>
+        <button type="button" class="btn btn-success flex-grow-1 py-2 fw-bold rounded-3 shadow-sm" onclick="markSingleOrderAllReady(${order.orderId}); $('#modalKitchenOrderDetail').modal('hide');">
+            <i class="fa-solid fa-check-double me-1"></i>Tümünü Hazırla
+        </button>
+    `;
+    $("#modalKitchenFooterAction").html(actionBtnHtml);
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKitchenOrderDetail')).show();
+}
+
+function sendSelectedItemsToWaiter(orderId) {
+    var selectedDetailIds = [];
+    $("#modalKitchenItemsList .chk-ready-item:checked").each(function () {
+        selectedDetailIds.push(parseInt($(this).val()));
+    });
+
+    if (selectedDetailIds.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Ürün Seçilmedi',
+            text: 'Lütfen hazır olan en az bir ürünün kutucuğunu işaretleyiniz.',
+            confirmButtonColor: '#4a154b'
+        });
+        return;
+    }
+
+    $.ajax({
+        url: "/Kitchen/MarkItemsAsReady",
+        type: "POST",
+        traditional: true, // DİZİYİ C# LIST<INT>'E EKSİKSİZ BAĞLAR
+        data: {
+            orderId: orderId,
+            orderDetailIds: selectedDetailIds
+        },
+        success: function (res) {
+            if (res.success) {
+                if (orderHubProxy) {
+                    orderHubProxy.server.sendOrderReadyNotification(
+                        res.orderId,
+                        res.tableName,
+                        res.orderType,
+                        res.address,
+                        res.readyItemsSummary,
+                        res.readyDetailIds,
+                        res.isAllOrderReady
+                    );
+                }
+
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Seçilen ürünler garsona iletildi!',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+
+                var modalEl = document.getElementById('modalKitchenOrderDetail');
+                var modalInstance = bootstrap.Modal.getInstance(modalEl);
+                if (modalInstance) modalInstance.hide();
+
+                loadKitchenOrders();
+            } else {
+                Swal.fire("Hata", res.message, "error");
+            }
+        },
+        error: function () {
+            Swal.fire("Hata", "İşlem sırasında sunucu hatası oluştu.", "error");
+        }
+    });
+}
+
+function markSingleOrderAllReady(orderId) {
+    $.ajax({
+        url: "/Kitchen/MarkOrderAsReady",
+        type: "POST",
+        data: { orderId: orderId },
+        success: function (res) {
+            if (res.success) {
+                if (orderHubProxy) {
+                    orderHubProxy.server.sendOrderReadyNotification(
+                        res.orderId,
+                        res.tableName,
+                        res.orderType,
+                        res.address,
+                        res.readyItemsSummary,
+                        res.readyDetailIds,
+                        res.isAllOrderReady
+                    );
+                }
+
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Tüm sipariş hazırlandı!',
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+
+                $(`#order-card-${orderId}`).fadeOut(300, function () {
+                    $(this).remove();
+                    if ($("#kitchen-orders-grid").children().length === 0) {
+                        loadKitchenOrders();
+                    }
+                });
+            } else {
+                Swal.fire("Hata", res.message, "error");
+            }
         }
     });
 }
@@ -212,70 +392,5 @@ function calculateElapsedMinutes(timeStr) {
 }
 
 function updateDelayedOrdersState() {
-    $("#kitchen-orders-grid [id^='order-card-']").each(function () {
-        var $cardCol = $(this);
-        var orderDate = $cardCol.data("order-date");
-        var elapsed = calculateElapsedMinutes(orderDate);
-
-        if (elapsed >= 15) {
-            var $card = $cardCol.find(".card");
-            if (!$card.hasClass("card-order-delayed")) {
-                $card.addClass("card-order-delayed");
-                var $header = $card.find(".kitchen-card-header");
-                $header.find(".elapsed-time-badge").remove();
-                if ($header.find(".delay-pulse-badge").length === 0) {
-                    $header.append(`<span class="badge bg-danger text-white ms-1 delay-pulse-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Gecikti (${elapsed} dk)</span>`);
-                }
-            }
-        }
-    });
-}
-
-function markReady(orderId, tableName, orderType, address) {
-    Swal.fire({
-        title: 'Sipariş Hazır mı?',
-        text: "Sipariş hazırlandı olarak işaretlenecek ve garsona bildirim gönderilecek.",
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#198754',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Evet, Hazır!',
-        cancelButtonText: 'Vazgeç'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: "/Kitchen/MarkOrderAsReady",
-                type: "POST",
-                data: { orderId: orderId },
-                success: function (res) {
-                    if (res.success) {
-                        if (orderHubProxy) {
-                            orderHubProxy.server.sendOrderReadyNotification(orderId, tableName, orderType, address);
-                        }
-
-                        Swal.fire({
-                            toast: true,
-                            position: 'top-end',
-                            icon: 'success',
-                            title: 'Garsona bildirim gönderildi!',
-                            showConfirmButton: false,
-                            timer: 1500
-                        });
-
-                        $(`#order-card-${orderId}`).fadeOut(300, function () {
-                            $(this).remove();
-                            if ($("#kitchen-orders-grid").children().length === 0) {
-                                loadKitchenOrders();
-                            }
-                        });
-                    } else {
-                        Swal.fire("Hata", res.message, "error");
-                    }
-                },
-                error: function () {
-                    Swal.fire("Hata", "İşlem sırasında bir hata oluştu.", "error");
-                }
-            });
-        }
-    });
+    loadKitchenOrders();
 }
