@@ -99,6 +99,49 @@
     text-overflow: ellipsis;
 }
 
+/* =================================================== */
+/* ACİL / VIP SİPARİŞ KARTLARI (RUSH ORDER)            */
+/* =================================================== */
+.card-order-priority {
+    border: 3px solid #dc3545 !important;
+    animation: pulsePriorityFlame 1.2s infinite alternate ease-in-out !important;
+}
+
+    .card-order-priority .kitchen-card-header {
+        background: linear-gradient(135deg, #b02a37 0%, #dc3545 100%) !important;
+        color: #ffffff !important;
+    }
+
+@keyframes pulsePriorityFlame {
+    0% {
+        box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.85);
+        border-color: #dc3545;
+    }
+
+    100% {
+        box-shadow: 0 0 16px 6px rgba(220, 53, 69, 0.45);
+        border-color: #ff001e;
+    }
+}
+
+.priority-flame-badge {
+    background-color: #ffffff !important;
+    color: #dc3545 !important;
+    font-weight: 800 !important;
+    border: 1px solid #dc3545 !important;
+    animation: flameShake 0.8s infinite alternate ease-in-out;
+}
+
+@keyframes flameShake {
+    0% {
+        transform: scale(1);
+    }
+
+    100% {
+        transform: scale(1.08);
+    }
+}
+
 /* GECİKEN SİPARİŞ KARTLARI */
 .card-order-delayed {
     border: 2.5px solid #dc3545 !important;
@@ -189,7 +232,10 @@
     background-color: var(--brand-purple) !important;
 }
 
-/* Listenin aşağıya doğru butonları itmesini engelleyen sınırlı scroll alanı */
+.kitchen-modal-header-priority {
+    background: linear-gradient(135deg, #b02a37 0%, #dc3545 100%) !important;
+}
+
 .modal-items-scroll-list {
     max-height: 220px !important;
     overflow-y: auto !important;
@@ -233,7 +279,6 @@
     height: 1.25rem;
 }
 
-/* Butonların modalın altında her zaman görünmesini sağlayan footer stili */
 #modalKitchenFooterAction {
     background-color: #f8fafc !important;
     border-top: 1px solid #e2e8f0 !important;

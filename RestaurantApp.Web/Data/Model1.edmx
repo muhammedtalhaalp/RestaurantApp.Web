@@ -47,6 +47,7 @@
           <Property Name="CreditCardAmount" Type="decimal" Precision="18" Scale="2" />
           <Property Name="MealCardAmount" Type="decimal" Precision="18" Scale="2" />
           <Property Name="PaymentType" Type="nvarchar" MaxLength="50" />
+          <Property Name="IsPriority" Type="bit" Nullable="false" />
         </EntityType>
         <EntityType Name="AppProducts">
           <Key>
@@ -315,6 +316,7 @@
           <Property Name="CreditCardAmount" Type="Decimal" Precision="18" Scale="2" />
           <Property Name="MealCardAmount" Type="Decimal" Precision="18" Scale="2" />
           <Property Name="PaymentType" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="IsPriority" Type="Boolean" Nullable="false" />
         </EntityType>
         <EntityType Name="AppProducts">
           <Key>
@@ -505,6 +507,7 @@
           <EntitySetMapping Name="AppOrders">
             <EntityTypeMapping TypeName="RestaurantAppDBModel.AppOrders">
               <MappingFragment StoreEntitySet="AppOrders">
+                <ScalarProperty Name="IsPriority" ColumnName="IsPriority" />
                 <ScalarProperty Name="PaymentType" ColumnName="PaymentType" />
                 <ScalarProperty Name="MealCardAmount" ColumnName="MealCardAmount" />
                 <ScalarProperty Name="CreditCardAmount" ColumnName="CreditCardAmount" />

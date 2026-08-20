@@ -1,0 +1,170 @@
+﻿@{
+    ViewBag.Title = "Mutfak Performans & Süre Analizi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/kitchen-performance.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+}
+
+<div class="container-fluid px-3 py-2">
+    <!-- ÜST BAŞLIK VE FİLTRELEME BAR -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-chart-pie me-2 text-purple-main"></i>Mutfak Performansı
+            </h4>
+            <p class="text-muted small mb-0">Mutfak hazırlık hızlarını, SLA sürelerini ve ürün çıkarma performanslarını canlı analiz edin.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <!-- Tarih Filtreleme Buton Grubu -->
+            <div class="btn-group shadow-sm bg-white p-1 rounded-3 border" role="group">
+                <button type="button" class="btn btn-sm btn-perf-filter active" data-filter="today" onclick="changePerformanceFilter('today', this)">
+                    <i class="fa-regular fa-calendar-days me-1"></i>Bugün
+                </button>
+                <button type="button" class="btn btn-sm btn-perf-filter" data-filter="week" onclick="changePerformanceFilter('week', this)">
+                    <i class="fa-solid fa-calendar-week me-1"></i>Bu Hafta
+                </button>
+                <button type="button" class="btn btn-sm btn-perf-filter" data-filter="month" onclick="changePerformanceFilter('month', this)">
+                    <i class="fa-regular fa-calendar me-1"></i>Bu Ay
+                </button>
+            </div>
+
+            <button class="btn btn-outline-purple btn-sm rounded-3 px-3 h-38 fw-semibold" onclick="loadKitchenPerformanceData()">
+                <i class="fa-solid fa-rotate me-1"></i> Yenile
+            </button>
+        </div>
+    </div>
+
+    <!-- 1. BÖLÜM: ÜST KPI METRİK KARTLARI -->
+    <div class="row g-3 mb-4">
+        <!-- Ortalama Hazırlık Süresi -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-clean p-3 h-100 kpi-card-border-purple shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">Ort. Hazırlık Süresi</span>
+                    <div class="kpi-icon-circle bg-purple-light text-purple-main">
+                        <i class="fa-solid fa-stopwatch"></i>
+                    </div>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h3 class="fw-bold text-dark mb-0" id="kpiAvgPrepTime">0.0</h3>
+                    <span class="text-muted small fw-semibold">Dakika</span>
+                </div>
+                <div class="mt-2 extra-small text-muted">
+                    <i class="fa-solid fa-circle-info me-1 text-purple-main"></i>Siparişten servise ortalama süre
+                </div>
+            </div>
+        </div>
+
+        <!-- Toplan Çıkan Tabak / Porsiyon -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-clean p-3 h-100 kpi-card-border-success shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">Çıkan Porsiyon</span>
+                    <div class="kpi-icon-circle bg-success-light text-success">
+                        <i class="fa-solid fa-utensils"></i>
+                    </div>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h3 class="fw-bold text-dark mb-0" id="kpiTotalPortions">0</h3>
+                    <span class="text-muted small fw-semibold">Adet Tabak</span>
+                </div>
+                <div class="mt-2 extra-small text-muted">
+                    <span id="kpiTotalOrders">0</span> aktif sipariş adisyonu
+                </div>
+            </div>
+        </div>
+
+        <!-- Zamanında Çıkarma Başarı Oranı -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-clean p-3 h-100 kpi-card-border-info shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">Zamanında Teslim</span>
+                    <div class="kpi-icon-circle bg-info-light text-info">
+                        <i class="fa-solid fa-bolt-lightning"></i>
+                    </div>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h3 class="fw-bold text-dark mb-0" id="kpiOnTimeRate">%100</h3>
+                    <span class="text-muted small fw-semibold">Başarı</span>
+                </div>
+                <div class="mt-2 extra-small text-muted">
+                    <i class="fa-solid fa-check text-success me-1"></i>15 dk altı hazırlandı
+                </div>
+            </div>
+        </div>
+
+        <!-- Geciken Sipariş Sayısı -->
+        <div class="col-sm-6 col-xl-3">
+            <div class="card card-clean p-3 h-100 kpi-card-border-danger shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="text-muted small fw-bold text-uppercase">Geciken Sipariş</span>
+                    <div class="kpi-icon-circle bg-danger-light text-danger">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <h3 class="fw-bold text-danger mb-0" id="kpiDelayedOrders">0</h3>
+                    <span class="text-muted small fw-semibold">Adet (>15 dk)</span>
+                </div>
+                <div class="mt-2 extra-small text-muted">
+                    Mutfakta gecikme yaşanan siparişler
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. BÖLÜM: GRAFİK VE EN ÇOK ÇIKAN ÜRÜNLER TABLOSU -->
+    <div class="row g-3">
+        <!-- Sol: Saatlik Hazırlık Süresi Trendi (Chart.js) -->
+        <div class="col-lg-8">
+            <div class="card card-clean p-4 h-100 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="fa-solid fa-chart-line me-2 text-purple-main"></i>Saatlik Ortalama Hazırlık Süresi (Dakika)
+                    </h6>
+                    <span class="badge bg-light text-muted border extra-small">Mutfak Yoğunluk Analizi</span>
+                </div>
+                <div style="position: relative; height: 320px; width: 100%;">
+                    <canvas id="hourlyKitchenPerformanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sağ: En Çok Çıkan Ürün Kalemleri -->
+        <div class="col-lg-4">
+            <div class="card card-clean p-4 h-100 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="fa-solid fa-fire-burner me-2 text-purple-main"></i>En Çok Çıkan Yemekler
+                    </h6>
+                    <span class="badge bg-purple-light text-purple-main fw-bold" id="badgeTopCount">Top Kalemler</span>
+                </div>
+                <div class="table-responsive" style="max-height: 320px; overflow-y: auto;">
+                    <table class="table table-hover align-middle mb-0" style="font-size: 0.88rem;">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="py-2">Ürün</th>
+                                <th class="py-2 text-center">Adet</th>
+                                <th class="py-2 text-end">Ciro</th>
+                            </tr>
+                        </thead>
+                        <tbody id="topKitchenProductsBody">
+                            <tr>
+                                <td colspan="3" class="text-center py-4 text-muted">
+                                    <i class="fa-solid fa-spinner fa-spin me-2"></i>Veriler yükleniyor...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="~/Library/scripts/kitchen-performance.js?v=@DateTime.Now.Ticks"></script>
+}

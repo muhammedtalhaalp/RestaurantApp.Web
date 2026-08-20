@@ -103,7 +103,7 @@ function initKitchenSignalR() {
         orderHubProxy = $.connection.orderHub;
 
         orderHubProxy.client.onNewOrderCreated = function () {
-            console.log("Yeni sipariş düştü! Seçili zil çalınıyor...");
+            console.log("Yeni veya Acil sipariş düştü! Seçili zil çalınıyor...");
             playSelectedKitchenSound();
             loadKitchenOrders();
         };
@@ -134,6 +134,7 @@ function loadKitchenOrders() {
 
                 $.each(res.data, function (i, order) {
                     var isMasa = order.orderType === "Masa";
+                    var isPriority = order.isPriority === true;
                     var rawTableName = order.tableName || '';
                     var tableNameFormatted = rawTableName.toLowerCase().startsWith('masa') ? rawTableName : `Masa ${rawTableName}`;
                     var headerTitle = isMasa ? tableNameFormatted : "Paket Servis";
@@ -151,17 +152,31 @@ function loadKitchenOrders() {
                         ? `<div class="kitchen-general-note-box text-ellipsis-1" title="Sipariş Notu: ${order.orderNote}"><i class="fa-solid fa-note-sticky me-1"></i>Not: "${order.orderNote}"</div>`
                         : '';
 
-                    var delayClass = isOrderDelayed ? "card-order-delayed" : "";
-                    var delayBadge = isOrderDelayed
-                        ? `<span class="badge bg-danger text-white ms-1 delay-pulse-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Gecikti (${elapsedMinutes} dk)</span>`
-                        : `<span class="badge bg-white text-dark elapsed-time-badge" data-time="${order.orderDate}"><i class="fa-regular fa-clock me-1"></i>${order.orderDate} (${elapsedMinutes} dk)</span>`;
+                    // ACİL / VIP VEYA GECİKME DURUMU
+                    var cardClass = "";
+                    if (isPriority) {
+                        cardClass = "card-order-priority";
+                    } else if (isOrderDelayed) {
+                        cardClass = "card-order-delayed";
+                    }
+
+                    var badgeHtml = "";
+                    if (isPriority) {
+                        badgeHtml = `<span class="badge priority-flame-badge ms-1"><i class="fa-solid fa-fire me-1 text-danger"></i>ACİL / VIP</span>`;
+                    } else if (isOrderDelayed) {
+                        badgeHtml = `<span class="badge bg-danger text-white ms-1 delay-pulse-badge"><i class="fa-solid fa-triangle-exclamation me-1"></i>Gecikti (${elapsedMinutes} dk)</span>`;
+                    } else {
+                        badgeHtml = `<span class="badge bg-white text-dark elapsed-time-badge" data-time="${order.orderDate}"><i class="fa-regular fa-clock me-1"></i>${order.orderDate} (${elapsedMinutes} dk)</span>`;
+                    }
 
                     var cardHtml = `
                         <div class="col-6 col-md-4 col-lg-3 kitchen-card-col mb-2" id="order-card-${order.orderId}" data-order-date="${order.orderDate}">
-                            <div class="kitchen-fixed-card ${delayClass}" onclick="openKitchenOrderDetailModal(${order.orderId})">
+                            <div class="kitchen-fixed-card ${cardClass}" onclick="openKitchenOrderDetailModal(${order.orderId})">
                                 <div class="kitchen-card-header d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0 fw-bold text-ellipsis-1"><i class="fa-solid ${isMasa ? 'fa-chair' : 'fa-motorcycle'} me-2"></i>${headerTitle}</h6>
-                                    ${delayBadge}
+                                    <h6 class="mb-0 fw-bold text-ellipsis-1">
+                                        <i class="fa-solid ${isPriority ? 'fa-fire text-warning' : (isMasa ? 'fa-chair' : 'fa-motorcycle')} me-2"></i>${headerTitle}
+                                    </h6>
+                                    ${badgeHtml}
                                 </div>
                                 <div class="kitchen-card-body-fixed text-center">
                                     ${subInfo}
@@ -204,11 +219,18 @@ function openKitchenOrderDetailModal(orderId) {
     if (!order) return;
 
     var isMasa = order.orderType === "Masa";
+    var isPriority = order.isPriority === true;
     var rawTableName = order.tableName || '';
     var tableNameFormatted = rawTableName.toLowerCase().startsWith('masa') ? rawTableName : `Masa ${rawTableName}`;
     var headerTitle = isMasa ? tableNameFormatted : "Paket Servis";
 
-    $("#modalKitchenTitle").html(`<i class="fa-solid ${isMasa ? 'fa-chair' : 'fa-motorcycle'} me-2"></i>${headerTitle} Ürün Detayı`);
+    if (isPriority) {
+        $("#modalKitchenHeader").addClass("kitchen-modal-header-priority");
+        $("#modalKitchenTitle").html(`<i class="fa-solid fa-fire me-2 text-warning"></i>${headerTitle} Ürün Detayı (ACİL / VIP)`);
+    } else {
+        $("#modalKitchenHeader").removeClass("kitchen-modal-header-priority");
+        $("#modalKitchenTitle").html(`<i class="fa-solid ${isMasa ? 'fa-chair' : 'fa-motorcycle'} me-2"></i>${headerTitle} Ürün Detayı`);
+    }
 
     var subInfoHtml = `
         <div class="d-flex justify-content-between text-muted small pb-2 border-bottom">
@@ -262,7 +284,7 @@ function openKitchenOrderDetailModal(orderId) {
         <button type="button" class="btn btn-purple-kitchen flex-grow-1 py-2 fw-bold rounded-3 shadow-sm" onclick="sendSelectedItemsToWaiter(${order.orderId})">
             <i class="fa-solid fa-paper-plane me-1"></i>Seçilenleri Garsona Gönder
         </button>
-        <button type="button" class="btn btn-success flex-grow-1 py-2 fw-bold rounded-3 shadow-sm" onclick="markSingleOrderAllReady(${order.orderId}); $('#modalKitchenOrderDetail').modal('hide');">
+        <button type="button" class="btn btn-success flex-grow-1 py-2 fw-bold rounded-3 shadow-sm" onclick="markSingleOrderAllReady(${order.orderId}); bootstrap.Modal.getInstance(document.getElementById('modalKitchenOrderDetail')).hide();">
             <i class="fa-solid fa-check-double me-1"></i>Tümünü Hazırla
         </button>
     `;
@@ -290,7 +312,7 @@ function sendSelectedItemsToWaiter(orderId) {
     $.ajax({
         url: "/Kitchen/MarkItemsAsReady",
         type: "POST",
-        traditional: true, // DİZİYİ C# LIST<INT>'E EKSİKSİZ BAĞLAR
+        traditional: true,
         data: {
             orderId: orderId,
             orderDetailIds: selectedDetailIds
@@ -303,9 +325,7 @@ function sendSelectedItemsToWaiter(orderId) {
                         res.tableName,
                         res.orderType,
                         res.address,
-                        res.readyItemsSummary,
-                        res.readyDetailIds,
-                        res.isAllOrderReady
+                        res.readyItemsSummary
                     );
                 }
 
@@ -346,9 +366,7 @@ function markSingleOrderAllReady(orderId) {
                         res.tableName,
                         res.orderType,
                         res.address,
-                        res.readyItemsSummary,
-                        res.readyDetailIds,
-                        res.isAllOrderReady
+                        res.readyItemsSummary
                     );
                 }
 

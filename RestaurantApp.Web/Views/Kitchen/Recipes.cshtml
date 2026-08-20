@@ -1,0 +1,131 @@
+﻿@{
+    ViewBag.Title = "Şef Reçeteleri & Hazırlık Rehberi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/kitchen-recipes.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+}
+
+<div class="container-fluid px-3 py-2">
+    <!-- ÜST BAŞLIK VE ARAMA BARI -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="fa-solid fa-book-open me-2 text-purple-main"></i>Ürün Reçeteleri 
+            </h4>
+            <p class="text-muted small mb-0">Menüdeki tüm ürünlerin standart reçete gramajlarını, pişirme sürelerini ve sunum SOP kurallarını inceleyin.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <div class="input-group search-input-group shadow-sm">
+                <span class="input-group-text bg-white border-end-0 rounded-start-3 text-muted"><i class="fa-solid fa-magnifying-glass"></i></span>
+                <input type="text" id="txtSearchRecipe" class="form-control border-start-0 rounded-end-3" placeholder="Reçete veya yemek ara..." onkeyup="filterRecipesBySearch()">
+            </div>
+            <button class="btn btn-outline-purple btn-sm rounded-3 px-3 h-38 fw-semibold" onclick="loadRecipes(currentActiveCategoryId)">
+                <i class="fa-solid fa-rotate me-1"></i> Yenile
+            </button>
+        </div>
+    </div>
+
+    <!-- KATEGORİ FİLTRELEME BUTONLARI -->
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-4" id="recipeCategoriesBar">
+        <button class="btn btn-category-recipe active shadow-sm" data-id="0" onclick="selectRecipeCategory(0, this)">
+            <i class="fa-solid fa-layer-group me-1"></i>Tüm Menü
+        </button>
+    </div>
+
+    <!-- REÇETE KARTLARI IZGARASI -->
+    <div class="row g-3" id="recipesCardGrid">
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-purple-main" role="status">
+                <span class="visually-hidden">Yükleniyor...</span>
+            </div>
+            <p class="text-muted mt-2">Reçeteler yükleniyor...</p>
+        </div>
+    </div>
+</div>
+
+<!-- 1. REÇETE GÖRÜNTÜLEME & DETAY MODALI -->
+<div class="modal fade" id="modalRecipeDetail" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header border-bottom p-3 bg-purple-header text-white d-flex justify-content-between align-items-center">
+                <h5 class="modal-title fw-bold mb-0 d-flex align-items-center" id="modalRecipeTitle">
+                    <i class="fa-solid fa-utensils me-2"></i>Reçete Detayı
+                </h5>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-light text-dark fw-bold rounded-3 px-3 shadow-sm" id="btnOpenEditRecipeModal">
+                        <i class="fa-solid fa-pen-to-square me-1 text-purple-main"></i>Reçeteyi Düzenle
+                    </button>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body p-4" id="modalRecipeBodyContent">
+                <!-- JS DOLU VEYA BOŞ DURUMA GÖRE DOLDURACAK -->
+            </div>
+            <div class="modal-footer p-2 bg-light border-top d-flex justify-content-end">
+                <button type="button" class="btn btn-secondary px-4 fw-semibold rounded-3 btn-sm" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. ŞEF REÇETE EKLEME / DÜZENLEME MODALI -->
+<div class="modal fade" id="modalEditRecipe" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header border-bottom p-3 bg-purple-header text-white">
+                <h5 class="modal-title fw-bold mb-0 d-flex align-items-center" id="modalEditRecipeTitle">
+                    <i class="fa-solid fa-pen-to-square me-2"></i>Reçete Bilgilerini Düzenle
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="editRecipeProductId" value="0" />
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-dark"><i class="fa-solid fa-clock me-1 text-warning"></i>Pişirme / Hazırlık Süresi:</label>
+                        <input type="text" id="txtEditCookTime" class="form-control rounded-3" placeholder="Örn: 8-10 Dk" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold small text-dark"><i class="fa-solid fa-temperature-three-quarters me-1 text-danger"></i>Mutfak İstasyonu:</label>
+                        <input type="text" id="txtEditStation" class="form-control rounded-3" placeholder="Örn: Izgara & Kebap İstasyonu" />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-dark">
+                        <i class="fa-solid fa-scale-balanced me-1 text-purple-main"></i>Malzeme Listesi & Gramajlar (Her satıra bir malzeme yazın):
+                    </label>
+                    <textarea id="txtEditIngredients" class="form-control rounded-3" rows="4" placeholder="Örn:&#10;180 gr Dana Kıyma&#10;1 Adet Burger Ekmeği&#10;30 gr Cheddar Peyniri&#10;20 gr Özel Sos"></textarea>
+                    <div class="form-text extra-small">Malzemeleri alt alta yazabilirsiniz (Örn: 200 gr Tavuk Göğsü).</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold small text-dark">
+                        <i class="fa-solid fa-list-check me-1 text-purple-main"></i>Hazırlık & Tabaklama Adımları :
+                    </label>
+                    <textarea id="txtEditInstructions" class="form-control rounded-3" rows="4" placeholder="Adım adım pişirme ve tabaklama kurallarını yazın..."></textarea>
+                </div>
+
+                <div class="mb-2">
+                    <label class="form-label fw-bold small text-dark">
+                        <i class="fa-solid fa-fire me-1 text-warning"></i>Şefin Püf Noktası (Kritik Uyarı):
+                    </label>
+                    <input type="text" id="txtEditChefTip" class="form-control rounded-3" placeholder="Örn: Eti ızgarada preslemeyin, tabağın sıcak olmasına dikkat edin." />
+                </div>
+            </div>
+            <div class="modal-footer p-3 bg-light border-top d-flex justify-content-between">
+                <button type="button" class="btn btn-secondary px-4 fw-semibold rounded-3" data-bs-dismiss="modal">Vazgeç</button>
+                <button type="button" class="btn btn-purple-main px-4 fw-bold rounded-3 shadow-sm" onclick="submitRecipeForm()">
+                    <i class="fa-solid fa-floppy-disk me-1"></i>Reçeteyi Kaydet
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Library/scripts/kitchen-recipes.js?v=@DateTime.Now.Ticks"></script>
+}

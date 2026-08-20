@@ -60,7 +60,15 @@
             padding: 10px 8px;
             overflow-y: auto;
             overflow-x: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
         }
+
+            #sidebar::-webkit-scrollbar {
+                display: none;
+                width: 0;
+                background: transparent;
+            }
 
             #sidebar.collapsed {
                 width: var(--sidebar-collapsed-width);
@@ -271,31 +279,37 @@
                 <ul class="sidebar-menu" id="mainSidebarMenu">
                     @{
                         string currentAction = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+                        string currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
                         string userRole = Session["UserRole"] != null ? Session["UserRole"].ToString() : (Session["Role"] != null ? Session["Role"].ToString() : "");
                     }
 
                     @if (userRole == "Admin")
                     {
-                        <li class="@(currentAction == "Index" ? "active" : "")">
+                        <li class="@(currentController == "Admin" && currentAction == "Index" ? "active" : "")">
                             <a href="/Admin/Index"><i class="fa-solid fa-house"></i><span class="link-text">Ana Sayfa</span></a>
                         </li>
-                        <li class="@(currentAction == "Dashboard" ? "active" : "")">
+                        <li class="@(currentController == "Admin" && currentAction == "Dashboard" ? "active" : "")">
                             <a href="/Admin/Dashboard"><i class="fa-solid fa-sliders"></i><span class="link-text">Kontrol Paneli</span></a>
                         </li>
-                        <li class="@(currentAction == "FinancialReports" ? "active" : "")">
+                        <li class="@(currentController == "Admin" && currentAction == "FinancialReports" ? "active" : "")">
                             <a href="/Admin/FinancialReports"><i class="fa-solid fa-chart-line"></i><span class="link-text">Ciro ve Grafikler</span></a>
                         </li>
-                        <li class="@(currentAction == "StaffManagement" ? "active" : "")">
+                        <li class="@(currentController == "Admin" && currentAction == "StaffManagement" ? "active" : "")">
                             <a href="/Admin/StaffManagement"><i class="fa-solid fa-users-gear"></i><span class="link-text">Personel Yönetimi</span></a>
                         </li>
-                        <li class="@(currentAction == "OrderTracking" ? "active" : "")">
+                        <li class="@(currentController == "Admin" && currentAction == "OrderTracking" ? "active" : "")">
                             <a href="/Admin/OrderTracking"><i class="fa-solid fa-clock-rotate-left"></i><span class="link-text">Sipariş Takip</span></a>
                         </li>
-                        <li class="@(currentAction == "KitchenReport" ? "active" : "")">
+                        <li class="@(currentController == "Admin" && currentAction == "KitchenReport" ? "active" : "")">
                             <a href="/Admin/KitchenReport"><i class="fa-solid fa-receipt"></i><span class="link-text">Mutfak Raporu</span></a>
                         </li>
-                        <!-- MASA YÖNETİMİ AÇILIR/KAPANIR (COLLAPSE + OK İKONU) DÜZENİ -->
-                        <li class="@(currentAction == "TableManagement" ? "active" : "")">
+                        <li class="@(currentController == "Kitchen" && currentAction == "Performance" ? "active" : "")">
+                            <a href="/Kitchen/Performance"><i class="fa-solid fa-chart-pie"></i><span class="link-text">Mutfak Performansı</span></a>
+                        </li>
+                        <li class="@(currentController == "Kitchen" && currentAction == "Recipes" ? "active" : "")">
+                            <a href="/Kitchen/Recipes"><i class="fa-solid fa-book-open"></i><span class="link-text">Ürün Reçeteleri</span></a>
+                        </li>
+                        <li class="@(currentController == "Admin" && currentAction == "TableManagement" ? "active" : "")">
                             <a class="d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#tableSubMenu" role="button" aria-expanded="@(currentAction == "TableManagement" ? "true" : "false")">
                                 <span><i class="fa-solid fa-chair me-2"></i><span class="link-text">Masa Yönetimi</span></span>
                                 <i class="fa-solid fa-chevron-down small submenu-arrow"></i>
@@ -320,22 +334,28 @@
                     }
                     else if (userRole.Contains("Mutfak"))
                     {
-                        <li class="@(currentAction == "Index" ? "active" : "")">
-                            <a href="/Kitchen/Index"><i class="fa-solid fa-fire-burner me-2"></i><span class="link-text">Mutfak Ekranı</span></a>
+                        <li class="@(currentController == "Kitchen" && currentAction == "Index" ? "active" : "")">
+                            <a href="/Kitchen/Index"><i class="fa-solid fa-fire-burner me-2"></i><span class="link-text">Mutfak Sipariş Ekranı</span></a>
+                        </li>
+                        <li class="@(currentController == "Kitchen" && currentAction == "Performance" ? "active" : "")">
+                            <a href="/Kitchen/Performance"><i class="fa-solid fa-chart-pie me-2"></i><span class="link-text">Mutfak Performansı</span></a>
+                        </li>
+                        <li class="@(currentController == "Kitchen" && currentAction == "Recipes" ? "active" : "")">
+                            <a href="/Kitchen/Recipes"><i class="fa-solid fa-book-open me-2"></i><span class="link-text">Ürün Reçeteleri</span></a>
                         </li>
                     }
                     else
                     {
-                        <li class="@(currentAction == "Index" ? "active" : "")">
+                        <li class="@(currentController == "Order" && currentAction == "Index" ? "active" : "")">
                             <a href="/Order/Index"><i class="fa-solid fa-house me-2"></i><span class="link-text">Ana Sayfa</span></a>
                         </li>
-                        <li class="@(currentAction == "POS" || currentAction == "Pos" ? "active" : "")">
+                        <li class="@(currentController == "Order" && (currentAction == "POS" || currentAction == "Pos") ? "active" : "")">
                             <a href="/Order/POS"><i class="fa-solid fa-utensils me-2"></i><span class="link-text">Sipariş Yönetimi</span></a>
                         </li>
-                        <li class="@(currentAction == "WaiterOrderTracking" ? "active" : "")">
+                        <li class="@(currentController == "Order" && currentAction == "WaiterOrderTracking" ? "active" : "")">
                             <a href="/Order/WaiterOrderTracking"><i class="fa-solid fa-bell-concierge me-2"></i><span class="link-text">Sipariş Takip</span></a>
                         </li>
-                        <li class="@(currentAction == "TableControl" ? "active" : "")">
+                        <li class="@(currentController == "Table" && currentAction == "TableControl" ? "active" : "")">
                             <a href="/Table/TableControl"><i class="fa-solid fa-chair me-2"></i><span class="link-text">Masa Kontrolü</span></a>
                         </li>
                     }

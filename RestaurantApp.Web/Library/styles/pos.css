@@ -94,16 +94,15 @@
     overflow: hidden !important;
 }
 
-/* ÜRÜN LİSTESİ - NOT KUTUSUNA KADAR DİNAMİK DOLAR, SONRASINDA KENDİ İÇİNDE SCROLL OLUR */
+/* ÜRÜN LİSTESİ */
 .pos-cart-items-wrapper {
-    flex: 1 1 0 !important; /* Aradaki tüm boşluğu esnekçe alır */
-    min-height: 0 !important; /* Taşmayı kesinlikle durdurur */
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     border-bottom: 1px solid #f1f5f9;
 }
 
-    /* Custom Scrollbar */
     .pos-cart-items-wrapper::-webkit-scrollbar {
         width: 5px;
     }
@@ -122,7 +121,7 @@
             background: #94a3b8;
         }
 
-/* ALT SABİT PANEL (NOT + HESAP + BUTON) - KESİNLİKLE EKRANIN ALTINA ÇAKILIDIR */
+/* ALT SABİT PANEL */
 .pos-cart-footer-fixed {
     flex-shrink: 0 !important;
     padding-top: 8px;
@@ -222,4 +221,10 @@
     border: 1px dashed #cbd5e1;
     border-radius: 10px;
     padding: 8px;
+}
+
+/* ACİL/VIP SWITCH VURGUSU */
+#chkIsPriorityOrder:checked {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
 }

@@ -1,0 +1,114 @@
+﻿/* MUTFAK PERFORMANS & SÜRE ANALİZİ STİLLERİ */
+
+:root {
+    --brand-purple: #4a154b;
+    --brand-purple-hover: #381039;
+    --brand-purple-light: #f3e8ff;
+}
+
+.text-purple-main {
+    color: var(--brand-purple) !important;
+}
+
+.bg-purple-light {
+    background-color: var(--brand-purple-light) !important;
+}
+
+.bg-success-light {
+    background-color: #d1e7dd !important;
+}
+
+.bg-info-light {
+    background-color: #cff4fc !important;
+}
+
+.bg-danger-light {
+    background-color: #f8d7da !important;
+}
+
+.card-clean {
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+}
+
+/* KPI METRİK KARTLARI */
+.kpi-card-border-purple {
+    border-left: 5px solid var(--brand-purple) !important;
+}
+
+.kpi-card-border-success {
+    border-left: 5px solid #198754 !important;
+}
+
+.kpi-card-border-info {
+    border-left: 5px solid #0dcaf0 !important;
+}
+
+.kpi-card-border-danger {
+    border-left: 5px solid #dc3545 !important;
+}
+
+.kpi-icon-circle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+/* TARİH FİLTRELEME BUTONLARI */
+.btn-perf-filter {
+    color: #64748b !important;
+    border: none !important;
+    font-weight: 600 !important;
+    padding: 6px 14px !important;
+    border-radius: 8px !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+    .btn-perf-filter:hover {
+        color: var(--brand-purple) !important;
+        background-color: #f8fafc !important;
+    }
+
+    .btn-perf-filter.active {
+        background-color: var(--brand-purple) !important;
+        color: #ffffff !important;
+    }
+
+.btn-outline-purple {
+    color: var(--brand-purple) !important;
+    border-color: var(--brand-purple) !important;
+    background-color: transparent !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+    .btn-outline-purple:hover {
+        background-color: var(--brand-purple) !important;
+        color: #ffffff !important;
+    }
+
+.h-38 {
+    height: 38px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+/* TABLO STİLLERİ */
+.table-responsive::-webkit-scrollbar {
+    width: 5px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}

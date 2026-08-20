@@ -1,0 +1,126 @@
+﻿/* DİJİTAL ŞEF REÇETELERİ & SOP REHBERİ STİLLERİ */
+
+:root {
+    --brand-purple: #4a154b;
+    --brand-purple-hover: #381039;
+    --brand-purple-light: #f3e8ff;
+}
+
+.text-purple-main {
+    color: var(--brand-purple) !important;
+}
+
+.bg-purple-light {
+    background-color: var(--brand-purple-light) !important;
+}
+
+.bg-purple-header {
+    background: linear-gradient(135deg, #4a154b 0%, #381039 100%) !important;
+}
+
+.btn-outline-purple {
+    color: var(--brand-purple) !important;
+    border-color: var(--brand-purple) !important;
+    background-color: transparent !important;
+    font-weight: 600 !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+    .btn-outline-purple:hover {
+        background-color: var(--brand-purple) !important;
+        color: #ffffff !important;
+    }
+
+.h-38 {
+    height: 38px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+}
+
+.search-input-group {
+    max-width: 260px;
+}
+
+    .search-input-group input:focus {
+        border-color: var(--brand-purple) !important;
+        box-shadow: 0 0 0 0.2rem rgba(74, 21, 75, 0.15) !important;
+    }
+
+/* KATEGORİ BUTONLARI */
+.btn-category-recipe {
+    background-color: #ffffff;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    font-weight: 600;
+    font-size: 0.88rem;
+    padding: 7px 16px;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+}
+
+    .btn-category-recipe:hover {
+        background-color: #f8fafc;
+        color: var(--brand-purple);
+        border-color: var(--brand-purple);
+    }
+
+    .btn-category-recipe.active {
+        background-color: var(--brand-purple) !important;
+        color: #ffffff !important;
+        border-color: var(--brand-purple) !important;
+    }
+
+/* REÇETE KARTLARI */
+.recipe-card {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 16px !important;
+    background-color: #ffffff !important;
+    cursor: pointer;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+    .recipe-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 24px rgba(74, 21, 75, 0.12) !important;
+        border-color: var(--brand-purple) !important;
+    }
+
+.recipe-card-img {
+    height: 140px;
+    width: 100%;
+    object-fit: cover;
+    background-color: #f8fafc;
+}
+
+.recipe-modal-main-img {
+    max-height: 200px;
+    border-radius: 14px;
+}
+
+/* MALZEME LİSTESİ */
+.recipe-ingredients-list {
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+    .recipe-ingredients-list::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .recipe-ingredients-list::-webkit-scrollbar-track {
+        background: #f1f5f9;
+        border-radius: 10px;
+    }
+
+    .recipe-ingredients-list::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+
+.recipe-ingredient-item {
+    background: transparent !important;
+    border-color: #f1f5f9 !important;
+    padding: 6px 0 !important;
+    font-size: 0.85rem;
+}

@@ -154,8 +154,9 @@ $(document).ready(function () {
         var address = ($("#txtDeliveryAddress").val() || "").trim();
         var lat = parseFloat($("#latitude").val());
         var lng = parseFloat($("#longitude").val());
+        var isPriority = $("#chkIsPriorityOrder").is(":checked"); // ACİL/VIP BİLGİSİ
 
-        executeSubmitOrder(orderType, tableId, address, lat, lng);
+        executeSubmitOrder(orderType, tableId, address, lat, lng, isPriority);
     });
 });
 
@@ -233,7 +234,6 @@ function confirmTargetSession(targetText) {
     });
 }
 
-// DOLU MASANIN ÖNCEDEN VERİLMİŞ SİPARİŞLERİNİ ÇEKİP SALT OKUNUR GÖSTERME
 function loadTableActiveOrder(tableId) {
     $.ajax({
         url: "/Admin/GetActiveOrderByTableId",
@@ -263,7 +263,6 @@ function loadTableActiveOrder(tableId) {
     });
 }
 
-// ÖNCEDEN VERİLMİŞ SİPARİŞLERİ EKRANA SALT OKUNUR ÇİZME
 function renderExistingOrders() {
     var $wrapper = $("#existingOrdersWrapper");
     var $tbody = $("#existing-items-body");
@@ -309,6 +308,7 @@ function resetTargetSelection() {
                 cart = [];
                 existingCart = [];
                 $("#txtOrderGeneralNote").val("");
+                $("#chkIsPriorityOrder").prop("checked", false);
                 renderExistingOrders();
                 renderCart();
                 executeResetTargetUI();
@@ -334,8 +334,7 @@ function executeResetTargetUI() {
     }
 }
 
-// GENEL SİPARİŞ NOTUNU MUTFAĞA VE BACKEND'E GÖNDERME
-function executeSubmitOrder(orderType, tableId, address, lat, lng) {
+function executeSubmitOrder(orderType, tableId, address, lat, lng, isPriority) {
     var generalNote = ($("#txtOrderGeneralNote").val() || "").trim();
 
     var orderData = {
@@ -345,7 +344,8 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng) {
         Latitude: orderType === "PaketServis" ? lat : null,
         Longitude: orderType === "PaketServis" ? lng : null,
         TotalAmount: calculateTotal(),
-        OrderNote: generalNote || null, // GENEL SİPARİŞ NOTU
+        OrderNote: generalNote || null,
+        IsPriority: isPriority === true, // ACİL/VIP BİLGİSİ SUNUCUYA İLETİLİYOR
         Items: cart.map(item => ({
             ProductId: item.id,
             Quantity: item.quantity,
@@ -362,7 +362,7 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng) {
         data: JSON.stringify(orderData),
         contentType: "application/json",
         success: function (response) {
-            $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-2"></i>Siparişi Onayla & Mutfağa Gönder');
+            $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-2"></i>Siparişi Onayla');
             if (response.success) {
                 Swal.fire({
                     title: 'Sipariş Mutfağa İletildi!',
@@ -375,12 +375,13 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng) {
                     cancelButtonText: 'Hayır, Devam Et'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        printOrderReceipt(orderType, tableId, address, generalNote);
+                        printOrderReceipt(orderType, tableId, address, generalNote, isPriority);
                     }
 
                     cart = [];
                     existingCart = [];
                     $("#txtOrderGeneralNote").val("");
+                    $("#chkIsPriorityOrder").prop("checked", false);
                     renderExistingOrders();
                     renderCart();
                     $("#txtDeliveryAddress").val("");
@@ -392,13 +393,13 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng) {
             }
         },
         error: function () {
-            $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-2"></i>Siparişi Onayla & Mutfağa Gönder');
+            $btn.prop("disabled", false).html('<i class="fa-solid fa-check me-2"></i>Siparişi Onayla');
             Swal.fire("Hata", "Sipariş gönderilirken sunucu hatası oluştu.", "error");
         }
     });
 }
 
-function printOrderReceipt(orderType, tableId, address, generalNote) {
+function printOrderReceipt(orderType, tableId, address, generalNote, isPriority) {
     var nowStr = new Date().toLocaleString('tr-TR');
 
     var targetTitle = "Paket Servis";
@@ -417,6 +418,11 @@ function printOrderReceipt(orderType, tableId, address, generalNote) {
                 <td style="text-align:right; padding: 4px 0;">${lineTotal} ₺</td>
             </tr>`;
     });
+
+    var priorityBadgeHtml = isPriority ? `
+        <div style="background-color:#dc3545; color:#fff; text-align:center; font-weight:bold; padding:4px; font-size:13px; margin:4px 0; border-radius:4px;">
+            *** ACİL / VIP SİPARİŞ ***
+        </div>` : '';
 
     var noteSectionHtml = generalNote ? `
         <div class="divider"></div>
@@ -448,6 +454,7 @@ function printOrderReceipt(orderType, tableId, address, generalNote) {
                 <h1 class="receipt-logo">LezzetPOS</h1>
                 <div class="receipt-sub">Yeni Sipariş Fişi</div>
             </div>
+            ${priorityBadgeHtml}
             <div class="divider"></div>
             <div class="info-block">
                 <div><strong>Tarih:</strong> ${nowStr}</div>
@@ -586,6 +593,7 @@ function renderPosTableCards(sectionFilter) {
                 cart = [];
                 existingCart = [];
                 $("#txtOrderGeneralNote").val("");
+                $("#chkIsPriorityOrder").prop("checked", false);
                 renderExistingOrders();
                 renderCart();
             }
@@ -758,7 +766,6 @@ function filterCategory(catId, btn) {
     loadProducts(catId);
 }
 
-// MENÜDEN TIKLANAN YENİ ÜRÜNÜ SADECE SIFIR SEPETE EKLEME
 function addToCart(id, name, price) {
     if (!isTargetConfirmed) {
         openInitialModal();

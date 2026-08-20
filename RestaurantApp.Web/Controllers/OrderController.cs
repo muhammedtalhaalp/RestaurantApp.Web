@@ -46,6 +46,7 @@ namespace RestaurantApp.Web.Controllers
                             .FirstOrDefault();
 
                         decimal activeTotal = activeOrder != null ? activeOrder.TotalAmount : 0;
+                        bool isPriority = activeOrder != null && activeOrder.IsPriority;
 
                         return new
                         {
@@ -54,6 +55,7 @@ namespace RestaurantApp.Web.Controllers
                             tableNumber = t.TableNumber,
                             status = t.Status ?? "Bos",
                             currentAmount = activeTotal,
+                            isPriority = isPriority,
                             section = t.Section ?? "Salon",
                             shape = t.Shape ?? "Square",
                             posX = t.PosX ?? 50,
@@ -112,7 +114,6 @@ namespace RestaurantApp.Web.Controllers
                 if (order == null)
                     return Json(new { success = false, message = "Sipariş bulunamadı." });
 
-                // Hazır olan tüm ürünleri "Servis Edildi" durumuna getir
                 var readyItems = db.AppOrderDetails
                     .Where(d => d.OrderId == orderId && !d.IsReturned && d.ReturnReason == "Hazır")
                     .ToList();
@@ -122,7 +123,6 @@ namespace RestaurantApp.Web.Controllers
                     item.ReturnReason = "Servis Edildi";
                 }
 
-                // Masadaki tüm ürünler teslim edildiyse sipariş durumunu "Servis Edildi" yap
                 var allActiveDetails = db.AppOrderDetails.Where(d => d.OrderId == orderId && !d.IsReturned).ToList();
                 bool allDelivered = allActiveDetails.All(d => d.ReturnReason == "Servis Edildi");
 
@@ -139,6 +139,41 @@ namespace RestaurantApp.Web.Controllers
             catch (Exception ex)
             {
                 return Json(new { success = false, message = "Hata: " + ex.Message });
+            }
+        }
+
+        // SİPARİŞİ ACİL / VIP YAPMA VEYA ACİLİYETİ KALDIRMA API METODU
+        [HttpPost]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        public JsonResult ToggleOrderPriority(int orderId)
+        {
+            try
+            {
+                var order = db.AppOrders.FirstOrDefault(x => x.OrderId == orderId);
+                if (order == null)
+                    return Json(new { success = false, message = "Sipariş bulunamadı." });
+
+                order.IsPriority = !order.IsPriority;
+                db.SaveChanges();
+
+                // Mutfak ekranına acil sipariş güncellemesini anlık bildir
+                try
+                {
+                    var hubContext = GlobalHost.ConnectionManager.GetHubContext<OrderHub>();
+                    hubContext.Clients.All.onNewOrderCreated();
+                }
+                catch (Exception signalrEx)
+                {
+                    System.Diagnostics.Debug.WriteLine("SignalR bildirim hatası: " + signalrEx.Message);
+                }
+
+                string msg = order.IsPriority ? "Sipariş ACİL/VIP olarak işaretlendi ve mutfakta en üste alındı!" : "Siparişin acil durumu kaldırıldı.";
+
+                return Json(new { success = true, isPriority = order.IsPriority, message = msg });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Öncelik değiştirilirken hata: " + ex.Message });
             }
         }
 
@@ -166,6 +201,11 @@ namespace RestaurantApp.Web.Controllers
                     if (!string.IsNullOrWhiteSpace(model.OrderNote))
                     {
                         mainOrder.OrderNote = model.OrderNote.Trim();
+                    }
+
+                    if (model.IsPriority)
+                    {
+                        mainOrder.IsPriority = true;
                     }
 
                     var existingDetails = db.AppOrderDetails.Where(d => d.OrderId == mainOrder.OrderId).ToList();
@@ -212,6 +252,7 @@ namespace RestaurantApp.Web.Controllers
                         TotalAmount = model.TotalAmount,
                         OrderNote = !string.IsNullOrWhiteSpace(model.OrderNote) ? model.OrderNote.Trim() : null,
                         Status = "Hazırlanıyor",
+                        IsPriority = model.IsPriority,
                         CreatedDate = DateTime.Now
                     };
 
@@ -343,6 +384,7 @@ namespace RestaurantApp.Web.Controllers
         public decimal? Longitude { get; set; }
         public decimal TotalAmount { get; set; }
         public string OrderNote { get; set; }
+        public bool IsPriority { get; set; } // EKLENDİ
         public List<OrderItemViewModel> Items { get; set; }
     }
 
