@@ -90,11 +90,10 @@ namespace RestaurantApp.Web.Controllers
                 decimal totalCash = cashAmount ?? 0;
                 decimal totalCredit = creditCardAmount ?? 0;
                 decimal totalMeal = mealCardAmount ?? 0;
+                decimal totalSelectedPayment = totalCash + totalCredit + totalMeal;
 
-                mainOrder.CashAmount = (mainOrder.CashAmount ?? 0) + totalCash;
-                mainOrder.CreditCardAmount = (mainOrder.CreditCardAmount ?? 0) + totalCredit;
-                mainOrder.MealCardAmount = (mainOrder.MealCardAmount ?? 0) + totalMeal;
-                mainOrder.PaymentType = !string.IsNullOrWhiteSpace(paymentType) ? paymentType : "Parçalı Ödeme";
+                // Masada kalan aktif ürünlerin gerçek toplamı
+                decimal remainingDebtBeforePay = mainOrder.TotalAmount;
 
                 // Seçilen ürünleri sipariş detayından eksilt veya sil
                 foreach (var pItem in paidItems)
@@ -115,10 +114,23 @@ namespace RestaurantApp.Web.Controllers
 
                 db.SaveChanges();
 
-                // Masada kalan aktif ürünlerin toplamını yeniden hesapla
-                var remainingDetails = db.AppOrderDetails.Where(d => d.OrderId == mainOrder.OrderId && !d.IsReturned).ToList();
-                mainOrder.TotalAmount = remainingDetails.Sum(d => d.Quantity * d.UnitPrice);
+                // Eğer ödenen tutar kalan borçtan fazlaysa veya eşitse kalan borcu sıfırla
+                if (totalSelectedPayment >= remainingDebtBeforePay)
+                {
+                    mainOrder.TotalAmount = 0;
+                    mainOrder.CashAmount = (mainOrder.CashAmount ?? 0) + (totalCash > remainingDebtBeforePay ? remainingDebtBeforePay : totalCash);
+                    mainOrder.CreditCardAmount = (mainOrder.CreditCardAmount ?? 0) + (totalCredit > remainingDebtBeforePay ? 0 : totalCredit);
+                    mainOrder.MealCardAmount = (mainOrder.MealCardAmount ?? 0) + (totalMeal > remainingDebtBeforePay ? 0 : totalMeal);
+                }
+                else
+                {
+                    mainOrder.TotalAmount = Math.Max(0, remainingDebtBeforePay - totalSelectedPayment);
+                    mainOrder.CashAmount = (mainOrder.CashAmount ?? 0) + totalCash;
+                    mainOrder.CreditCardAmount = (mainOrder.CreditCardAmount ?? 0) + totalCredit;
+                    mainOrder.MealCardAmount = (mainOrder.MealCardAmount ?? 0) + totalMeal;
+                }
 
+                mainOrder.PaymentType = !string.IsNullOrWhiteSpace(paymentType) ? paymentType : "Parçalı Ödeme";
                 db.SaveChanges();
 
                 return Json(new
@@ -135,7 +147,7 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // SERBEST TUTAR BAZLI PARÇALI ÖDEME
+        // 2. SERBEST TUTAR BAZLI PARÇALI ÖDEME
         [HttpPost]
         [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
         public JsonResult PayByAmount(int tableId, decimal paidAmount, decimal? cashAmount, decimal? creditCardAmount, decimal? mealCardAmount, string paymentType)
@@ -202,7 +214,7 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // 3. MASAYI BOŞALTMA İŞLEMİ (MÜŞTERİ FİZİKEN MASADAN KALKTIĞINDA)
+        // 3. MASAYI BOŞALTMA İŞLEMİ
         [HttpPost]
         [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
         public JsonResult VacateTable(int tableId)
@@ -283,6 +295,19 @@ namespace RestaurantApp.Web.Controllers
                 var targetOrder = db.AppOrders.Where(o => o.TableId == targetTableId && o.Status != "Tamamlandı" && o.Status != "İptal").OrderBy(o => o.CreatedDate).FirstOrDefault();
 
                 if (sourceOrder == null || targetOrder == null) return Json(new { success = false, message = "Birleştirilecek aktif siparişler bulunamadı." });
+
+                // KISMİ ÖDEME KONTROLÜ: Herhangi bir masada önceden ödeme yapılmışsa birleştirmeyi engelle
+                bool isSourcePartiallyPaid = (sourceOrder.CashAmount ?? 0) > 0 || (sourceOrder.CreditCardAmount ?? 0) > 0 || (sourceOrder.MealCardAmount ?? 0) > 0;
+                bool isTargetPartiallyPaid = (targetOrder.CashAmount ?? 0) > 0 || (targetOrder.CreditCardAmount ?? 0) > 0 || (targetOrder.MealCardAmount ?? 0) > 0;
+
+                if (isSourcePartiallyPaid || isTargetPartiallyPaid)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Daha önce adisyon miktarının bir kısmı ödendiği için bu masa birleştirilemez! Lütfen önce açık hesabı kapatınız."
+                    });
+                }
 
                 var sourceDetails = db.AppOrderDetails.Where(d => d.OrderId == sourceOrder.OrderId).ToList();
                 foreach (var detail in sourceDetails) detail.OrderId = targetOrder.OrderId;

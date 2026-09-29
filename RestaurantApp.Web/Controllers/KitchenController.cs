@@ -327,10 +327,30 @@ namespace RestaurantApp.Web.Controllers
                 if (product == null)
                     return Json(new { success = false, message = "Ürün bulunamadı." });
 
-                // Ürün açıklamasına şefin girdiği JSON formatındaki reçeteyi saklıyoruz
+                // Varsa mevcut sade menü açıklamasını koru
+                string currentCleanDesc = "";
+                if (!string.IsNullOrWhiteSpace(product.Description))
+                {
+                    string trimmed = product.Description.Trim();
+                    if (trimmed.StartsWith("{") && trimmed.EndsWith("}"))
+                    {
+                        try
+                        {
+                            dynamic existingObj = Newtonsoft.Json.JsonConvert.DeserializeObject(trimmed);
+                            currentCleanDesc = existingObj.productDesc ?? "";
+                        }
+                        catch { }
+                    }
+                    else
+                    {
+                        currentCleanDesc = trimmed;
+                    }
+                }
+
                 string serializedRecipe = Newtonsoft.Json.JsonConvert.SerializeObject(new
                 {
                     hasRecipe = true,
+                    productDesc = currentCleanDesc,
                     cookTime = model.CookTime,
                     station = model.Station,
                     ingredients = model.Ingredients,
@@ -346,6 +366,65 @@ namespace RestaurantApp.Web.Controllers
             catch (Exception ex)
             {
                 return Json(new { success = false, message = "Reçete kaydedilirken hata: " + ex.Message });
+            }
+        }
+
+        // ==========================================
+        // 86 LIST / TÜKENDİ (STOK KONTROL) API
+        // ==========================================
+        [HttpGet]
+        [JwtAuthorize(Roles = "Admin, Mutfak Şefi, Mutfak")]
+        public JsonResult GetKitchenProductsStock()
+        {
+            try
+            {
+                var products = db.AppProducts
+                    .Where(p => p.IsActive)
+                    .OrderBy(p => p.CategoryId)
+                    .ThenBy(p => p.ProductName)
+                    .Select(p => new
+                    {
+                        productId = p.ProductId,
+                        productName = p.ProductName,
+                        categoryName = p.AppCategories != null ? p.AppCategories.CategoryName : "Genel",
+                        isAvailable = p.IsAvailable,
+                        imageUrl = p.ImageUrl
+                    }).ToList();
+
+                return Json(new { success = true, data = products }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Stok listesi yüklenemedi: " + ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        [HttpPost]
+        [JwtAuthorize(Roles = "Admin, Mutfak Şefi, Mutfak")]
+        public JsonResult ToggleProductStockAvailability(int productId)
+        {
+            try
+            {
+                var product = db.AppProducts.FirstOrDefault(p => p.ProductId == productId);
+                if (product == null)
+                    return Json(new { success = false, message = "Ürün bulunamadı." });
+
+                product.IsAvailable = !product.IsAvailable;
+                db.SaveChanges();
+
+                string statusText = product.IsAvailable ? "Satışa Açıldı (Mevcut)" : "Tükendi (Satışa Kapatıldı)";
+
+                return Json(new
+                {
+                    success = true,
+                    message = $"{product.ProductName} durumu güncellendi: {statusText}",
+                    productId = product.ProductId,
+                    isAvailable = product.IsAvailable
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Durum güncellenirken hata: " + ex.Message });
             }
         }
 

@@ -189,7 +189,7 @@
     color: #212529 !important;
     font-weight: 500;
     resize: none !important;
-    max-height: 52px;
+    max-height: 48px;
     font-size: 0.82rem !important;
     overflow-y: auto !important;
     transition: all 0.2s ease-in-out;
@@ -228,3 +228,72 @@
     background-color: #dc3545 !important;
     border-color: #dc3545 !important;
 }
+
+/* =================================================== */
+/* HIZLI SİPARİŞ NOTU ŞABLON ROZETLERİ                */
+/* =================================================== */
+.quick-note-tags-container {
+    max-height: 52px;
+    overflow-y: auto;
+    padding-bottom: 2px;
+}
+
+    .quick-note-tags-container::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .quick-note-tags-container::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 8px;
+    }
+
+.btn-quick-tag {
+    font-size: 0.72rem !important;
+    padding: 2px 7px !important;
+    font-weight: 600 !important;
+    border-radius: 6px !important;
+    background-color: #ffffff !important;
+    color: #4a154b !important;
+    border: 1px solid #d4c5d8 !important;
+    transition: all 0.15s ease !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    user-select: none !important;
+}
+
+    .btn-quick-tag:hover {
+        background-color: #4a154b !important;
+        color: #ffffff !important;
+        border-color: #4a154b !important;
+        transform: translateY(-1px);
+    }
+
+    .btn-quick-tag .tag-delete-btn {
+        opacity: 0.5;
+        font-size: 0.65rem;
+        transition: opacity 0.2s;
+        cursor: pointer;
+    }
+
+    .btn-quick-tag:hover .tag-delete-btn {
+        opacity: 1;
+        color: #ffb4b4;
+    }
+
+.btn-quick-tag-add {
+    font-size: 0.72rem !important;
+    padding: 2px 8px !important;
+    font-weight: 700 !important;
+    border-radius: 6px !important;
+    background-color: #e9ecef !important;
+    color: #495057 !important;
+    border: 1px dashed #adb5bd !important;
+    transition: all 0.15s ease !important;
+}
+
+    .btn-quick-tag-add:hover {
+        background-color: #198754 !important;
+        color: #ffffff !important;
+        border-color: #198754 !important;
+    }

@@ -299,3 +299,29 @@
         color: #ffffff !important;
         box-shadow: 0 4px 10px rgba(74, 21, 75, 0.25) !important;
     }
+
+.stock-product-img {
+    width: 38px;
+    height: 38px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.form-switch .form-check-input.stock-switch {
+    width: 2.8em;
+    height: 1.4em;
+    cursor: pointer;
+}
+
+    .form-switch .form-check-input.stock-switch:checked {
+        background-color: #198754;
+        border-color: #198754;
+    }
+
+.stock-status-badge {
+    font-size: 0.78rem;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-weight: 700;
+}

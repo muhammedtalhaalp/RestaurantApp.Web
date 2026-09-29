@@ -128,20 +128,31 @@
 
             <!-- 4. BÖLÜM: ALT SABİT KAPSAYICI -->
             <div class="pos-cart-footer-fixed">
-                <!-- SİPARİŞ NOTU KUTUSU -->
+                <!-- SİPARİŞ NOTU KUTUSU VE HIZLI ŞABLON ETİKETLERİ -->
                 <div class="mb-2">
-                    <label for="txtOrderGeneralNote" class="form-label fw-bold text-secondary extra-small mb-1">
-                        <i class="fa-solid fa-note-sticky me-1" style="color: #4a154b;"></i>Sipariş Notu:
-                    </label>
-                    <textarea id="txtOrderGeneralNote" class="form-control form-control-sm rounded-3 pos-note-fixed" rows="2" placeholder="Sipariş notu ekleyebilirsiniz..."></textarea>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label for="txtOrderGeneralNote" class="form-label fw-bold text-secondary extra-small mb-0">
+                            <i class="fa-solid fa-note-sticky me-1" style="color: #4a154b;"></i>Sipariş Notu:
+                        </label>
+                        <button type="button" class="btn btn-link text-danger p-0 text-decoration-none extra-small fw-semibold" onclick="clearOrderNote()" title="Notu Temizle">
+                            <i class="fa-solid fa-eraser me-1"></i>Temizle
+                        </button>
+                    </div>
+
+                    <textarea id="txtOrderGeneralNote" class="form-control form-control-sm rounded-3 pos-note-fixed mb-1.5" rows="2" placeholder="Sipariş notu ekleyebilirsiniz..."></textarea>
+
+                    <!-- Hızlı Not Rozetleri & Ekleme Butonu -->
+                    <div class="quick-note-tags-container d-flex flex-wrap align-items-center gap-1 mt-1" id="quickNoteBadgesWrapper">
+                        <!-- JS Dinamik Rozetleri Buraya Basacak -->
+                    </div>
                 </div>
 
                 <!-- ACİL / VIP SİPARİŞ SEÇENEĞİ -->
                 <div class="form-check form-switch mb-2 p-2 bg-light border rounded-3 d-flex align-items-center justify-content-between ps-3">
                     <label class="form-check-label fw-bold text-danger small mb-0 user-select-none" for="chkIsPriorityOrder" style="cursor: pointer;">
-                        <i class="fa-solid fa-fire me-1"></i>Acil  Sipariş (Öncelikli)
+                        <i class="fa-solid fa-fire me-1"></i>Acil Sipariş (Öncelikli)
                     </label>
-                    <input class="form-check-input m-0" type="checkbox" role="switch" id="chkIsPriorityOrder" style="cursor: pointer; width: 2.2em; height: 1.2em;">
+                    <input class="form-check-input m-0" type="checkbox" id="chkIsPriorityOrder" style="cursor: pointer; width: 2.2em; height: 1.2em;">
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center mb-2">

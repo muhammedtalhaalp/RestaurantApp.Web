@@ -40,7 +40,7 @@ $(document).ready(function () {
 
     $('#tabPayByAmount').on('shown.bs.tab', function () {
         var customVal = parseFloat($("#txtCustomPayAmount").val()) || 0;
-        if (customVal === 0) {
+        if (customVal === 0 || customVal > currentTableTotal) {
             $("#txtCustomPayAmount").val(currentTableTotal.toFixed(2));
             customVal = currentTableTotal;
         }
@@ -213,7 +213,6 @@ function renderWaiterCheckoutItems(items, isPaid, remainingTotal) {
         $tbody.append(row);
     });
 
-    // Sunucudan gelen net kalan borç varsa onu kullan, yoksa hesaplanan toplamı al
     currentTableTotal = (remainingTotal !== undefined) ? remainingTotal : calculatedItemsSum;
     $("#waiterCheckoutGrandTotal").text(currentTableTotal.toFixed(2) + " ₺");
 }
@@ -280,7 +279,13 @@ function recalcItemsSelectionTotal() {
         total += (obj.quantity * obj.unitPrice);
     });
 
-    currentPayTargetAmount = total;
+    // Eğer seçilen ürünlerin toplamı kalan borcu aşıyorsa tavan olarak kalan borca sınırla
+    if (total > currentTableTotal && currentTableTotal > 0) {
+        currentPayTargetAmount = currentTableTotal;
+    } else {
+        currentPayTargetAmount = total;
+    }
+
     updatePayTargetDisplay();
 }
 
@@ -322,18 +327,16 @@ $(document).on("click", "#btnFinalizeSplitPayment", function () {
     var credit = parseFloat($("#numCreditPay").val()) || 0;
     var meal = parseFloat($("#numMealPay").val()) || 0;
 
-    var paymentType = "Parçalı Ödeme";
-    if (cash === currentPayTargetAmount) paymentType = "Nakit";
-    else if (credit === currentPayTargetAmount) paymentType = "Kredi Kartı";
-    else if (meal === currentPayTargetAmount) paymentType = "Yemek Kartı";
-
     var isItemsMode = $("#panePayByItems").hasClass("active");
 
     if (isItemsMode) {
         var itemsList = [];
+        var rawSelectedSum = 0;
+
         $.each(selectedItemsForPay, function (id, obj) {
             if (obj.quantity > 0) {
                 itemsList.push({ OrderDetailId: parseInt(id), Quantity: obj.quantity });
+                rawSelectedSum += (obj.quantity * obj.unitPrice);
             }
         });
 
@@ -342,23 +345,38 @@ $(document).on("click", "#btnFinalizeSplitPayment", function () {
             return;
         }
 
-        $.ajax({
-            url: "/Table/PayByItems",
-            type: "POST",
-            contentType: "application/json",
-            data: JSON.stringify({
-                tableId: tableId,
-                paidItems: itemsList,
-                cashAmount: cash,
-                creditCardAmount: credit,
-                mealCardAmount: meal,
-                paymentType: paymentType
-            }),
-            success: function (res) {
-                handlePaymentResult(res);
-            }
-        });
+        // SEÇİLEN ÜRÜNLERİN TUTARI KALAN BORCU AŞIYORSA UYARI ÇIKAR
+        if (rawSelectedSum > currentTableTotal && currentTableTotal > 0) {
+            Swal.fire({
+                title: "Kalan Hesap Aşımı!",
+                html: `Seçtiğiniz ürünlerin toplamı <b>${rawSelectedSum.toFixed(2)} ₺</b> tutmaktadır.<br><br>Ancak masanın kalan hesap borcu <b>${currentTableTotal.toFixed(2)} ₺</b>'dir.<br><br>Kalan <b>${currentTableTotal.toFixed(2)} ₺</b> tahsil edilip masa adisyonu kapatılsın mı?`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#4a154b",
+                cancelButtonColor: "#6c757d",
+                confirmButtonText: "Evet, Kalanı Tahsil Et ve Kapat",
+                cancelButtonText: "İptal"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    processItemsPayment(tableId, itemsList, currentTableTotal, 0, 0, "Parçalı Ödeme");
+                }
+            });
+            return;
+        }
+
+        var paymentType = "Parçalı Ödeme";
+        if (cash === currentPayTargetAmount) paymentType = "Nakit";
+        else if (credit === currentPayTargetAmount) paymentType = "Kredi Kartı";
+        else if (meal === currentPayTargetAmount) paymentType = "Yemek Kartı";
+
+        processItemsPayment(tableId, itemsList, cash, credit, meal, paymentType);
+
     } else {
+        var paymentType = "Parçalı Ödeme";
+        if (cash === currentPayTargetAmount) paymentType = "Nakit";
+        else if (credit === currentPayTargetAmount) paymentType = "Kredi Kartı";
+        else if (meal === currentPayTargetAmount) paymentType = "Yemek Kartı";
+
         $.post("/Table/PayByAmount", {
             tableId: tableId,
             paidAmount: currentPayTargetAmount,
@@ -371,6 +389,28 @@ $(document).on("click", "#btnFinalizeSplitPayment", function () {
         });
     }
 });
+
+function processItemsPayment(tableId, itemsList, cash, credit, meal, paymentType) {
+    $.ajax({
+        url: "/Table/PayByItems",
+        type: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({
+            tableId: tableId,
+            paidItems: itemsList,
+            cashAmount: cash,
+            creditCardAmount: credit,
+            mealCardAmount: meal,
+            paymentType: paymentType
+        }),
+        success: function (res) {
+            handlePaymentResult(res);
+        },
+        error: function () {
+            Swal.fire("Hata", "Ödeme sunucuya iletilirken hata oluştu.", "error");
+        }
+    });
+}
 
 function handlePaymentResult(res) {
     if (res.success) {

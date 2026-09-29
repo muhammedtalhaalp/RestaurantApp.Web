@@ -17,6 +17,11 @@
             <p class="text-muted small mb-0">Siparişleri takip edebilir, karta tıklayarak ürün bazlı hazırlık yapabilirsiniz.</p>
         </div>
         <div class="d-flex align-items-center gap-2">
+            <!-- 86 List / Stok Durumu Butonu -->
+            <button class="btn btn-outline-danger btn-sm rounded-3 px-3 h-38 fw-semibold" type="button" onclick="openKitchenStockModal()">
+                <i class="fa-solid fa-ban me-1"></i> Tükendi / Stok (86)
+            </button>
+
             <!-- Bildirim Sesi Dropdown Menüsü -->
             <div class="dropdown">
                 <button class="btn btn-outline-purple btn-sm rounded-3 px-3 dropdown-toggle d-flex align-items-center gap-2 h-38" type="button" id="dropdownKitchenSound" data-bs-toggle="dropdown" aria-expanded="false">
@@ -49,7 +54,7 @@
     </div>
 </div>
 
-<!-- SİPARİŞ DETAY MODALI -->
+<!-- 1. SİPARİŞ DETAY MODALI -->
 <div class="modal fade" id="modalKitchenOrderDetail" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
@@ -70,6 +75,48 @@
             </div>
             <div class="modal-footer p-2 bg-light border-top d-flex gap-2" id="modalKitchenFooterAction">
                 <!-- JS Butonları Buraya Basacak -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 2. TÜKENDİ / 86 LIST (STOK KONTROL) MODALI -->
+<div class="modal fade" id="modalKitchenStock" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header border-bottom p-3 bg-danger text-white d-flex justify-content-between align-items-center">
+                <h5 class="modal-title fw-bold mb-0 d-flex align-items-center">
+                    <i class="fa-solid fa-ban me-2"></i>Mutfak Stok & Tükendi Listesi (86 List)
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <p class="text-muted small mb-3">
+                    Stoğu biten ürünleri buradan <b>"Tükendi"</b> durumuna getirebilirsiniz. Tükendi olan ürünler garson POS ekranında anında siparişe kapatılır.
+                </p>
+                <div class="input-group mb-3 shadow-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+                    <input type="text" id="txtKitchenSearchStock" class="form-control border-start-0" placeholder="Ürün adı ile ara..." onkeyup="filterKitchenStockList()" />
+                </div>
+                <div class="table-responsive rounded-3 border" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th style="width: 50px;">Görsel</th>
+                                <th>Ürün Adı</th>
+                                <th>Kategori</th>
+                                <th class="text-center" style="width: 140px;">Durum</th>
+                                <th class="text-center" style="width: 120px;">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="kitchenStockTableBody">
+                            <!-- JS Dolduracak -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer p-2 bg-light border-top d-flex justify-content-end">
+                <button type="button" class="btn btn-secondary px-4 fw-semibold rounded-3 btn-sm" data-bs-dismiss="modal">Kapat</button>
             </div>
         </div>
     </div>

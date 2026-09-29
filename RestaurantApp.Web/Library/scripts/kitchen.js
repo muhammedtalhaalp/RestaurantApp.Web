@@ -11,6 +11,7 @@ var orderHubProxy = null;
 var audioCtx = null;
 var selectedKitchenSound = localStorage.getItem("KitchenSelectedSound") || "chime";
 var currentActiveOrdersData = [];
+var kitchenStockProductsData = [];
 
 $(document).ready(function () {
     console.log("Kitchen JS Yüklendi.");
@@ -152,7 +153,6 @@ function loadKitchenOrders() {
                         ? `<div class="kitchen-general-note-box text-ellipsis-1" title="Sipariş Notu: ${order.orderNote}"><i class="fa-solid fa-note-sticky me-1"></i>Not: "${order.orderNote}"</div>`
                         : '';
 
-                    // ACİL / VIP VEYA GECİKME DURUMU
                     var cardClass = "";
                     if (isPriority) {
                         cardClass = "card-order-priority";
@@ -411,4 +411,114 @@ function calculateElapsedMinutes(timeStr) {
 
 function updateDelayedOrdersState() {
     loadKitchenOrders();
+}
+
+// ===================================================
+// 86 LIST & STOK YÖNETİMİ JS METOTLARI
+// ===================================================
+function openKitchenStockModal() {
+    Swal.fire({ title: 'Stoklar Yükleniyor...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
+    $.ajax({
+        url: "/Kitchen/GetKitchenProductsStock",
+        type: "GET",
+        cache: false,
+        success: function (res) {
+            Swal.close();
+            if (res.success && res.data) {
+                kitchenStockProductsData = res.data;
+                renderKitchenStockTable(kitchenStockProductsData);
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('modalKitchenStock')).show();
+            } else {
+                Swal.fire("Hata", res.message || "Stok verileri çekilemedi.", "error");
+            }
+        },
+        error: function () {
+            Swal.close();
+            Swal.fire("Hata", "Stok verileri alınırken sunucu hatası oluştu.", "error");
+        }
+    });
+}
+
+function renderKitchenStockTable(products) {
+    var $tbody = $("#kitchenStockTableBody").empty();
+
+    if (!products || products.length === 0) {
+        $tbody.html('<tr><td colspan="5" class="text-center py-4 text-muted">Ürün bulunamadı.</td></tr>');
+        return;
+    }
+
+    $.each(products, function (i, p) {
+        var isAvail = p.isAvailable === true;
+        var statusBadge = isAvail
+            ? `<span class="badge bg-success stock-status-badge" id="stockBadge-${p.productId}"><i class="fa-solid fa-circle-check me-1"></i>Mevcut</span>`
+            : `<span class="badge bg-danger stock-status-badge" id="stockBadge-${p.productId}"><i class="fa-solid fa-ban me-1"></i>Tükendi</span>`;
+
+        var checkedAttr = isAvail ? 'checked' : '';
+
+        var row = `
+            <tr class="stock-row-item" data-name="${p.productName.toLowerCase()}">
+                <td>
+                    <img src="${p.imageUrl || '/Content/images/default-food.png'}" class="stock-product-img" onerror="this.src='/Content/images/default-food.png'" />
+                </td>
+                <td class="fw-bold text-dark">${p.productName}</td>
+                <td><span class="badge bg-light text-dark border">${p.categoryName}</span></td>
+                <td class="text-center">${statusBadge}</td>
+                <td class="text-center">
+                    <div class="form-check form-switch d-inline-block m-0">
+                        <input class="form-check-input stock-switch" type="checkbox" role="switch" id="switchStock-${p.productId}" ${checkedAttr} onchange="toggleProductStock(${p.productId})">
+                    </div>
+                </td>
+            </tr>
+        `;
+        $tbody.append(row);
+    });
+}
+
+function toggleProductStock(productId) {
+    $.ajax({
+        url: "/Kitchen/ToggleProductStockAvailability",
+        type: "POST",
+        data: { productId: productId },
+        success: function (res) {
+            if (res.success) {
+                var $badge = $(`#stockBadge-${productId}`);
+                if (res.isAvailable) {
+                    $badge.removeClass("bg-danger").addClass("bg-success").html('<i class="fa-solid fa-circle-check me-1"></i>Mevcut');
+                } else {
+                    $badge.removeClass("bg-success").addClass("bg-danger").html('<i class="fa-solid fa-ban me-1"></i>Tükendi');
+                }
+
+                // Global listedeki durumu da güncelle
+                var item = kitchenStockProductsData.find(x => x.productId === productId);
+                if (item) item.isAvailable = res.isAvailable;
+
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: res.isAvailable ? 'success' : 'warning',
+                    title: res.message,
+                    showConfirmButton: false,
+                    timer: 1500
+                });
+            } else {
+                Swal.fire("Hata", res.message, "error");
+            }
+        },
+        error: function () {
+            Swal.fire("Hata", "Durum güncellenirken sunucu hatası oluştu.", "error");
+        }
+    });
+}
+
+function filterKitchenStockList() {
+    var query = $("#txtKitchenSearchStock").val().toLowerCase().trim();
+    $("#kitchenStockTableBody .stock-row-item").each(function () {
+        var name = $(this).data("name") || "";
+        if (name.includes(query)) {
+            $(this).show();
+        } else {
+            $(this).hide();
+        }
+    });
 }

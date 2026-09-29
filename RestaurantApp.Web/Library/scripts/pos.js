@@ -21,6 +21,10 @@ var currentViewMode = "grid";
 var activeCategoryId = 0;
 var isTargetConfirmed = false;
 
+// Varsayılan Hızlı Not Şablonları
+var defaultQuickNotes = ["Acısız", "Soğansız", "İyi Pişmiş", "Az Pişmiş", "Sos Yanında", "Buzsuz", "Tuzsuz", "Acılı"];
+var currentQuickNotes = [];
+
 function initGoogleMap() {
     var defaultLocation = { lat: defaultLat, lng: defaultLng };
 
@@ -118,6 +122,7 @@ $(document).ready(function () {
     loadCategories();
     loadProducts(0);
     loadTables();
+    loadQuickNotes();
 
     openInitialModal();
 
@@ -154,7 +159,7 @@ $(document).ready(function () {
         var address = ($("#txtDeliveryAddress").val() || "").trim();
         var lat = parseFloat($("#latitude").val());
         var lng = parseFloat($("#longitude").val());
-        var isPriority = $("#chkIsPriorityOrder").is(":checked"); // ACİL/VIP BİLGİSİ
+        var isPriority = $("#chkIsPriorityOrder").is(":checked");
 
         executeSubmitOrder(orderType, tableId, address, lat, lng, isPriority);
     });
@@ -345,7 +350,7 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng, isPriority) {
         Longitude: orderType === "PaketServis" ? lng : null,
         TotalAmount: calculateTotal(),
         OrderNote: generalNote || null,
-        IsPriority: isPriority === true, // ACİL/VIP BİLGİSİ SUNUCUYA İLETİLİYOR
+        IsPriority: isPriority === true,
         Items: cart.map(item => ({
             ProductId: item.id,
             Quantity: item.quantity,
@@ -646,11 +651,11 @@ function loadProducts(categoryId) {
 function renderProductsView() {
     if (!currentRawProducts || currentRawProducts.length === 0) return;
 
-    var availableProducts = currentRawProducts.filter(p => p.IsAvailable !== false && p.IsCategoryActive !== false);
+    var validCategoryProducts = currentRawProducts.filter(p => p.IsCategoryActive !== false);
 
     var filtered = activeCategoryId == 0
-        ? availableProducts
-        : availableProducts.filter(p => p.CategoryId == activeCategoryId);
+        ? validCategoryProducts
+        : validCategoryProducts.filter(p => p.CategoryId == activeCategoryId);
 
     var $container = $("#product-list");
     $container.empty();
@@ -665,10 +670,22 @@ function renderProductsView() {
         $.each(filtered, function (i, p) {
             var imgUrl = p.ImageUrl || '/Content/images/default-food.png';
             var safeName = p.ProductName.replace(/'/g, "\\'");
+            var isAvailable = p.IsAvailable !== false;
+
+            var outOfStockBadge = !isAvailable
+                ? `<span class="badge bg-danger position-absolute top-0 start-0 m-2 shadow-sm rounded-pill"><i class="fa-solid fa-ban me-1"></i>Tükendi</span>`
+                : '';
+
+            var cardOpacityStyle = !isAvailable ? 'style="opacity: 0.55; filter: grayscale(40%);"' : '';
+
+            var addBtnHtml = isAvailable
+                ? `<button class="btn btn-sm btn-add-product w-100 rounded-3 fw-semibold py-1.5 mt-auto" onclick="addToCart(${p.ProductId}, '${safeName}', ${p.Price})"><i class="fa-solid fa-plus me-1"></i>Ekle</button>`
+                : `<button class="btn btn-sm btn-secondary w-100 rounded-3 fw-bold py-1.5 mt-auto" disabled><i class="fa-solid fa-ban me-1"></i>Tükendi</button>`;
 
             html += `
                 <div class="col-md-4 mb-3">
-                    <div class="card product-card p-2 shadow-sm border-0 h-100 position-relative">
+                    <div class="card product-card p-2 shadow-sm border-0 h-100 position-relative" ${cardOpacityStyle}>
+                        ${outOfStockBadge}
                         <button class="btn btn-sm btn-light position-absolute top-0 end-0 m-2 rounded-circle shadow-sm p-1" 
                                 style="width: 30px; height: 30px; z-index: 5;" 
                                 onclick="openProductDetailModal(${p.ProductId})" 
@@ -684,10 +701,7 @@ function renderProductsView() {
                                 <span class="fw-bold fs-6" style="color: #4a154b;">${parseFloat(p.Price).toFixed(2)} ₺</span>
                             </div>
                             
-                            <button class="btn btn-sm btn-add-product w-100 rounded-3 fw-semibold py-1.5 mt-auto" 
-                                    onclick="addToCart(${p.ProductId}, '${safeName}', ${p.Price})">
-                                <i class="fa-solid fa-plus me-1"></i>Ekle
-                            </button>
+                            ${addBtnHtml}
                         </div>
                     </div>
                 </div>`;
@@ -704,25 +718,31 @@ function renderProductsView() {
                                     <th class="ps-3">Ürün Adı</th>
                                     <th>Kategori</th>
                                     <th class="text-end">Fiyat</th>
-                                    <th class="text-end pe-3" style="width: 120px;">İşlem</th>
+                                    <th class="text-end pe-3" style="width: 140px;">İşlem</th>
                                 </tr>
                             </thead>
                             <tbody>`;
 
         $.each(filtered, function (i, p) {
             var safeName = p.ProductName.replace(/'/g, "\\'");
+            var isAvailable = p.IsAvailable !== false;
+            var rowOpacityStyle = !isAvailable ? 'style="opacity: 0.55; background-color: #f8fafc;"' : '';
+
+            var actionBtn = isAvailable
+                ? `<button class="btn btn-sm btn-add-product rounded-3 fw-semibold px-3" onclick="addToCart(${p.ProductId}, '${safeName}', ${p.Price})"><i class="fa-solid fa-plus me-1"></i>Ekle</button>`
+                : `<span class="badge bg-danger rounded-pill px-3 py-1.5"><i class="fa-solid fa-ban me-1"></i>Tükendi</span>`;
+
             tableHtml += `
-                <tr>
+                <tr ${rowOpacityStyle}>
                     <td class="ps-3 fw-semibold text-dark">
                         ${p.ProductName}
+                        ${!isAvailable ? '<span class="badge bg-danger ms-1 extra-small">Tükendi</span>' : ''}
                         <i class="fa-solid fa-circle-info ms-1 text-muted cursor-pointer" style="font-size: 0.8rem;" onclick="openProductDetailModal(${p.ProductId})" title="Detay"></i>
                     </td>
                     <td><span class="badge bg-light text-dark border">${p.CategoryName || 'Genel'}</span></td>
                     <td class="text-end fw-bold" style="color: #4a154b;">${parseFloat(p.Price).toFixed(2)} ₺</td>
                     <td class="text-end pe-3">
-                        <button class="btn btn-sm btn-add-product rounded-3 fw-semibold px-3" onclick="addToCart(${p.ProductId}, '${safeName}', ${p.Price})">
-                            <i class="fa-solid fa-plus me-1"></i>Ekle
-                        </button>
+                        ${actionBtn}
                     </td>
                 </tr>`;
         });
@@ -741,19 +761,47 @@ function openProductDetailModal(productId) {
     var product = currentRawProducts.find(p => p.ProductId == productId);
     if (product) {
         var safeName = product.ProductName.replace(/'/g, "\\'");
+        var isAvailable = product.IsAvailable !== false;
+
+        var displayDescription = "Bu ürün için detaylı açıklama girilmemiştir.";
+        if (product.Description && product.Description.trim() !== "") {
+            var rawDesc = product.Description.trim();
+            if (rawDesc.startsWith("{") && rawDesc.endsWith("}")) {
+                try {
+                    var parsed = JSON.parse(rawDesc);
+                    if (parsed.productDesc && parsed.productDesc.trim() !== "") {
+                        displayDescription = parsed.productDesc;
+                    } else if (parsed.chefTip && parsed.chefTip.trim() !== "") {
+                        displayDescription = parsed.chefTip;
+                    } else {
+                        displayDescription = "Standart porsiyon olarak hazırlanmaktadır.";
+                    }
+                } catch (e) {
+                    displayDescription = "Standart porsiyon olarak hazırlanmaktadır.";
+                }
+            } else {
+                displayDescription = rawDesc;
+            }
+        }
 
         $("#modalProductName").text(product.ProductName);
         $("#modalProductImage").attr("src", product.ImageUrl || '/Content/images/default-food.png');
         $("#modalProductCategory").text(product.CategoryName || 'Genel');
-        $("#modalProductDescription").text(product.Description && product.Description.trim() !== "" ? product.Description : 'Bu ürün için detaylı açıklama girilmemiştir.');
+        $("#modalProductDescription").text(displayDescription);
         $("#modalProductPrice").text(parseFloat(product.Price).toFixed(2) + " ₺");
 
-        $("#btnModalAddToCart").off("click").on("click", function () {
-            addToCart(product.ProductId, safeName, product.Price);
-            var modalElem = document.getElementById('productDetailModal');
-            var modalInstance = bootstrap.Modal.getInstance(modalElem);
-            if (modalInstance) modalInstance.hide();
-        });
+        var $addBtn = $("#btnModalAddToCart");
+        if (isAvailable) {
+            $addBtn.prop("disabled", false).removeClass("btn-secondary").addClass("btn-purple-main").html('<i class="fa-solid fa-plus me-1"></i>Sepete Ekle');
+            $addBtn.off("click").on("click", function () {
+                addToCart(product.ProductId, safeName, product.Price);
+                var modalElem = document.getElementById('productDetailModal');
+                var modalInstance = bootstrap.Modal.getInstance(modalElem);
+                if (modalInstance) modalInstance.hide();
+            });
+        } else {
+            $addBtn.prop("disabled", true).removeClass("btn-purple-main").addClass("btn-secondary").html('<i class="fa-solid fa-ban me-1"></i>Tükendi (Sipariş Verilemez)');
+        }
 
         var modal = new bootstrap.Modal(document.getElementById('productDetailModal'));
         modal.show();
@@ -769,6 +817,17 @@ function filterCategory(catId, btn) {
 function addToCart(id, name, price) {
     if (!isTargetConfirmed) {
         openInitialModal();
+        return;
+    }
+
+    var prod = currentRawProducts.find(x => x.ProductId == id);
+    if (prod && prod.IsAvailable === false) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Ürün Tükendi!',
+            text: `"${name}" mutfakta tükenmiştir, siparişe eklenemez.`,
+            confirmButtonColor: '#4a154b'
+        });
         return;
     }
 
@@ -849,4 +908,124 @@ function calculateNewCartTotal() {
 
 function calculateTotal() {
     return calculateNewCartTotal();
+}
+
+// ===================================================
+// HIZLI SİPARİŞ NOTU ŞABLON YÖNETİMİ
+// ===================================================
+function loadQuickNotes() {
+    var savedNotes = localStorage.getItem("POSQuickNotesList");
+    if (savedNotes) {
+        try {
+            currentQuickNotes = JSON.parse(savedNotes);
+        } catch (e) {
+            currentQuickNotes = [...defaultQuickNotes];
+        }
+    } else {
+        currentQuickNotes = [...defaultQuickNotes];
+        saveQuickNotesToStorage();
+    }
+    renderQuickNotes();
+}
+
+function saveQuickNotesToStorage() {
+    localStorage.setItem("POSQuickNotesList", JSON.stringify(currentQuickNotes));
+}
+
+function renderQuickNotes() {
+    var $wrapper = $("#quickNoteBadgesWrapper");
+    $wrapper.empty();
+
+    $.each(currentQuickNotes, function (i, noteText) {
+        var safeText = noteText.replace(/'/g, "\\'");
+        var tagHtml = `
+            <span class="btn-quick-tag" onclick="appendQuickNoteToTextarea('${safeText}')">
+                <span>${noteText}</span>
+                <i class="fa-solid fa-xmark tag-delete-btn" onclick="event.stopPropagation(); deleteQuickNote(${i})" title="Şablonu Sil"></i>
+            </span>
+        `;
+        $wrapper.append(tagHtml);
+    });
+
+    // Yeni Ekle (+) Butonu
+    var addBtnHtml = `
+        <button type="button" class="btn-quick-tag-add" onclick="promptAddNewQuickNote()" title="Yeni Not Şablonu Ekle">
+            <i class="fa-solid fa-plus me-1"></i>Ekle
+        </button>
+    `;
+    $wrapper.append(addBtnHtml);
+}
+
+function appendQuickNoteToTextarea(tagText) {
+    var $textarea = $("#txtOrderGeneralNote");
+    var currentText = $textarea.val().trim();
+
+    if (currentText === "") {
+        $textarea.val(tagText);
+    } else {
+        // Eğer not zaten ekliyse mükerrer ekleme uyarısı
+        var tags = currentText.split(",").map(t => t.trim());
+        if (!tags.includes(tagText)) {
+            $textarea.val(currentText + ", " + tagText);
+        }
+    }
+    $textarea.focus();
+}
+
+function clearOrderNote() {
+    $("#txtOrderGeneralNote").val("");
+}
+
+function promptAddNewQuickNote() {
+    Swal.fire({
+        title: 'Yeni Hazır Not Şablonu',
+        input: 'text',
+        inputPlaceholder: 'Örn: Sosu Ayrı, Az Pişmiş, vb.',
+        showCancelButton: true,
+        confirmButtonColor: '#4a154b',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Kaydet',
+        cancelButtonText: 'Vazgeç',
+        inputValidator: (value) => {
+            if (!value || value.trim() === "") {
+                return 'Lütfen bir not metni giriniz!';
+            }
+            if (currentQuickNotes.includes(value.trim())) {
+                return 'Bu şablon zaten listenizde mevcut!';
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed && result.value) {
+            var newNote = result.value.trim();
+            currentQuickNotes.push(newNote);
+            saveQuickNotesToStorage();
+            renderQuickNotes();
+
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: `"${newNote}" şablonu eklendi!`,
+                showConfirmButton: false,
+                timer: 1200
+            });
+        }
+    });
+}
+
+function deleteQuickNote(index) {
+    if (index >= 0 && index < currentQuickNotes.length) {
+        var removed = currentQuickNotes.splice(index, 1);
+        saveQuickNotesToStorage();
+        renderQuickNotes();
+
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'info',
+            title: `"${removed}" şablonu silindi.`,
+            showConfirmButton: false,
+            timer: 1000
+        });
+    }
 }
