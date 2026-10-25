@@ -20,6 +20,7 @@
         <AssociationConnector Association="RestaurantAppDBModel.FK_AppUsers_Companies" />
         <AssociationConnector Association="RestaurantAppDBModel.FK_AppCategories_Companies" />
         <AssociationConnector Association="RestaurantAppDBModel.FK_AppProducts_Companies" />
+        <EntityTypeShape EntityType="RestaurantAppDBModel.HygieneViolations" Width="1.5" PointX="5.375" PointY="5.75" />
       </Diagram>
     </edmx:Diagrams>
   </edmx:Designer>

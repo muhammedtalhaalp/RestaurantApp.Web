@@ -32,5 +32,6 @@ namespace RestaurantApp.Web.Data
         public virtual DbSet<AppTables> AppTables { get; set; }
         public virtual DbSet<AppUsers> AppUsers { get; set; }
         public virtual DbSet<Companies> Companies { get; set; }
+        public virtual DbSet<HygieneViolations> HygieneViolations { get; set; }
     }
 }

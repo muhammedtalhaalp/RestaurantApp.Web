@@ -101,6 +101,15 @@
           <Property Name="Name" Type="nvarchar" MaxLength="100" Nullable="false" />
           <Property Name="CreatedDate" Type="datetime" />
         </EntityType>
+        <EntityType Name="HygieneViolations">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="ViolationType" Type="nvarchar" MaxLength="100" Nullable="false" />
+          <Property Name="DetectedAt" Type="datetime" />
+          <Property Name="IsResolved" Type="bit" />
+        </EntityType>
         <Association Name="FK_AppCategories_Companies">
           <End Role="Companies" Type="Self.Companies" Multiplicity="0..1" />
           <End Role="AppCategories" Type="Self.AppCategories" Multiplicity="*" />
@@ -193,6 +202,7 @@
           <EntitySet Name="AppTables" EntityType="Self.AppTables" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="AppUsers" EntityType="Self.AppUsers" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Companies" EntityType="Self.Companies" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="HygieneViolations" EntityType="Self.HygieneViolations" Schema="dbo" store:Type="Tables" />
           <AssociationSet Name="FK_AppCategories_Companies" Association="Self.FK_AppCategories_Companies">
             <End Role="Companies" EntitySet="Companies" />
             <End Role="AppCategories" EntitySet="AppCategories" />
@@ -266,6 +276,7 @@
             <End Role="Companies" EntitySet="Companies" />
             <End Role="AppProducts" EntitySet="AppProducts" />
           </AssociationSet>
+          <EntitySet Name="HygieneViolations" EntityType="RestaurantAppDBModel.HygieneViolations" />
         </EntityContainer>
         <EntityType Name="AppCategories">
           <Key>
@@ -475,6 +486,15 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <EntityType Name="HygieneViolations">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="ViolationType" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="DetectedAt" Type="DateTime" Precision="3" />
+          <Property Name="IsResolved" Type="Boolean" />
+        </EntityType>
       </Schema>
     </edmx:ConceptualModels>
     <!-- C-S mapping content -->
@@ -580,6 +600,16 @@
               <MappingFragment StoreEntitySet="Companies">
                 <ScalarProperty Name="CreatedDate" ColumnName="CreatedDate" />
                 <ScalarProperty Name="Name" ColumnName="Name" />
+                <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="HygieneViolations">
+            <EntityTypeMapping TypeName="RestaurantAppDBModel.HygieneViolations">
+              <MappingFragment StoreEntitySet="HygieneViolations">
+                <ScalarProperty Name="IsResolved" ColumnName="IsResolved" />
+                <ScalarProperty Name="DetectedAt" ColumnName="DetectedAt" />
+                <ScalarProperty Name="ViolationType" ColumnName="ViolationType" />
                 <ScalarProperty Name="Id" ColumnName="Id" />
               </MappingFragment>
             </EntityTypeMapping>

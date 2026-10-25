@@ -1,5 +1,7 @@
-﻿using RestaurantApp.Web.Data;
+﻿using Microsoft.AspNet.SignalR;
+using RestaurantApp.Web.Data;
 using RestaurantApp.Web.Filters;
+using RestaurantApp.Web.Hubs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -369,9 +371,7 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
-        // ==========================================
-        // 86 LIST / TÜKENDİ (STOK KONTROL) API
-        // ==========================================
+       
         [HttpGet]
         [JwtAuthorize(Roles = "Admin, Mutfak Şefi, Mutfak")]
         public JsonResult GetKitchenProductsStock()
@@ -427,6 +427,8 @@ namespace RestaurantApp.Web.Controllers
                 return Json(new { success = false, message = "Durum güncellenirken hata: " + ex.Message });
             }
         }
+
+       
 
         protected override void Dispose(bool disposing)
         {

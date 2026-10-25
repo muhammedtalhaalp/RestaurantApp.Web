@@ -113,6 +113,28 @@ function initKitchenSignalR() {
             loadKitchenOrders();
         };
 
+        // ==========================================
+        // YENİ EKLENEN: HİJYEN İHLALİ SİNYALİ DİNLEYİCİSİ
+        // ==========================================
+        orderHubProxy.client.receiveHygieneAlert = function (violationType, timeStr) {
+            console.warn("⚠️ HİJYEN İHLALİ TESPİT EDİLDİ: " + violationType);
+
+            // Dikkat çekmek için "alarm" sesini çal
+            playSelectedKitchenSound("alarm");
+
+            // Ekranda büyük ve kırmızı bir uyarı patlat
+            Swal.fire({
+                icon: 'error',
+                title: '🚨 Mutfak Hijyen İhlali!',
+                html: `Kamerada kurallara uymayan personel tespit edildi!<br><br><b>İhlal Türü:</b> <span class="text-danger fw-bold fs-5">${violationType}</span><br><small class="text-muted">Tespit Saati: ${timeStr}</small>`,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Anladım / Uyarıyı Kapat',
+                timer: 10000, // 10 saniye sonra otomatik kapanır
+                timerProgressBar: true
+            });
+        };
+        // ==========================================
+
         $.connection.hub.start().done(function () {
             console.log("Mutfak SignalR Bağlantısı Başarılı.");
         }).fail(function (err) {
