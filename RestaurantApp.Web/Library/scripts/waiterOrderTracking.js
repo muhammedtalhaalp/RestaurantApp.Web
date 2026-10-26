@@ -35,7 +35,7 @@ function getWaiterAudioContext() {
 
 function selectWaiterSound(soundKey, playTest) {
     selectedWaiterSound = soundKey;
-    localStorage.setItem("KitchenSelectedSound", soundKey);
+    localStorage.setItem("WaiterSelectedSound", soundKey);
 
     if (playTest) {
         playSelectedWaiterSound(soundKey);

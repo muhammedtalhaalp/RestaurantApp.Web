@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Linq;
 using System.Security.Claims;
-using System.Security.Cryptography;
 using System.Web.Mvc;
 using RestaurantApp.Web.Data;
 using RestaurantApp.Web.Filters;
@@ -30,11 +29,6 @@ namespace RestaurantApp.Web.Controllers
         }
 
         public ActionResult Login()
-        {
-            return View();
-        }
-
-        public ActionResult Register()
         {
             return View();
         }
@@ -165,16 +159,6 @@ namespace RestaurantApp.Web.Controllers
             return db.AppUsers.FirstOrDefault(u => u.UserId == userId && u.IsActive);
         }
 
-        private static string GenerateOtpCode()
-        {
-            byte[] bytes = new byte[4];
-            using (var rng = new RNGCryptoServiceProvider())
-            {
-                rng.GetBytes(bytes);
-            }
-            return (BitConverter.ToUInt32(bytes, 0) % 10000).ToString("D4");
-        }
-
         // Kodu kontrol eder; yanlış denemeleri sayar, süre dolduysa veya deneme hakkı bittiyse kodu iptal eder
         private bool TryCheckOtp(int userId, string code, out string errorMessage)
         {
@@ -264,7 +248,7 @@ namespace RestaurantApp.Web.Controllers
                     return Json(new { success = false, message = "Kullanıcı e-postası bulunamadı." });
                 }
 
-                string code = GenerateOtpCode();
+                string code = PasswordHasher.GenerateNumericCode(4);
 
                 Session[OtpSessionKey] = new PendingOtp
                 {

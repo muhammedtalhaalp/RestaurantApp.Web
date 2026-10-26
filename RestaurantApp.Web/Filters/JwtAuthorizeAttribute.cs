@@ -14,6 +14,13 @@ namespace RestaurantApp.Web.Filters
     {
         public override void OnAuthorization(AuthorizationContext filterContext)
         {
+            // [AllowAnonymous] işaretli action veya controller'da yetki kontrolü yapılmaz
+            if (filterContext.ActionDescriptor.IsDefined(typeof(AllowAnonymousAttribute), true) ||
+                filterContext.ActionDescriptor.ControllerDescriptor.IsDefined(typeof(AllowAnonymousAttribute), true))
+            {
+                return;
+            }
+
             // Anahtar try dışında okunur: ayar eksikse sessizce Login'e atmak yerine açık hata versin
             JwtHelper.GetSigningKey();
 

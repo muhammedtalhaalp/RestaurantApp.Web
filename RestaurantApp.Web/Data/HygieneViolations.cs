@@ -18,5 +18,6 @@ namespace RestaurantApp.Web.Data
         public string ViolationType { get; set; }
         public Nullable<System.DateTime> DetectedAt { get; set; }
         public Nullable<bool> IsResolved { get; set; }
+        public int CompanyId { get; set; }
     }
 }

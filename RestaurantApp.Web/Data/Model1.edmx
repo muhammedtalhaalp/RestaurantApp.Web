@@ -113,6 +113,7 @@
           <Property Name="ViolationType" Type="nvarchar" MaxLength="100" Nullable="false" />
           <Property Name="DetectedAt" Type="datetime" />
           <Property Name="IsResolved" Type="bit" />
+          <Property Name="CompanyId" Type="int" Nullable="false" />
         </EntityType>
         <Association Name="FK_AppCategories_Companies">
           <End Role="Companies" Type="Self.Companies" Multiplicity="0..1" />
@@ -502,6 +503,7 @@
           <Property Name="ViolationType" Type="String" Nullable="false" MaxLength="100" FixedLength="false" Unicode="true" />
           <Property Name="DetectedAt" Type="DateTime" Precision="3" />
           <Property Name="IsResolved" Type="Boolean" />
+          <Property Name="CompanyId" Type="Int32" Nullable="false" />
         </EntityType>
       </Schema>
     </edmx:ConceptualModels>
@@ -620,6 +622,7 @@
             <EntityTypeMapping TypeName="RestaurantAppDBModel.HygieneViolations">
               <MappingFragment StoreEntitySet="HygieneViolations">
                 <ScalarProperty Name="IsResolved" ColumnName="IsResolved" />
+                <ScalarProperty Name="CompanyId" ColumnName="CompanyId" />
                 <ScalarProperty Name="DetectedAt" ColumnName="DetectedAt" />
                 <ScalarProperty Name="ViolationType" ColumnName="ViolationType" />
                 <ScalarProperty Name="Id" ColumnName="Id" />

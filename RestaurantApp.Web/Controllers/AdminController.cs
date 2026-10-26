@@ -49,12 +49,6 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [JwtAuthorize(Roles = "Admin")]
-        public ActionResult MenuManagement()
-        {
-            return View();
-        }
-
-        [JwtAuthorize(Roles = "Admin")]
         public ActionResult OrderTracking()
         {
             return View();
@@ -111,8 +105,7 @@ namespace RestaurantApp.Web.Controllers
                     return Json(new { success = false, message = "Bu e-posta adresiyle zaten kayıtlı bir personel bulunmaktadır." });
                 }
 
-                Random random = new Random();
-                string generatedPassword = random.Next(100000, 999999).ToString();
+                string generatedPassword = PasswordHasher.GenerateNumericCode(6);
 
                 // Personel, ekleyen Admin'in şirketine bağlanır
                 int currentCompanyId = CurrentCompanyId;

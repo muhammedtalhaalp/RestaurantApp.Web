@@ -220,7 +220,6 @@
     </Compile>
     <Compile Include="Helpers\CacheHelper.cs" />
     <Compile Include="Hubs\OrderHub.cs" />
-    <Compile Include="Models\CreateUserViewModel.cs" />
     <Compile Include="Models\LoginViewModel.cs" />
     <Compile Include="Models\RegisterViewModel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -332,7 +331,6 @@
     <Content Include="Views\Shared\_Layout.cshtml" />
     <Content Include="Views\Order\Pos.cshtml" />
     <Content Include="Views\Auth\Login.cshtml" />
-    <Content Include="Views\Auth\Register.cshtml" />
     <Content Include="Views\Admin\Dashboard.cshtml" />
     <Content Include="Views\Admin\Index.cshtml" />
     <Content Include="Views\Admin\StaffManagement.cshtml" />
@@ -353,7 +351,6 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Library\assets\" />
-    <Folder Include="Views\AiVision\" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\bootstrap.rtl.min.css.map" />

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Restaurant management web app (POS, kitchen display, table/floor plan, QR menu, admin reports). It runs on classic **ASP.NET MVC 5 on .NET Framework 4.7.2**, not ASP.NET Core. It uses Entity Framework 6 (database-first EDMX), SignalR 2 (OWIN) and jQuery/Bootstrap 5. UI text, comments, role names and status values are in **Turkish**.
 
-The real project lives in `RestaurantApp.Web/`. The `Startup.cs` at the repo root is a stray empty class and is not part of the build.
+The real project lives in `RestaurantApp.Web/`.
 
 ## Build & Run
 
@@ -24,7 +24,7 @@ The real project lives in `RestaurantApp.Web/`. The `Startup.cs` at the repo roo
 ### Data layer (database-first)
 - `Data/Model1.edmx` is the source of truth. `Model1.Context.cs`, `Model1.cs` and the entity classes (`AppUsers`, `AppOrders`, `AppOrderDetails`, `AppProducts`, `AppCategories`, `AppTables`, `Companies`, `HygieneViolations`) are **T4-generated**. Don't hand-edit them: change the DB, then use "Update Model from Database" in the EDMX designer.
 - Controllers create the context directly (`private RestaurantAppDBEntities db = new RestaurantAppDBEntities();`). There is no repository or service layer, and the business logic lives in the controller actions.
-- **Multi-tenant by `CompanyId`.** `AppUsers`, `AppProducts`, `AppCategories`, `AppTables` and `AppOrders` all carry a `CompanyId`.
+- **Multi-tenant by `CompanyId`.** `AppUsers`, `AppProducts`, `AppCategories`, `AppTables`, `AppOrders` and `HygieneViolations` all carry a `CompanyId`.
   - The current company comes **only** from the JWT `CompanyId` claim (`JwtHelper.CompanyIdClaim`). Never read it from a request parameter, and never fall back to "first admin" or `1`.
   - Controllers for logged-in users inherit `Controllers/TenantController`, which provides `CurrentCompanyId` and `CurrentUserId`.
   - Every query against those tables must filter by company. When looking a record up by id, include the company in the same lookup (e.g. `p.ProductId == id && p.CompanyId == CurrentCompanyId`), so another restaurant's ids come back as "not found".
@@ -51,7 +51,8 @@ The real project lives in `RestaurantApp.Web/`. The `Startup.cs` at the repo roo
 - `Filters/JwtAuthorizeAttribute` reads the token from Session, or from an `Authorization: Bearer` header, validates it with `JwtHelper.ValidateToken` (signature, expiry, and presence of the `CompanyId` claim) and checks `Roles`. It redirects to `Auth/Login` or to `Error/AccessDenied`. Leaving `Roles` empty means any logged-in user. On success it sets `HttpContext.User`. To find the current user, read the `ClaimTypes.NameIdentifier` claim (see `AuthController.GetCurrentUser`), and never fall back to "the first active user".
 - Passwords are stored with `Helpers/PasswordHasher` (PBKDF2-SHA256, format `PBKDF2$iter$salt$hash`). Legacy plaintext passwords are still accepted and are re-hashed on the next successful login. Always use `PasswordHasher.Hash` and `Verify`, and never compare `PasswordHash` in a LINQ query.
 - Roles (exact strings): `Admin`, `Garson`, `Kasiyer`, `Garson/Kasiyer`, `Mutfak Şefi`, `Mutfak`. Access is applied per controller and per action with `[JwtAuthorize(Roles = "...")]`. `_Layout.cshtml` builds the navigation from `Session["UserRole"]`.
-- Public endpoints: `MenuController` (QR menu for customers), `AiVisionController`, and the `[AllowAnonymous]` actions on `OrderController`.
+- `JwtAuthorizeAttribute` honors `[AllowAnonymous]` on the action or the controller. The only public endpoints are `MenuController` (the QR menu for customers) and the `Auth` login actions.
+- `AiVisionController` is called by an external hygiene-camera program, not by page JS. The program must log in through `/Auth/ApiLogin` with a kitchen account and send `Authorization: Bearer <token>`. Violations are saved under that token's company, and the alert goes only to that restaurant's kitchen.
 
 ### Real-time (SignalR)
 - `Startup.cs` (OWIN) calls `app.MapSignalR()`. `Hubs/OrderHub` (`orderHub`) sends `onNewOrderCreated`, `onOrderReady`, `onOrderDelivered` and `receiveHygieneAlert`.

@@ -26,6 +26,22 @@ namespace RestaurantApp.Web.Helpers
             return $"{Prefix}${Iterations}${Convert.ToBase64String(salt)}${Convert.ToBase64String(hash)}";
         }
 
+        // Kriptografik olarak güvenli, verilen uzunlukta sayısal kod (OTP, geçici şifre)
+        public static string GenerateNumericCode(int digits)
+        {
+            var code = new StringBuilder(digits);
+            byte[] buffer = new byte[4];
+            using (var rng = new RNGCryptoServiceProvider())
+            {
+                for (int i = 0; i < digits; i++)
+                {
+                    rng.GetBytes(buffer);
+                    code.Append(BitConverter.ToUInt32(buffer, 0) % 10);
+                }
+            }
+            return code.ToString();
+        }
+
         // needsUpgrade: kayıt eski düz metin formatındaysa true döner, çağıran yeni hash ile güncellemelidir
         public static bool Verify(string password, string storedValue, out bool needsUpgrade)
         {
