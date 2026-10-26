@@ -21,7 +21,9 @@ namespace RestaurantApp.Web.Data
         public decimal UnitPrice { get; set; }
         public bool IsReturned { get; set; }
         public string ReturnReason { get; set; }
-    
+        public int PaidQuantity { get; set; }
+        public System.DateTime CreatedDate { get; set; }
+
         public virtual AppOrders AppOrders { get; set; }
         public virtual AppProducts AppProducts { get; set; }
     }

@@ -163,7 +163,7 @@ function loadKitchenOrders() {
                     var headerTitle = isMasa ? tableNameFormatted : "Paket Servis";
                     var subInfo = isMasa ? "" : `<div class="small text-muted mb-1 text-ellipsis-1"><i class="fa-solid fa-location-dot me-1"></i>${order.deliveryAddress || 'Adres Girilmedi'}</div>`;
 
-                    var elapsedMinutes = calculateElapsedMinutes(order.orderDate);
+                    var elapsedMinutes = calculateElapsedMinutes(order.orderFullDate);
                     var isOrderDelayed = elapsedMinutes >= 15;
 
                     var totalItemCount = 0;
@@ -276,7 +276,7 @@ function openKitchenOrderDetailModal(orderId) {
         $("#modalKitchenNoteBox").empty();
     }
 
-    var elapsedMinutes = calculateElapsedMinutes(order.orderDate);
+    var elapsedMinutes = calculateElapsedMinutes(order.orderFullDate);
     var isOrderDelayed = elapsedMinutes >= 15;
 
     var itemsHtml = "";
@@ -414,21 +414,15 @@ function markSingleOrderAllReady(orderId) {
     });
 }
 
-function calculateElapsedMinutes(timeStr) {
-    if (!timeStr) return 0;
-    var parts = timeStr.split(":");
-    if (parts.length < 2) return 0;
+// fullDateStr: sunucudan gelen "yyyy-MM-ddTHH:mm:ss" (yerel saat)
+function calculateElapsedMinutes(fullDateStr) {
+    if (!fullDateStr) return 0;
 
-    var now = new Date();
-    var orderTime = new Date();
-    orderTime.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+    var orderTime = new Date(fullDateStr);
+    if (isNaN(orderTime.getTime())) return 0;
 
-    if (now < orderTime) {
-        orderTime.setDate(orderTime.getDate() - 1);
-    }
-
-    var diffMs = now - orderTime;
-    return Math.floor(diffMs / 60000);
+    var diffMs = new Date() - orderTime;
+    return diffMs > 0 ? Math.floor(diffMs / 60000) : 0;
 }
 
 function updateDelayedOrdersState() {

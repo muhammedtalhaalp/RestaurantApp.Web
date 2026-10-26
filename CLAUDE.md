@@ -31,9 +31,15 @@ The real project lives in `RestaurantApp.Web/`. The `Startup.cs` at the repo roo
   - Keep these spellings exactly.
 - Non-obvious column semantics. Read these before touching orders or payments:
   - **`AppOrderDetails.ReturnReason` doubles as the per-item kitchen status.** `null` means it is being prepared. `"Hazır"` means ready. `"Servis Edildi"` means served. Only when `IsReturned = true` does it hold an actual return reason. Kitchen, waiter and report queries all filter on these values.
-  - **`AppOrders.TotalAmount` is the remaining unpaid balance, not the order total.** The payment actions in `TableController` decrease it. Amounts actually collected are in `CashAmount`, `CreditCardAmount` and `MealCardAmount`.
+  - **`AppOrders.TotalAmount` is the remaining unpaid balance, not the order total.** Amounts actually collected are in `CashAmount`, `CreditCardAmount` and `MealCardAmount`. Use `Helpers/OrderAmounts.Value(order)` (paid + remaining) for revenue and reports.
+    - Always update `TotalAmount` **incrementally**: add the value of added items, and subtract returns, deletions and payments (`TableController.ApplyPayment`).
+    - Never recompute it from `AppOrderDetails`. Doing so silently wipes out payments already taken, and older orders also have detail rows that were deleted by the previous item-payment code.
+  - `AppOrderDetails.PaidQuantity` records how many units of a line have been paid by item-based payment. Paid lines are no longer deleted. A line with `PaidQuantity > 0` cannot be returned or reduced.
+  - `AppOrderDetails.CreatedDate` is when the item was added. The kitchen waiting time is measured from it. `AppOrders.CreatedDate` is when the order was first opened and must not be reset when items are appended.
+  - `CreateOrder` takes unit prices from the database (`AppProducts.Price`). It ignores any price sent by the client.
   - **Recipes are stored as JSON inside `AppProducts.Description`**, as `{hasRecipe, productDesc, cookTime, station, ingredients, instructions, chefTip}`; see `KitchenController.SaveRecipe`. Any code that shows a product description must handle both plain text and this JSON.
-  - A table can have only one open order. "Open" means status is not `Tamamlandı` and not `İptal`. `CreateOrder` appends items to that order.
+  - A table is meant to have one open order. "Open" means status is not `Tamamlandı` and not `İptal`, and `CreateOrder` appends items to the oldest open order. Existing data does contain tables with several open orders, so table-level code must sum and loop over all of them rather than taking `FirstOrDefault`.
+- Schema changes are hand-written, idempotent SQL scripts in `Database/` (numbered, e.g. `001_...sql`), run against `.\SQLEXPRESS` with `sqlcmd -S .\SQLEXPRESS -E -i <file>`. After each script, update the EDMX by hand: SSDL, CSDL and mapping must all change together, along with the matching generated entity class. Alternatively, run "Update Model from Database" in Visual Studio.
 
 ### Auth
 - Custom JWT, not ASP.NET Identity. `AuthController.ApiLogin` issues the token with `Helpers/JwtHelper` and stores `JWToken`, `UserId`, `UserRole` and `FullName` in **Session**. The client also keeps the token in `localStorage`, and every page JS sends it through `$.ajaxSetup`.

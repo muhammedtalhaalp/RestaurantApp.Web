@@ -182,11 +182,23 @@ namespace RestaurantApp.Web.Controllers
                 DateTime startOfToday = now.Date;
                 DateTime endOfToday = now.Date.AddDays(1).AddTicks(-1);
 
-                var todayOrders = db.AppOrders
-                    .Where(o => o.CreatedDate >= startOfToday && o.CreatedDate <= endOfToday && o.Status != "İptal")
+                // Ciro = sipariş değeri (tahsil edilen + kalan borç). TotalAmount tek başına kalan borçtur.
+                // Grafiklerin kapsadığı en geniş aralıktaki siparişler bir kez çekilip bellekte gruplanır.
+                DateTime rangeStart = new DateTime(now.Year, now.Month, 1).AddMonths(-5);
+                if (now.Date.AddDays(-6) < rangeStart) rangeStart = now.Date.AddDays(-6);
+
+                var rangeOrders = db.AppOrders
+                    .Where(o => o.CreatedDate >= rangeStart && o.CreatedDate <= endOfToday && o.Status != "İptal")
                     .ToList();
 
-                decimal todayRevenue = todayOrders.Sum(o => o.TotalAmount);
+                Func<DateTime, DateTime, decimal> revenueBetween = (from, to) =>
+                    rangeOrders.Where(o => o.CreatedDate >= from && o.CreatedDate <= to).Sum(o => OrderAmounts.Value(o));
+
+                var todayOrders = rangeOrders
+                    .Where(o => o.CreatedDate >= startOfToday && o.CreatedDate <= endOfToday)
+                    .ToList();
+
+                decimal todayRevenue = todayOrders.Sum(o => OrderAmounts.Value(o));
                 int todayOrderCount = todayOrders.Count;
                 decimal avgOrderAmount = todayOrderCount > 0 ? (todayRevenue / todayOrderCount) : 0;
 
@@ -210,9 +222,7 @@ namespace RestaurantApp.Web.Controllers
                         DateTime dayStart = day;
                         DateTime dayEnd = day.AddDays(1).AddTicks(-1);
 
-                        decimal dayRev = db.AppOrders
-                            .Where(o => o.CreatedDate >= dayStart && o.CreatedDate <= dayEnd && o.Status != "İptal")
-                            .Sum(o => (decimal?)o.TotalAmount) ?? 0;
+                        decimal dayRev = revenueBetween(dayStart, dayEnd);
 
                         revenueLabels.Add(day.ToString("dd MMM ddd"));
                         revenueValues.Add(dayRev);
@@ -225,9 +235,7 @@ namespace RestaurantApp.Web.Controllers
                         DateTime mStart = new DateTime(now.Year, now.Month, 1).AddMonths(-i);
                         DateTime mEnd = mStart.AddMonths(1).AddTicks(-1);
 
-                        decimal monthRev = db.AppOrders
-                            .Where(o => o.CreatedDate >= mStart && o.CreatedDate <= mEnd && o.Status != "İptal")
-                            .Sum(o => (decimal?)o.TotalAmount) ?? 0;
+                        decimal monthRev = revenueBetween(mStart, mEnd);
 
                         revenueLabels.Add(mStart.ToString("MMM yyyy"));
                         revenueValues.Add(monthRev);
@@ -240,9 +248,7 @@ namespace RestaurantApp.Web.Controllers
                         DateTime hStart = startOfToday.AddHours(hour);
                         DateTime hEnd = startOfToday.AddHours(hour + 2).AddTicks(-1);
 
-                        decimal hRev = db.AppOrders
-                            .Where(o => o.CreatedDate >= hStart && o.CreatedDate <= hEnd && o.Status != "İptal")
-                            .Sum(o => (decimal?)o.TotalAmount) ?? 0;
+                        decimal hRev = revenueBetween(hStart, hEnd);
 
                         revenueLabels.Add($"{hour:D2}:00-{(hour + 2):D2}:00");
                         revenueValues.Add(hRev);
@@ -348,7 +354,7 @@ namespace RestaurantApp.Web.Controllers
                         tableClosedTime = tableClosedTime,
                         title = o.OrderType == "Masa" && o.AppTables != null ? o.AppTables.TableNumber : "Paket Servis",
                         deliveryAddress = o.DeliveryAddress,
-                        totalAmount = o.TotalAmount,
+                        totalAmount = OrderAmounts.Value(o),
                         orderNote = o.OrderNote,
                         items = o.AppOrderDetails.Select(d => new
                         {
@@ -388,6 +394,12 @@ namespace RestaurantApp.Web.Controllers
                 if (!activeOrders.Any())
                 {
                     return Json(new { success = false, message = "Kapatılacak aktif sipariş bulunamadı." });
+                }
+
+                decimal remainingTotal = activeOrders.Sum(o => o.TotalAmount);
+                if (remainingTotal > 0)
+                {
+                    return Json(new { success = false, message = $"Masanın {remainingTotal:N2} ₺ ödenmemiş hesabı var. Önce ödemeyi alınız." });
                 }
 
                 DateTime now = DateTime.Now;
@@ -446,13 +458,11 @@ namespace RestaurantApp.Web.Controllers
                             .OrderBy(o => o.CreatedDate)
                             .ToList();
 
-                        decimal currentTotal = activeOrders.FirstOrDefault() != null ? activeOrders.FirstOrDefault().TotalAmount : 0;
+                        // TotalAmount kalan borçtur
+                        decimal currentTotal = activeOrders.Sum(o => o.TotalAmount);
 
-                        // Masadaki siparişlerin ödenip ödenmediği kontrol ediliyor
-                        bool isPaid = activeOrders.Any() && activeOrders.All(o =>
-                            (o.CashAmount.HasValue && o.CashAmount.Value > 0) ||
-                            (o.CreditCardAmount.HasValue && o.CreditCardAmount.Value > 0) ||
-                            (o.MealCardAmount.HasValue && o.MealCardAmount.Value > 0));
+                        // Kısmi ödeme "ödendi" sayılmaz: kalan borç sıfırlandıysa ödenmiştir
+                        bool isPaid = activeOrders.Any() && currentTotal <= 0;
 
                         string firstOrderTime = "--:--";
                         string lastDeliveryTime = "--:--";
@@ -463,14 +473,19 @@ namespace RestaurantApp.Web.Controllers
                             var firstOrder = activeOrders.First();
                             firstOrderTime = firstOrder.CreatedDate.ToString("HH:mm");
 
-                            var deliveredOrders = activeOrders.Where(o => o.Status == "Teslim Edildi" || o.Status == "Servis Edildi").ToList();
-                            if (deliveredOrders.Any())
+                            var lastDelivered = activeOrders.Where(o => o.DeliveredDate.HasValue).Max(o => o.DeliveredDate);
+                            if (lastDelivered.HasValue)
                             {
-                                lastDeliveryTime = deliveredOrders.Last().CreatedDate.ToString("HH:mm");
+                                lastDeliveryTime = lastDelivered.Value.ToString("HH:mm");
                             }
 
-                            var lastOrder = activeOrders.Last();
-                            idleMinutes = (int)(DateTime.Now - lastOrder.CreatedDate).TotalMinutes;
+                            // Boşta kalma süresi masaya en son ürün eklendiği andan itibaren hesaplanır
+                            DateTime lastActivity = activeOrders
+                                .SelectMany(o => o.AppOrderDetails)
+                                .Select(d => (DateTime?)d.CreatedDate)
+                                .Max() ?? activeOrders.Last().CreatedDate;
+
+                            idleMinutes = (int)(DateTime.Now - lastActivity).TotalMinutes;
                             if (idleMinutes < 0) idleMinutes = 0;
                         }
 
@@ -606,6 +621,12 @@ namespace RestaurantApp.Web.Controllers
                 if (table == null)
                 {
                     return Json(new { success = false, message = "Masa bulunamadı." });
+                }
+
+                bool hasOpenOrders = db.AppOrders.Any(o => o.TableId == id && o.Status != "Tamamlandı" && o.Status != "İptal");
+                if (hasOpenOrders)
+                {
+                    return Json(new { success = false, message = "Bu masada açık sipariş var. Önce hesabı kapatıp masayı boşaltınız." });
                 }
 
                 table.IsActive = false;
@@ -834,10 +855,24 @@ namespace RestaurantApp.Web.Controllers
                     return Json(new { success = false, message = "Bağlı sipariş bulunamadı." });
                 }
 
-                if (order.Status != "Hazırlanıyor")
+                // Durum ürün bazında kontrol edilir (ReturnReason == null => mutfakta hazırlanıyor)
+                if (detail.IsReturned || detail.ReturnReason != null)
                 {
                     return Json(new { success = false, message = "Yalnızca 'Hazırlanıyor' aşamasındaki ürünleri azaltabilir veya silebilirsiniz." });
                 }
+
+                if (detail.Quantity - 1 < detail.PaidQuantity)
+                {
+                    return Json(new { success = false, message = "Ödemesi alınmış ürün adedi azaltılamaz." });
+                }
+
+                // TotalAmount kalan borçtur: yeniden hesaplanmaz, silinen ürün tutarı kadar düşülür
+                if (detail.UnitPrice > order.TotalAmount)
+                {
+                    return Json(new { success = false, message = "Bu ürünün tutarı masanın kalan borcundan fazla. Ödeme alınmış hesapta ürün silinemez." });
+                }
+
+                order.TotalAmount -= detail.UnitPrice;
 
                 if (detail.Quantity > 1)
                 {
@@ -850,12 +885,10 @@ namespace RestaurantApp.Web.Controllers
 
                 db.SaveChanges();
 
-                var remainingDetails = db.AppOrderDetails.Where(d => d.OrderId == order.OrderId).ToList();
+                bool hasActiveItems = db.AppOrderDetails.Any(d => d.OrderId == order.OrderId && !d.IsReturned);
 
-                if (remainingDetails.Any())
+                if (hasActiveItems)
                 {
-                    order.TotalAmount = remainingDetails.Sum(d => d.Quantity * d.UnitPrice);
-                    db.SaveChanges();
                     return Json(new { success = true, isOrderCancelled = false, newTotalAmount = order.TotalAmount, message = "Ürün adedi 1 eksiltildi." });
                 }
                 else
@@ -1130,6 +1163,7 @@ namespace RestaurantApp.Web.Controllers
                         productId = d.ProductId,
                         productName = d.AppProducts != null ? d.AppProducts.ProductName : "Ürün",
                         quantity = d.Quantity,
+                        paidQuantity = d.PaidQuantity,
                         unitPrice = d.UnitPrice,
                         isReturned = d.IsReturned,
                         returnReason = d.ReturnReason

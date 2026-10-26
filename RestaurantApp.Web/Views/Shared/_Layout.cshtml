@@ -366,7 +366,7 @@
                 <button class="btn-toggle-sidebar mb-2" id="sidebarToggle">
                     <i class="fa-solid fa-chevron-left" id="toggleIcon"></i>
                 </button>
-                <a href="/Auth/Login" class="btn-logout" id="btnLogout">
+                <a href="/Auth/Logout" class="btn-logout" id="btnLogout">
                     <i class="fa-solid fa-right-from-bracket"></i>
                     <span class="logout-text">Güvenli Çıkış</span>
                 </a>
@@ -409,7 +409,7 @@
                         </li>
                         <li><hr class="dropdown-divider opacity-50"></li>
                         <li>
-                            <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger fw-semibold" href="/Auth/Login">
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger fw-semibold" href="/Auth/Logout">
                                 <i class="fa-solid fa-right-from-bracket"></i>
                                 <span>Güvenli Çıkış</span>
                             </a>
@@ -507,7 +507,7 @@
                 $('#lblFullName').text(fullName);
             }
 
-            $('#btnLogout, a[href="/Auth/Login"]').on('click', function () {
+            $('#btnLogout, a[href="/Auth/Logout"]').on('click', function () {
                 localStorage.clear();
             });
 

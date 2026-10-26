@@ -40,13 +40,12 @@ namespace RestaurantApp.Web.Controllers
                     .ToList()
                     .Select(t =>
                     {
-                        var activeOrder = db.AppOrders
+                        var activeOrders = db.AppOrders
                             .Where(o => o.TableId == t.TableId && o.Status != "Tamamlandı" && o.Status != "İptal")
-                            .OrderBy(o => o.CreatedDate)
-                            .FirstOrDefault();
+                            .ToList();
 
-                        decimal activeTotal = activeOrder != null ? activeOrder.TotalAmount : 0;
-                        bool isPriority = activeOrder != null && activeOrder.IsPriority;
+                        decimal activeTotal = activeOrders.Sum(o => o.TotalAmount);
+                        bool isPriority = activeOrders.Any(o => o.IsPriority);
 
                         return new
                         {
@@ -182,21 +181,80 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                if (model == null || model.Items == null || !model.Items.Any())
+                var requestedItems = model?.Items?.Where(i => i.Quantity > 0).ToList();
+                if (requestedItems == null || !requestedItems.Any())
                 {
                     return Json(new { success = false, message = "Sepette ürün bulunmamaktadır." });
                 }
 
+                if (model.OrderType == "Masa" && !model.TableId.HasValue)
+                {
+                    return Json(new { success = false, message = "Lütfen bir masa seçiniz." });
+                }
+
+                // Fiyatlar istemciden değil veritabanından alınır
+                var productIds = requestedItems.Select(i => i.ProductId).Distinct().ToList();
+                var products = db.AppProducts
+                    .Where(p => productIds.Contains(p.ProductId) && p.IsActive)
+                    .ToDictionary(p => p.ProductId);
+
+                foreach (var item in requestedItems)
+                {
+                    AppProducts product;
+                    if (!products.TryGetValue(item.ProductId, out product))
+                    {
+                        return Json(new { success = false, message = "Sepetteki ürünlerden biri menüde bulunamadı. Lütfen sayfayı yenileyin." });
+                    }
+                    if (!product.IsAvailable)
+                    {
+                        return Json(new { success = false, message = $"\"{product.ProductName}\" tükendi, siparişe eklenemez." });
+                    }
+                }
+
                 int currentUserId = Session["UserId"] != null ? Convert.ToInt32(Session["UserId"]) : 1;
+                DateTime now = DateTime.Now;
 
                 AppOrders mainOrder = null;
 
-                if (model.OrderType == "Masa" && model.TableId.HasValue)
+                if (model.OrderType == "Masa")
                 {
-                    mainOrder = db.AppOrders.FirstOrDefault(o => o.TableId == model.TableId.Value && o.Status != "Tamamlandı" && o.Status != "İptal");
+                    mainOrder = db.AppOrders
+                        .Where(o => o.TableId == model.TableId.Value && o.Status != "Tamamlandı" && o.Status != "İptal")
+                        .OrderBy(o => o.CreatedDate)
+                        .FirstOrDefault();
                 }
 
-                if (mainOrder != null)
+                if (mainOrder == null)
+                {
+                    mainOrder = new AppOrders
+                    {
+                        UserId = currentUserId,
+                        OrderType = model.OrderType,
+                        TableId = model.OrderType == "Masa" ? model.TableId : (int?)null,
+                        DeliveryAddress = model.OrderType == "PaketServis" ? model.DeliveryAddress : null,
+                        Latitude = model.OrderType == "PaketServis" ? model.Latitude : (decimal?)null,
+                        Longitude = model.OrderType == "PaketServis" ? model.Longitude : (decimal?)null,
+                        TotalAmount = 0,
+                        OrderNote = !string.IsNullOrWhiteSpace(model.OrderNote) ? model.OrderNote.Trim() : null,
+                        Status = "Hazırlanıyor",
+                        IsPriority = model.IsPriority,
+                        CreatedDate = now
+                    };
+
+                    db.AppOrders.Add(mainOrder);
+
+                    if (model.OrderType == "Masa")
+                    {
+                        var selectedTable = db.AppTables.Find(model.TableId.Value);
+                        if (selectedTable != null)
+                        {
+                            selectedTable.Status = "Dolu";
+                        }
+                    }
+
+                    db.SaveChanges();
+                }
+                else
                 {
                     if (!string.IsNullOrWhiteSpace(model.OrderNote))
                     {
@@ -208,81 +266,49 @@ namespace RestaurantApp.Web.Controllers
                         mainOrder.IsPriority = true;
                     }
 
-                    var existingDetails = db.AppOrderDetails.Where(d => d.OrderId == mainOrder.OrderId).ToList();
-
-                    foreach (var item in model.Items)
-                    {
-                        var existingItem = existingDetails.FirstOrDefault(d => d.ProductId == item.ProductId && !d.IsReturned);
-
-                        if (existingItem != null)
-                        {
-                            existingItem.Quantity += item.Quantity;
-                        }
-                        else
-                        {
-                            var newDetail = new AppOrderDetails
-                            {
-                                OrderId = mainOrder.OrderId,
-                                ProductId = item.ProductId,
-                                Quantity = item.Quantity,
-                                UnitPrice = item.UnitPrice,
-                                IsReturned = false,
-                                ReturnReason = null
-                            };
-                            db.AppOrderDetails.Add(newDetail);
-                        }
-                    }
-
-                    db.SaveChanges();
-
-                    var allUpdatedDetails = db.AppOrderDetails.Where(d => d.OrderId == mainOrder.OrderId && !d.IsReturned).ToList();
-                    mainOrder.TotalAmount = allUpdatedDetails.Sum(x => x.Quantity * x.UnitPrice);
-                    mainOrder.CreatedDate = DateTime.Now;
+                    // Yeni ürünler mutfağa gideceği için sipariş tekrar hazırlanıyor durumuna döner.
+                    // CreatedDate değiştirilmez: ilk sipariş saati korunur, ürün bazlı zaman AppOrderDetails.CreatedDate'te tutulur.
+                    mainOrder.Status = "Hazırlanıyor";
                 }
-                else
+
+                var orderDetails = db.AppOrderDetails.Where(d => d.OrderId == mainOrder.OrderId).ToList();
+                decimal addedAmount = 0;
+
+                foreach (var item in requestedItems)
                 {
-                    mainOrder = new AppOrders
-                    {
-                        UserId = currentUserId,
-                        OrderType = model.OrderType,
-                        TableId = model.OrderType == "Masa" ? model.TableId : (int?)null,
-                        DeliveryAddress = model.OrderType == "PaketServis" ? model.DeliveryAddress : null,
-                        Latitude = model.OrderType == "PaketServis" ? model.Latitude : (decimal?)null,
-                        Longitude = model.OrderType == "PaketServis" ? model.Longitude : (decimal?)null,
-                        TotalAmount = model.TotalAmount,
-                        OrderNote = !string.IsNullOrWhiteSpace(model.OrderNote) ? model.OrderNote.Trim() : null,
-                        Status = "Hazırlanıyor",
-                        IsPriority = model.IsPriority,
-                        CreatedDate = DateTime.Now
-                    };
+                    decimal unitPrice = products[item.ProductId].Price;
 
-                    db.AppOrders.Add(mainOrder);
+                    // Sadece henüz mutfakta hazırlanmakta olan aynı fiyatlı satıra adet eklenir.
+                    // Hazır / servis edilmiş satıra eklenirse mutfak yeni adedi görmez.
+                    var preparingItem = orderDetails.FirstOrDefault(d =>
+                        d.ProductId == item.ProductId && !d.IsReturned && d.ReturnReason == null && d.UnitPrice == unitPrice);
 
-                    if (model.OrderType == "Masa" && model.TableId.HasValue)
+                    if (preparingItem != null)
                     {
-                        var selectedTable = db.AppTables.Find(model.TableId.Value);
-                        if (selectedTable != null)
-                        {
-                            selectedTable.Status = "Dolu";
-                        }
+                        preparingItem.Quantity += item.Quantity;
                     }
-
-                    db.SaveChanges();
-
-                    foreach (var item in model.Items)
+                    else
                     {
-                        var detail = new AppOrderDetails
+                        var newDetail = new AppOrderDetails
                         {
                             OrderId = mainOrder.OrderId,
                             ProductId = item.ProductId,
                             Quantity = item.Quantity,
-                            UnitPrice = item.UnitPrice,
+                            UnitPrice = unitPrice,
                             IsReturned = false,
-                            ReturnReason = null
+                            ReturnReason = null,
+                            PaidQuantity = 0,
+                            CreatedDate = now
                         };
-                        db.AppOrderDetails.Add(detail);
+                        db.AppOrderDetails.Add(newDetail);
+                        orderDetails.Add(newDetail);
                     }
+
+                    addedAmount += item.Quantity * unitPrice;
                 }
+
+                // TotalAmount kalan borçtur: yeniden hesaplanmaz, eklenen tutar kadar artırılır (alınmış ödemeler korunur)
+                mainOrder.TotalAmount += addedAmount;
 
                 db.SaveChanges();
 
@@ -334,19 +360,22 @@ namespace RestaurantApp.Web.Controllers
                     return Json(new { success = false, message = "Bağlı sipariş bulunamadı." });
                 }
 
+                if (detail.PaidQuantity > 0)
+                {
+                    return Json(new { success = false, message = "Ödemesi alınmış bir ürün iade edilemez." });
+                }
+
+                decimal lineAmount = detail.Quantity * detail.UnitPrice;
+
+                // TotalAmount kalan borçtur; iade tutarı kalan borçtan büyükse ödenmiş paradan iade gerekir
+                if (lineAmount > order.TotalAmount)
+                {
+                    return Json(new { success = false, message = $"Bu ürünün tutarı ({lineAmount:N2} ₺) masanın kalan borcundan ({order.TotalAmount:N2} ₺) fazla. Ödeme alınmış hesapta bu iade yapılamaz." });
+                }
+
                 detail.IsReturned = true;
                 detail.ReturnReason = reason.Trim();
-
-                var activeDetails = db.AppOrderDetails.Where(d => d.OrderId == order.OrderId && !d.IsReturned && d.OrderDetailId != orderDetailId).ToList();
-
-                if (activeDetails.Any())
-                {
-                    order.TotalAmount = activeDetails.Sum(d => d.Quantity * d.UnitPrice);
-                }
-                else
-                {
-                    order.TotalAmount = 0;
-                }
+                order.TotalAmount -= lineAmount;
 
                 db.SaveChanges();
 

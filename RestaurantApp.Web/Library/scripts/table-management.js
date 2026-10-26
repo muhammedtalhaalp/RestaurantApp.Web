@@ -284,7 +284,7 @@
                 Swal.close();
                 if (res.success && res.data) {
                     rawAdminTableItems = res.data;
-                    renderCheckoutItems(res.data, isPaid);
+                    renderCheckoutItems(res.data, isPaid, res.remainingTotal);
                     var modalEl = document.getElementById('tableCheckoutModal');
                     bootstrap.Modal.getOrCreateInstance(modalEl).show();
                 } else {
@@ -298,7 +298,8 @@
         });
     }
 
-    function renderCheckoutItems(items, isPaid) {
+    // remainingTotal: sunucudaki gerçek kalan borç (alınmış kısmi ödemeler düşülmüş)
+    function renderCheckoutItems(items, isPaid, remainingTotal) {
         var $tbody = $("#checkoutItemsBody");
         $tbody.empty();
         currentAdminTableTotal = 0;
@@ -317,10 +318,12 @@
                 currentAdminTableTotal += lineTotal;
             }
 
+            var paidQty = item.paidQuantity || 0;
+
             var returnBtnHtml = "";
             if (isReturned) {
                 returnBtnHtml = `<span class="badge bg-secondary opacity-75" title="${item.returnReason || 'Neden belirtilmedi'}"><i class="fa-solid fa-rotate-left me-1"></i>İade Edildi</span>`;
-            } else if (isPaid) {
+            } else if (isPaid || paidQty > 0) {
                 returnBtnHtml = `<span class="badge bg-light text-muted border">Ödeme Alındı</span>`;
             } else {
                 returnBtnHtml = `<button class="btn btn-sm btn-outline-danger fw-bold rounded-3 px-2 py-1 btn-return-product" data-detailid="${item.orderDetailId}" data-name="${item.productName}"><i class="fa-solid fa-rotate-left me-1"></i>İade Et</button>`;
@@ -333,6 +336,7 @@
                     <td class="fw-semibold text-dark">
                         ${item.productName}
                         ${isReturned ? `<br><small class="text-danger fw-normal" style="text-decoration:none !important;">(İade Nedeni: ${item.returnReason})</small>` : ''}
+                        ${(!isReturned && paidQty > 0) ? `<br><small class="text-success fw-normal"><i class="fa-solid fa-check me-1"></i>${paidQty >= item.quantity ? 'Ödendi' : `${paidQty} adet ödendi`}</small>` : ''}
                     </td>
                     <td class="text-center fw-bold">${item.quantity}</td>
                     <td class="text-end">${parseFloat(item.unitPrice).toFixed(2)} ₺</td>
@@ -342,6 +346,10 @@
 
             $tbody.append(row);
         });
+
+        if (remainingTotal !== undefined) {
+            currentAdminTableTotal = remainingTotal;
+        }
 
         $("#checkoutGrandTotal").text(currentAdminTableTotal.toFixed(2) + " ₺");
     }
@@ -353,18 +361,20 @@
         selectedAdminItemsForPay = {};
         var $itemsTbody = $("#adminSplitPayItemsTableBody").empty();
 
-        var activeItems = rawAdminTableItems.filter(x => !x.isReturned);
+        // Sadece ödenmemiş adetler seçilebilir
+        var activeItems = rawAdminTableItems.filter(x => !x.isReturned && (x.quantity - (x.paidQuantity || 0)) > 0);
         $.each(activeItems, function (i, item) {
+            var unpaidQty = item.quantity - (item.paidQuantity || 0);
             var row = `
                 <tr>
                     <td class="fw-bold text-dark">${item.productName}</td>
-                    <td class="text-center fw-semibold">${item.quantity}</td>
+                    <td class="text-center fw-semibold">${unpaidQty}</td>
                     <td class="text-end">${parseFloat(item.unitPrice).toFixed(2)} ₺</td>
                     <td class="text-center">
                         <div class="d-flex align-items-center justify-content-center gap-1">
-                            <button type="button" class="btn btn-sm btn-outline-secondary qty-btn" onclick="changeAdminItemPayQty(${item.orderDetailId}, -1, ${item.quantity}, ${item.unitPrice})">-</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary qty-btn" onclick="changeAdminItemPayQty(${item.orderDetailId}, -1, ${unpaidQty}, ${item.unitPrice})">-</button>
                             <span id="lblAdminPayQty-${item.orderDetailId}" class="fw-bold px-2">0</span>
-                            <button type="button" class="btn btn-sm btn-outline-purple qty-btn" onclick="changeAdminItemPayQty(${item.orderDetailId}, 1, ${item.quantity}, ${item.unitPrice})">+</button>
+                            <button type="button" class="btn btn-sm btn-outline-purple qty-btn" onclick="changeAdminItemPayQty(${item.orderDetailId}, 1, ${unpaidQty}, ${item.unitPrice})">+</button>
                         </div>
                     </td>
                 </tr>

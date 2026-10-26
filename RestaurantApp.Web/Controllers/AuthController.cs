@@ -39,6 +39,14 @@ namespace RestaurantApp.Web.Controllers
             return View();
         }
 
+        // Sunucu tarafındaki oturumu (Session'daki JWT dahil) sonlandırır; localStorage'ı layout'taki JS temizler
+        public ActionResult Logout()
+        {
+            Session.Clear();
+            Session.Abandon();
+            return RedirectToAction("Login");
+        }
+
         [HttpPost]
         public JsonResult ApiRegister(RegisterViewModel model)
         {

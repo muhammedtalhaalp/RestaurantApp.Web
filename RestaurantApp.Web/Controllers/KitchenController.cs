@@ -38,19 +38,23 @@ namespace RestaurantApp.Web.Controllers
                 var activeOrders = db.AppOrders
                     .Where(o => o.Status != "Tamamlandı" && o.Status != "İptal" &&
                                 o.AppOrderDetails.Any(d => !d.IsReturned && d.ReturnReason != "Hazır" && d.ReturnReason != "Servis Edildi"))
-                    .OrderByDescending(o => o.IsPriority)
-                    .ThenBy(o => o.CreatedDate)
                     .ToList()
                     .Select(o =>
                     {
-                        var kitchenItems = o.AppOrderDetails
+                        var pendingDetails = o.AppOrderDetails
                             .Where(d => !d.IsReturned && d.ReturnReason != "Hazır" && d.ReturnReason != "Servis Edildi")
+                            .ToList();
+
+                        var kitchenItems = pendingDetails
                             .Select(d => new
                             {
                                 orderDetailId = d.OrderDetailId,
                                 productName = d.AppProducts != null ? d.AppProducts.ProductName : "Ürün",
                                 quantity = d.Quantity
                             }).ToList();
+
+                        // Bekleme süresi, mutfakta bekleyen en eski ürünün eklendiği andan hesaplanır
+                        DateTime waitingSince = pendingDetails.Any() ? pendingDetails.Min(d => d.CreatedDate) : o.CreatedDate;
 
                         return new
                         {
@@ -59,13 +63,28 @@ namespace RestaurantApp.Web.Controllers
                             isPriority = o.IsPriority,
                             tableName = o.OrderType == "Masa" && o.AppTables != null ? o.AppTables.TableNumber : "Paket Servis",
                             deliveryAddress = o.DeliveryAddress,
-                            orderDate = o.CreatedDate.ToString("HH:mm"),
-                            orderFullDate = o.CreatedDate.ToString("yyyy-MM-ddTHH:mm:ss"),
+                            waitingSince = waitingSince,
+                            orderDate = waitingSince.ToString("HH:mm"),
+                            orderFullDate = waitingSince.ToString("yyyy-MM-ddTHH:mm:ss"),
                             orderNote = o.OrderNote,
                             items = kitchenItems
                         };
                     })
                     .Where(o => o.items.Any())
+                    .OrderByDescending(o => o.isPriority)
+                    .ThenBy(o => o.waitingSince)
+                    .Select(o => new
+                    {
+                        o.orderId,
+                        o.orderType,
+                        o.isPriority,
+                        o.tableName,
+                        o.deliveryAddress,
+                        o.orderDate,
+                        o.orderFullDate,
+                        o.orderNote,
+                        o.items
+                    })
                     .ToList();
 
                 return Json(new { success = true, data = activeOrders }, JsonRequestBehavior.AllowGet);

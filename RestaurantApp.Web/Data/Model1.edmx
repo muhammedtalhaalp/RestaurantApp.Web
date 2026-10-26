@@ -25,6 +25,8 @@
           <Property Name="UnitPrice" Type="decimal" Precision="18" Scale="2" Nullable="false" />
           <Property Name="IsReturned" Type="bit" Nullable="false" />
           <Property Name="ReturnReason" Type="nvarchar" MaxLength="500" />
+          <Property Name="PaidQuantity" Type="int" Nullable="false" />
+          <Property Name="CreatedDate" Type="datetime" Nullable="false" />
         </EntityType>
         <EntityType Name="AppOrders">
           <Key>
@@ -302,6 +304,8 @@
           <NavigationProperty Name="AppProducts" Relationship="RestaurantAppDBModel.FK_AppOrderDetails_AppProducts" FromRole="AppOrderDetails" ToRole="AppProducts" />
           <Property Name="IsReturned" Type="Boolean" Nullable="false" />
           <Property Name="ReturnReason" Type="String" MaxLength="500" FixedLength="false" Unicode="true" />
+          <Property Name="PaidQuantity" Type="Int32" Nullable="false" />
+          <Property Name="CreatedDate" Type="DateTime" Nullable="false" Precision="3" />
         </EntityType>
         <EntityType Name="AppOrders">
           <Key>
@@ -514,6 +518,8 @@
           <EntitySetMapping Name="AppOrderDetails">
             <EntityTypeMapping TypeName="RestaurantAppDBModel.AppOrderDetails">
               <MappingFragment StoreEntitySet="AppOrderDetails">
+                <ScalarProperty Name="CreatedDate" ColumnName="CreatedDate" />
+                <ScalarProperty Name="PaidQuantity" ColumnName="PaidQuantity" />
                 <ScalarProperty Name="ReturnReason" ColumnName="ReturnReason" />
                 <ScalarProperty Name="IsReturned" ColumnName="IsReturned" />
                 <ScalarProperty Name="UnitPrice" ColumnName="UnitPrice" />
