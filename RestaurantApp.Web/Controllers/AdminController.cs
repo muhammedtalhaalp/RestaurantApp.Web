@@ -108,7 +108,7 @@ namespace RestaurantApp.Web.Controllers
                     FullName = FullName,
                     Username = Email,
                     Email = Email,
-                    PasswordHash = generatedPassword,
+                    PasswordHash = PasswordHasher.Hash(generatedPassword),
                     Role = Role,
                     IsActive = true,
                     CreatedDate = DateTime.Now,

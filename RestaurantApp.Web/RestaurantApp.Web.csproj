@@ -180,6 +180,7 @@
     </Compile>
     <Compile Include="Helpers\EmailHelper.cs" />
     <Compile Include="Helpers\JwtHelper.cs" />
+    <Compile Include="Helpers\PasswordHasher.cs" />
     <Compile Include="Controllers\TableController.cs" />
     <Compile Include="Data\AppCategories.cs">
       <DependentUpon>Model1.tt</DependentUpon>

@@ -12,11 +12,11 @@ namespace RestaurantApp.Web.Filters
 {
     public class JwtAuthorizeAttribute : AuthorizeAttribute
     {
-        // Gizli anahtarımız (JwtHelper ile BİREBİR AYNI olmalı)
-        private const string SecretKey = "RestaurantAppSecretKeyForJwtAuthenticationCustomKey123!";
-
         public override void OnAuthorization(AuthorizationContext filterContext)
         {
+            // Anahtar try dışında okunur: ayar eksikse sessizce Login'e atmak yerine açık hata versin
+            var key = JwtHelper.GetSigningKey();
+
             // 1. Önce Session'dan, yoksa Request Header'dan Token'ı al
             var token = filterContext.HttpContext.Session["JWToken"] as string;
 
@@ -45,7 +45,6 @@ namespace RestaurantApp.Web.Filters
             {
                 // 2. Token'ın imzasını ve süresini doğrula
                 var tokenHandler = new JwtSecurityTokenHandler();
-                var key = Encoding.ASCII.GetBytes(SecretKey);
 
                 var validationParameters = new TokenValidationParameters
                 {

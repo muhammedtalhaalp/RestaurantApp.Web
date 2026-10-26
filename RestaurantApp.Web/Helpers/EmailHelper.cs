@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.Net;
 using System.Net.Mail;
 
@@ -6,8 +7,9 @@ namespace RestaurantApp.Web.Helpers
 {
     public static class EmailHelper
     {
-        private static readonly string senderEmail = "halkaterzi4@gmail.com";
-        private static readonly string senderPassword = "elil lrkf brjn xhjz";
+        // SMTP bilgileri Secrets.config dosyasından okunur
+        private static string senderEmail => ConfigurationManager.AppSettings["SmtpSenderEmail"];
+        private static string senderPassword => ConfigurationManager.AppSettings["SmtpSenderPassword"];
 
         // 1. Şifre Sıfırlama Doğrulama Kodu Gönderimi
         public static bool SendVerificationCode(string toEmail, string code)

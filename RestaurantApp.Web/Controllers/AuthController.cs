@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Linq;
+using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Web.Mvc;
 using RestaurantApp.Web.Data;
+using RestaurantApp.Web.Filters;
 using RestaurantApp.Web.Helpers;
 using RestaurantApp.Web.Models;
 
@@ -10,6 +13,21 @@ namespace RestaurantApp.Web.Controllers
     public class AuthController : Controller
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
+
+        private const int MinPasswordLength = 6;
+        private const int OtpValidMinutes = 5;
+        private const int OtpMaxFailedAttempts = 5;
+        private const string OtpSessionKey = "PendingOtp";
+
+        [Serializable]
+        private class PendingOtp
+        {
+            public int UserId { get; set; }
+            public string Code { get; set; }
+            public DateTime ExpiresAt { get; set; }
+            public int FailedAttempts { get; set; }
+            public bool IsVerified { get; set; }
+        }
 
         public ActionResult Login()
         {
@@ -35,7 +53,7 @@ namespace RestaurantApp.Web.Controllers
                 return Json(new { success = false, message = "Bu e-posta adresi zaten kullanımda!" });
             }
 
-            
+
             var newCompany = new Companies
             {
                 Name = model.CompanyName,
@@ -53,7 +71,7 @@ namespace RestaurantApp.Web.Controllers
                 FullName = model.FullName,
                 Username = model.Email,
                 Email = model.Email,
-                PasswordHash = model.Password,
+                PasswordHash = PasswordHasher.Hash(model.Password),
                 Role = "Admin",
                 IsActive = true,
                 CreatedDate = DateTime.Now
@@ -68,24 +86,31 @@ namespace RestaurantApp.Web.Controllers
         [HttpPost]
         public JsonResult ApiLogin(LoginViewModel model)
         {
-            if (!ModelState.IsValid)
+            if (!ModelState.IsValid || model == null || string.IsNullOrEmpty(model.Username) || string.IsNullOrEmpty(model.Password))
             {
                 return Json(new { success = false, message = "Lütfen bilgilerinizi eksiksiz girin." });
             }
 
             var user = db.AppUsers.FirstOrDefault(u =>
                 (u.Username == model.Username || u.Email == model.Username) &&
-                u.PasswordHash == model.Password &&
                 u.IsActive == true);
 
-            if (user == null)
+            bool needsUpgrade;
+            if (user == null || !PasswordHasher.Verify(model.Password, user.PasswordHash, out needsUpgrade))
             {
                 return Json(new { success = false, message = "E-posta veya şifre hatalı!" });
             }
 
+            // Düz metin saklanmış eski şifreyi ilk başarılı girişte hash'e çevir
+            if (needsUpgrade)
+            {
+                user.PasswordHash = PasswordHasher.Hash(model.Password);
+                db.SaveChanges();
+            }
+
             string token = JwtHelper.GenerateToken(user.UserId, user.Username, user.Role);
 
-          
+
             Session["JWToken"] = token;
             Session["UserId"] = user.UserId;
             Session["UserRole"] = user.Role;
@@ -95,7 +120,7 @@ namespace RestaurantApp.Web.Controllers
 
             if (user.Role == "Admin")
             {
-                
+
                 redirectUrl = "/Admin/Index";
             }
             else if (user.Role == "Mutfak" || user.Role == "Mutfak Şefi")
@@ -104,7 +129,7 @@ namespace RestaurantApp.Web.Controllers
             }
             else if (user.Role == "Garson" || user.Role == "Kasiyer" || user.Role == "Garson/Kasiyer")
             {
-                redirectUrl = "/Order/Index"; 
+                redirectUrl = "/Order/Index";
             }
 
             return Json(new
@@ -120,28 +145,79 @@ namespace RestaurantApp.Web.Controllers
 
         #region ORTAK PROFİL AYARLARI (TÜM ROLLER İÇİN)
 
+        // Kullanıcı yalnızca JwtAuthorize'ın doğruladığı token'daki kimlikten bulunur
+        private AppUsers GetCurrentUser()
+        {
+            var principal = User as ClaimsPrincipal;
+            string idClaim = principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            int userId;
+            if (!int.TryParse(idClaim, out userId)) return null;
+
+            return db.AppUsers.FirstOrDefault(u => u.UserId == userId && u.IsActive);
+        }
+
+        private static string GenerateOtpCode()
+        {
+            byte[] bytes = new byte[4];
+            using (var rng = new RNGCryptoServiceProvider())
+            {
+                rng.GetBytes(bytes);
+            }
+            return (BitConverter.ToUInt32(bytes, 0) % 10000).ToString("D4");
+        }
+
+        // Kodu kontrol eder; yanlış denemeleri sayar, süre dolduysa veya deneme hakkı bittiyse kodu iptal eder
+        private bool TryCheckOtp(int userId, string code, out string errorMessage)
+        {
+            var otp = Session[OtpSessionKey] as PendingOtp;
+
+            if (otp == null || otp.UserId != userId)
+            {
+                errorMessage = "Geçerli bir doğrulama kodu bulunamadı. Lütfen yeni kod isteyin.";
+                return false;
+            }
+
+            if (DateTime.Now > otp.ExpiresAt)
+            {
+                Session[OtpSessionKey] = null;
+                errorMessage = "Doğrulama kodunun süresi doldu. Lütfen yeni kod isteyin.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(code) || otp.Code != code.Trim())
+            {
+                otp.FailedAttempts++;
+                if (otp.FailedAttempts >= OtpMaxFailedAttempts)
+                {
+                    Session[OtpSessionKey] = null;
+                    errorMessage = "Çok fazla hatalı deneme yapıldı. Lütfen yeni kod isteyin.";
+                }
+                else
+                {
+                    errorMessage = $"Girdiğiniz 4 haneli kod hatalı! Kalan deneme hakkı: {OtpMaxFailedAttempts - otp.FailedAttempts}";
+                }
+                return false;
+            }
+
+            errorMessage = null;
+            return true;
+        }
+
         [HttpGet]
+        [JwtAuthorize]
         public ActionResult ProfileSettings()
         {
             return View();
         }
 
         [HttpGet]
+        [JwtAuthorize]
         public JsonResult GetUserProfile()
         {
             try
             {
-                int currentUserId = Session["UserId"] != null ? Convert.ToInt32(Session["UserId"]) : 0;
-
-                AppUsers user = null;
-                if (currentUserId > 0)
-                {
-                    user = db.AppUsers.FirstOrDefault(u => u.UserId == currentUserId);
-                }
-                else
-                {
-                    user = db.AppUsers.FirstOrDefault(u => u.IsActive == true);
-                }
+                var user = GetCurrentUser();
 
                 if (user == null)
                 {
@@ -168,23 +244,26 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpPost]
+        [JwtAuthorize]
         public JsonResult SendPasswordResetCode()
         {
             try
             {
-                int currentUserId = Session["UserId"] != null ? Convert.ToInt32(Session["UserId"]) : 0;
-                var user = db.AppUsers.FirstOrDefault(u => u.UserId == currentUserId || u.IsActive == true);
+                var user = GetCurrentUser();
 
                 if (user == null || string.IsNullOrEmpty(user.Email))
                 {
                     return Json(new { success = false, message = "Kullanıcı e-postası bulunamadı." });
                 }
 
-                Random random = new Random();
-                string code = random.Next(1000, 9999).ToString();
+                string code = GenerateOtpCode();
 
-                Session["ResetCode"] = code;
-                Session["ResetCodeUserEmail"] = user.Email;
+                Session[OtpSessionKey] = new PendingOtp
+                {
+                    UserId = user.UserId,
+                    Code = code,
+                    ExpiresAt = DateTime.Now.AddMinutes(OtpValidMinutes)
+                };
 
                 bool mailSent = EmailHelper.SendVerificationCode(user.Email, code);
 
@@ -194,6 +273,7 @@ namespace RestaurantApp.Web.Controllers
                 }
                 else
                 {
+                    Session[OtpSessionKey] = null;
                     return Json(new { success = false, message = "E-posta gönderilirken bir hata oluştu. Lütfen SMTP ayarlarını kontrol edin." });
                 }
             }
@@ -204,47 +284,58 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpPost]
+        [JwtAuthorize]
         public JsonResult VerifyOtpCode(string code)
         {
-            string sessionCode = Session["ResetCode"] as string;
-
-            if (sessionCode != null && sessionCode == code.Trim())
+            var user = GetCurrentUser();
+            if (user == null)
             {
-                Session["IsOtpVerified"] = true;
-                return Json(new { success = true, message = "Kod doğrulandı." });
+                return Json(new { success = false, message = "Kullanıcı bulunamadı." });
             }
 
-            return Json(new { success = false, message = "Girdiğiniz 4 haneli kod hatalı!" });
+            string errorMessage;
+            if (!TryCheckOtp(user.UserId, code, out errorMessage))
+            {
+                return Json(new { success = false, message = errorMessage });
+            }
+
+            ((PendingOtp)Session[OtpSessionKey]).IsVerified = true;
+            return Json(new { success = true, message = "Kod doğrulandı." });
         }
 
         [HttpPost]
+        [JwtAuthorize]
         public JsonResult ConfirmNewPassword(string newPassword)
         {
-            bool isVerified = Session["IsOtpVerified"] != null && (bool)Session["IsOtpVerified"];
+            var user = GetCurrentUser();
+            if (user == null)
+            {
+                return Json(new { success = false, message = "Kullanıcı bulunamadı." });
+            }
+
+            var otp = Session[OtpSessionKey] as PendingOtp;
+            bool isVerified = otp != null && otp.IsVerified && otp.UserId == user.UserId && DateTime.Now <= otp.ExpiresAt;
 
             if (!isVerified)
             {
                 return Json(new { success = false, message = "Güvenlik ihlali: Önce doğrulama kodunu onaylamalısınız." });
             }
 
-            int currentUserId = Session["UserId"] != null ? Convert.ToInt32(Session["UserId"]) : 0;
-            var user = db.AppUsers.FirstOrDefault(u => u.UserId == currentUserId || u.IsActive == true);
-
-            if (user != null)
+            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < MinPasswordLength)
             {
-                user.PasswordHash = newPassword;
-                db.SaveChanges();
-
-                Session["ResetCode"] = null;
-                Session["IsOtpVerified"] = null;
-
-                return Json(new { success = true, message = "Şifreniz güncellendi." });
+                return Json(new { success = false, message = $"Yeni şifre en az {MinPasswordLength} karakter olmalıdır." });
             }
 
-            return Json(new { success = false, message = "Kullanıcı bulunamadı." });
+            user.PasswordHash = PasswordHasher.Hash(newPassword);
+            db.SaveChanges();
+
+            Session[OtpSessionKey] = null;
+
+            return Json(new { success = true, message = "Şifreniz güncellendi." });
         }
 
         [HttpPost]
+        [JwtAuthorize]
         public JsonResult UpdateUserProfile(string FullName, string Email, string VerificationCode, string NewPassword)
         {
             try
@@ -254,12 +345,20 @@ namespace RestaurantApp.Web.Controllers
                     return Json(new { success = false, message = "Ad Soyad ve E-Posta alanları zorunludur." });
                 }
 
-                int currentUserId = Session["UserId"] != null ? Convert.ToInt32(Session["UserId"]) : 0;
-                var user = db.AppUsers.FirstOrDefault(u => u.UserId == currentUserId || u.IsActive == true);
+                FullName = FullName.Trim();
+                Email = Email.Trim();
+
+                var user = GetCurrentUser();
 
                 if (user == null)
                 {
                     return Json(new { success = false, message = "Kullanıcı bulunamadı." });
+                }
+
+                bool emailTaken = db.AppUsers.Any(u => u.UserId != user.UserId && (u.Email == Email || u.Username == Email));
+                if (emailTaken)
+                {
+                    return Json(new { success = false, message = "Bu e-posta adresi başka bir kullanıcı tarafından kullanılıyor." });
                 }
 
                 if (!string.IsNullOrWhiteSpace(NewPassword))
@@ -269,14 +368,19 @@ namespace RestaurantApp.Web.Controllers
                         return Json(new { success = false, message = "Şifrenizi değiştirmek için lütfen e-postanıza gelen doğrulama kodunu girin." });
                     }
 
-                    string sessionCode = Session["ResetCode"] as string;
-                    if (sessionCode == null || sessionCode != VerificationCode.Trim())
+                    if (NewPassword.Length < MinPasswordLength)
                     {
-                        return Json(new { success = false, message = "Girdiğiniz doğrulama kodu hatalı veya süresi dolmuş." });
+                        return Json(new { success = false, message = $"Yeni şifre en az {MinPasswordLength} karakter olmalıdır." });
                     }
 
-                    user.PasswordHash = NewPassword;
-                    Session["ResetCode"] = null;
+                    string otpError;
+                    if (!TryCheckOtp(user.UserId, VerificationCode, out otpError))
+                    {
+                        return Json(new { success = false, message = otpError });
+                    }
+
+                    user.PasswordHash = PasswordHasher.Hash(NewPassword);
+                    Session[OtpSessionKey] = null;
                 }
 
                 user.FullName = FullName;

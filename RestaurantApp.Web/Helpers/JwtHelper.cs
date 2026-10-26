@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -8,13 +9,21 @@ namespace RestaurantApp.Web.Helpers
 {
     public static class JwtHelper
     {
-        // Token imzalamak için gizli anahtar (En az 16-32 karakter olmalı)
-        private const string SecretKey = "RestaurantAppSecretKeyForJwtAuthenticationCustomKey123!";
+        // Token imzalama anahtarı Secrets.config içindeki "JwtSecretKey" ayarından okunur
+        internal static byte[] GetSigningKey()
+        {
+            string secretKey = ConfigurationManager.AppSettings["JwtSecretKey"];
+            if (string.IsNullOrWhiteSpace(secretKey) || secretKey.Length < 32)
+            {
+                throw new ConfigurationErrorsException("JwtSecretKey ayarı bulunamadı veya 32 karakterden kısa. Secrets.config dosyasını kontrol edin (bkz. Secrets.config.example).");
+            }
+            return Encoding.UTF8.GetBytes(secretKey);
+        }
 
         public static string GenerateToken(int userId, string username, string role)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(SecretKey);
+            var key = GetSigningKey();
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
