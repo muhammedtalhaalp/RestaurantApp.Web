@@ -4,9 +4,16 @@
 
 // 1. QR Menü Verilerini Yükle (Slider, Popüler Ürünler, Kategoriler)
 function loadMenuData() {
+    // Restoran, QR koddaki adresten bulunur: /Menu/Index?tableId=5 veya /Menu/Index?companyId=1
+    var urlParams = new URLSearchParams(window.location.search);
+    var menuQuery = {};
+    if (urlParams.get("tableId")) menuQuery.tableId = urlParams.get("tableId");
+    if (urlParams.get("companyId")) menuQuery.companyId = urlParams.get("companyId");
+
     $.ajax({
         url: "/Menu/GetMenuData",
         type: "GET",
+        data: menuQuery,
         cache: false,
         success: function (res) {
             if (res && res.success && res.data) {

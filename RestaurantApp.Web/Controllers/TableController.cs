@@ -8,13 +8,13 @@ using RestaurantApp.Web.Filters;
 namespace RestaurantApp.Web.Controllers
 {
     [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
-    public class TableController : Controller
+    public class TableController : TenantController
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
 
         public ActionResult Index()
         {
-            var tables = db.AppTables.Where(t => t.IsActive).ToList();
+            var tables = db.AppTables.Where(t => t.IsActive && t.CompanyId == CurrentCompanyId).ToList();
             return View(tables);
         }
 
@@ -33,7 +33,7 @@ namespace RestaurantApp.Web.Controllers
             try
             {
                 var occupiedTables = db.AppTables
-                    .Where(t => t.IsActive && t.Status == "Dolu")
+                    .Where(t => t.IsActive && t.CompanyId == CurrentCompanyId && t.Status == "Dolu")
                     .ToList()
                     .Select(t =>
                     {
@@ -67,7 +67,7 @@ namespace RestaurantApp.Web.Controllers
         private List<AppOrders> GetActiveOrders(int tableId)
         {
             return db.AppOrders
-                .Where(o => o.TableId == tableId && o.Status != "Tamamlandı" && o.Status != "İptal")
+                .Where(o => o.TableId == tableId && o.CompanyId == CurrentCompanyId && o.Status != "Tamamlandı" && o.Status != "İptal")
                 .OrderBy(o => o.CreatedDate)
                 .ToList();
         }
@@ -250,7 +250,7 @@ namespace RestaurantApp.Web.Controllers
                     order.CompletedDate = now;
                 }
 
-                var table = db.AppTables.FirstOrDefault(t => t.TableId == tableId);
+                var table = db.AppTables.FirstOrDefault(t => t.TableId == tableId && t.CompanyId == CurrentCompanyId);
                 if (table != null)
                 {
                     table.Status = "Bos";
@@ -281,13 +281,13 @@ namespace RestaurantApp.Web.Controllers
                 var sourceOrders = GetActiveOrders(sourceTableId);
                 if (!sourceOrders.Any()) return Json(new { success = false, message = "Taşınacak masada aktif sipariş bulunamadı." });
 
-                var targetTable = db.AppTables.FirstOrDefault(t => t.TableId == targetTableId && t.IsActive);
+                var targetTable = db.AppTables.FirstOrDefault(t => t.TableId == targetTableId && t.CompanyId == CurrentCompanyId && t.IsActive);
                 if (targetTable == null) return Json(new { success = false, message = "Hedef masa bulunamadı." });
                 if (targetTable.Status == "Dolu") return Json(new { success = false, message = "Hedef masa dolu. Masa Birleştirme kullanınız." });
 
                 foreach (var order in sourceOrders) order.TableId = targetTableId;
 
-                var sourceTable = db.AppTables.FirstOrDefault(t => t.TableId == sourceTableId);
+                var sourceTable = db.AppTables.FirstOrDefault(t => t.TableId == sourceTableId && t.CompanyId == CurrentCompanyId);
                 if (sourceTable != null) sourceTable.Status = "Bos";
                 targetTable.Status = "Dolu";
 
@@ -341,7 +341,7 @@ namespace RestaurantApp.Web.Controllers
                     sourceOrder.TotalAmount = 0;
                 }
 
-                var sourceTable = db.AppTables.FirstOrDefault(t => t.TableId == sourceTableId);
+                var sourceTable = db.AppTables.FirstOrDefault(t => t.TableId == sourceTableId && t.CompanyId == CurrentCompanyId);
                 if (sourceTable != null) sourceTable.Status = "Bos";
 
                 db.SaveChanges();
@@ -362,7 +362,7 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                var emptyTables = db.AppTables.Where(t => t.IsActive && t.Status == "Bos").Select(t => new { tableId = t.TableId, tableName = t.TableNumber }).ToList();
+                var emptyTables = db.AppTables.Where(t => t.IsActive && t.CompanyId == CurrentCompanyId && t.Status == "Bos").Select(t => new { tableId = t.TableId, tableName = t.TableNumber }).ToList();
                 return Json(new { success = true, data = emptyTables }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)

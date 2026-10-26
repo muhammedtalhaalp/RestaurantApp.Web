@@ -8,18 +8,17 @@ using System.Web.Mvc;
 namespace RestaurantApp.Web.Controllers
 {
     [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
-    public class CategoryController : Controller
+    public class CategoryController : TenantController
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
 
        
         [HttpGet]
-        [AllowAnonymous]
-        public JsonResult GetCategories(int? companyId)
+        public JsonResult GetCategories()
         {
             try
             {
-                int targetCompanyId = companyId.HasValue && companyId.Value > 0 ? companyId.Value : 1;
+                int targetCompanyId = CurrentCompanyId;
 
                 var categories = db.AppCategories
                     .Where(c => c.CompanyId == targetCompanyId)
@@ -42,11 +41,12 @@ namespace RestaurantApp.Web.Controllers
 
         
         [HttpPost]
+        [JwtAuthorize(Roles = "Admin")]
         public JsonResult ToggleCategoryStatus(int categoryId)
         {
             try
             {
-                var category = db.AppCategories.FirstOrDefault(c => c.CategoryId == categoryId);
+                var category = db.AppCategories.FirstOrDefault(c => c.CategoryId == categoryId && c.CompanyId == CurrentCompanyId);
                 if (category == null)
                 {
                     return Json(new { success = false, message = "Kategori bulunamadı." });
@@ -68,14 +68,15 @@ namespace RestaurantApp.Web.Controllers
 
         
         [HttpPost]
-        public JsonResult Create(string categoryName, int? companyId)
+        [JwtAuthorize(Roles = "Admin")]
+        public JsonResult Create(string categoryName)
         {
             if (string.IsNullOrWhiteSpace(categoryName))
             {
                 return Json(new { success = false, message = "Kategori adı boş olamaz." });
             }
 
-            int targetCompanyId = companyId.HasValue && companyId.Value > 0 ? companyId.Value : 1;
+            int targetCompanyId = CurrentCompanyId;
 
             AppCategories category = new AppCategories
             {
@@ -94,6 +95,7 @@ namespace RestaurantApp.Web.Controllers
 
        
         [HttpPost]
+        [JwtAuthorize(Roles = "Admin")]
         public JsonResult Update(int categoryId, string categoryName)
         {
             if (string.IsNullOrWhiteSpace(categoryName))
@@ -101,7 +103,7 @@ namespace RestaurantApp.Web.Controllers
                 return Json(new { success = false, message = "Kategori adı boş olamaz." });
             }
 
-            var category = db.AppCategories.FirstOrDefault(c => c.CategoryId == categoryId);
+            var category = db.AppCategories.FirstOrDefault(c => c.CategoryId == categoryId && c.CompanyId == CurrentCompanyId);
             if (category == null)
             {
                 return Json(new { success = false, message = "Kategori bulunamadı." });
@@ -117,9 +119,10 @@ namespace RestaurantApp.Web.Controllers
 
         
         [HttpPost]
+        [JwtAuthorize(Roles = "Admin")]
         public JsonResult Delete(int id)
         {
-            var category = db.AppCategories.FirstOrDefault(c => c.CategoryId == id);
+            var category = db.AppCategories.FirstOrDefault(c => c.CategoryId == id && c.CompanyId == CurrentCompanyId);
             if (category != null)
             {
                 db.AppCategories.Remove(category);

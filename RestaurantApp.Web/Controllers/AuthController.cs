@@ -116,7 +116,7 @@ namespace RestaurantApp.Web.Controllers
                 db.SaveChanges();
             }
 
-            string token = JwtHelper.GenerateToken(user.UserId, user.Username, user.Role);
+            string token = JwtHelper.GenerateToken(user.UserId, user.Username, user.Role, user.CompanyId);
 
 
             Session["JWToken"] = token;

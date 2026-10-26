@@ -11,9 +11,18 @@ using System.Web.Mvc;
 namespace RestaurantApp.Web.Controllers
 {
     [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
-    public class AdminController : Controller
+    public class AdminController : TenantController
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
+
+        // Personel Yönetimi ekranından eklenip silinebilen roller
+        private static readonly string[] StaffRoles = { "Mutfak Şefi", "Mutfak", "Garson/Kasiyer", "Garson", "Kasiyer" };
+
+        private bool IsOwnCategory(int categoryId)
+        {
+            int companyId = CurrentCompanyId;
+            return db.AppCategories.Any(c => c.CategoryId == categoryId && c.CompanyId == companyId);
+        }
 
         [JwtAuthorize(Roles = "Admin")]
         public ActionResult Index()
@@ -59,10 +68,11 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                var allowedRoles = new[] { "Mutfak Şefi", "Mutfak", "Garson/Kasiyer", "Garson", "Kasiyer" };
+                int companyId = CurrentCompanyId;
+                var allowedRoles = StaffRoles;
 
                 var staffList = db.AppUsers
-                    .Where(u => allowedRoles.Contains(u.Role))
+                    .Where(u => u.CompanyId == companyId && allowedRoles.Contains(u.Role))
                     .Select(u => new
                     {
                         id = u.UserId,
@@ -90,6 +100,11 @@ namespace RestaurantApp.Web.Controllers
                     return Json(new { success = false, message = "Lütfen tüm alanları eksiksiz doldurun." });
                 }
 
+                if (!StaffRoles.Contains(Role))
+                {
+                    return Json(new { success = false, message = "Geçersiz personel rolü." });
+                }
+
                 bool isExist = db.AppUsers.Any(u => u.Email == Email || u.Username == Email);
                 if (isExist)
                 {
@@ -99,9 +114,10 @@ namespace RestaurantApp.Web.Controllers
                 Random random = new Random();
                 string generatedPassword = random.Next(100000, 999999).ToString();
 
-                var adminUser = db.AppUsers.FirstOrDefault(u => u.Role == "Admin");
-                int currentCompanyId = adminUser != null ? adminUser.CompanyId : 1;
-                string currentCompanyName = adminUser != null ? adminUser.CompanyName : "MTA";
+                // Personel, ekleyen Admin'in şirketine bağlanır
+                int currentCompanyId = CurrentCompanyId;
+                var company = db.Companies.FirstOrDefault(c => c.Id == currentCompanyId);
+                string currentCompanyName = company != null ? company.Name : null;
 
                 var newStaff = new AppUsers
                 {
@@ -151,7 +167,8 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                var staff = db.AppUsers.FirstOrDefault(u => u.UserId == id);
+                // Sadece kendi şirketindeki personel silinebilir (Admin hesapları bu ekrandan silinemez)
+                var staff = db.AppUsers.FirstOrDefault(u => u.UserId == id && u.CompanyId == CurrentCompanyId && StaffRoles.Contains(u.Role));
                 if (staff == null)
                 {
                     return Json(new { success = false, message = "Silinmek istenen personel bulunamadı." });
@@ -178,6 +195,7 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
+                int companyId = CurrentCompanyId;
                 DateTime now = DateTime.Now;
                 DateTime startOfToday = now.Date;
                 DateTime endOfToday = now.Date.AddDays(1).AddTicks(-1);
@@ -188,7 +206,7 @@ namespace RestaurantApp.Web.Controllers
                 if (now.Date.AddDays(-6) < rangeStart) rangeStart = now.Date.AddDays(-6);
 
                 var rangeOrders = db.AppOrders
-                    .Where(o => o.CreatedDate >= rangeStart && o.CreatedDate <= endOfToday && o.Status != "İptal")
+                    .Where(o => o.CompanyId == companyId && o.CreatedDate >= rangeStart && o.CreatedDate <= endOfToday && o.Status != "İptal")
                     .ToList();
 
                 Func<DateTime, DateTime, decimal> revenueBetween = (from, to) =>
@@ -203,7 +221,7 @@ namespace RestaurantApp.Web.Controllers
                 decimal avgOrderAmount = todayOrderCount > 0 ? (todayRevenue / todayOrderCount) : 0;
 
                 var topProductToday = db.AppOrderDetails
-                    .Where(d => d.AppOrders.CreatedDate >= startOfToday && d.AppOrders.CreatedDate <= endOfToday && d.AppOrders.Status != "İptal")
+                    .Where(d => d.AppOrders.CompanyId == companyId && d.AppOrders.CreatedDate >= startOfToday && d.AppOrders.CreatedDate <= endOfToday && d.AppOrders.Status != "İptal")
                     .GroupBy(d => d.AppProducts.ProductName)
                     .Select(g => new { ProductName = g.Key, TotalQty = g.Sum(x => x.Quantity) })
                     .OrderByDescending(x => x.TotalQty)
@@ -257,7 +275,7 @@ namespace RestaurantApp.Web.Controllers
 
                 DateTime thirtyDaysAgo = now.AddDays(-30);
                 var top5Products = db.AppOrderDetails
-                    .Where(d => d.AppOrders.CreatedDate >= thirtyDaysAgo && d.AppOrders.Status != "İptal")
+                    .Where(d => d.AppOrders.CompanyId == companyId && d.AppOrders.CreatedDate >= thirtyDaysAgo && d.AppOrders.Status != "İptal")
                     .GroupBy(d => d.AppProducts.ProductName)
                     .Select(g => new
                     {
@@ -277,7 +295,7 @@ namespace RestaurantApp.Web.Controllers
                     DateTime hEnd = startOfToday.AddHours(h + 2).AddTicks(-1);
 
                     int count = db.AppOrders
-                        .Count(o => o.CreatedDate >= hStart && o.CreatedDate <= hEnd && o.Status != "İptal");
+                        .Count(o => o.CompanyId == companyId && o.CreatedDate >= hStart && o.CreatedDate <= hEnd && o.Status != "İptal");
 
                     hourlyLabels.Add($"{h:D2}:00");
                     hourlyOrderCounts.Add(count);
@@ -321,11 +339,12 @@ namespace RestaurantApp.Web.Controllers
                     targetDate = DateTime.Today;
                 }
 
+                int companyId = CurrentCompanyId;
                 DateTime startOfDay = targetDate.Date;
                 DateTime endOfDay = targetDate.Date.AddDays(1).AddTicks(-1);
 
                 var queryOrders = db.AppOrders
-                    .Where(o => o.CreatedDate >= startOfDay && o.CreatedDate <= endOfDay)
+                    .Where(o => o.CompanyId == companyId && o.CreatedDate >= startOfDay && o.CreatedDate <= endOfDay)
                     .OrderByDescending(o => o.CreatedDate)
                     .ToList();
 
@@ -388,7 +407,7 @@ namespace RestaurantApp.Web.Controllers
             try
             {
                 var activeOrders = db.AppOrders
-                    .Where(o => o.TableId == tableId && o.Status != "Tamamlandı" && o.Status != "İptal")
+                    .Where(o => o.TableId == tableId && o.CompanyId == CurrentCompanyId && o.Status != "Tamamlandı" && o.Status != "İptal")
                     .ToList();
 
                 if (!activeOrders.Any())
@@ -410,7 +429,7 @@ namespace RestaurantApp.Web.Controllers
                     order.CompletedDate = now; // MASA BOŞALMA SAATİ KAYDEDİLİYOR
                 }
 
-                var table = db.AppTables.FirstOrDefault(t => t.TableId == tableId);
+                var table = db.AppTables.FirstOrDefault(t => t.TableId == tableId && t.CompanyId == CurrentCompanyId);
                 if (table != null)
                 {
                     table.Status = "Bos";
@@ -430,7 +449,7 @@ namespace RestaurantApp.Web.Controllers
         [JwtAuthorize(Roles = "Admin")]
         public ActionResult TableManagement()
         {
-            var tables = db.AppTables.Where(t => t.IsActive).ToList();
+            var tables = db.AppTables.Where(t => t.IsActive && t.CompanyId == CurrentCompanyId).ToList();
             return View(tables);
         }
 
@@ -438,7 +457,7 @@ namespace RestaurantApp.Web.Controllers
         [JwtAuthorize(Roles = "Admin")]
         public ActionResult FloorPlanManagement()
         {
-            var tables = db.AppTables.Where(t => t.IsActive).ToList();
+            var tables = db.AppTables.Where(t => t.IsActive && t.CompanyId == CurrentCompanyId).ToList();
             return View(tables);
         }
 
@@ -448,13 +467,15 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
+                int companyId = CurrentCompanyId;
+
                 var tables = db.AppTables
-                    .Where(t => t.IsActive)
+                    .Where(t => t.IsActive && t.CompanyId == companyId)
                     .ToList()
                     .Select(t =>
                     {
                         var activeOrders = db.AppOrders
-                            .Where(o => o.TableId == t.TableId && o.Status != "Tamamlandı" && o.Status != "İptal")
+                            .Where(o => o.TableId == t.TableId && o.CompanyId == companyId && o.Status != "Tamamlandı" && o.Status != "İptal")
                             .OrderBy(o => o.CreatedDate)
                             .ToList();
 
@@ -529,7 +550,7 @@ namespace RestaurantApp.Web.Controllers
 
                 string targetSection = string.IsNullOrWhiteSpace(section) ? "Salon" : section.Trim();
 
-                var existingTable = db.AppTables.FirstOrDefault(t => t.TableNumber == tableNumber && t.IsActive);
+                var existingTable = db.AppTables.FirstOrDefault(t => t.TableNumber == tableNumber && t.CompanyId == CurrentCompanyId && t.IsActive);
                 if (existingTable != null)
                 {
                     return Json(new { success = false, message = "Bu masa numarası zaten kayıtlı!" });
@@ -537,6 +558,7 @@ namespace RestaurantApp.Web.Controllers
 
                 var newTable = new AppTables
                 {
+                    CompanyId = CurrentCompanyId,
                     TableNumber = tableNumber,
                     Section = targetSection,
                     Status = "Bos",
@@ -574,7 +596,7 @@ namespace RestaurantApp.Web.Controllers
 
                 if (tableId.HasValue && tableId.Value > 0)
                 {
-                    table = db.AppTables.Find(tableId.Value);
+                    table = db.AppTables.FirstOrDefault(t => t.TableId == tableId.Value && t.CompanyId == CurrentCompanyId);
                     if (table == null)
                     {
                         return Json(new { success = false, message = "Masa bulunamadı." });
@@ -584,6 +606,7 @@ namespace RestaurantApp.Web.Controllers
                 {
                     table = new AppTables
                     {
+                        CompanyId = CurrentCompanyId,
                         Status = "Bos",
                         IsActive = true
                     };
@@ -617,7 +640,7 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                var table = db.AppTables.Find(id);
+                var table = db.AppTables.FirstOrDefault(t => t.TableId == id && t.CompanyId == CurrentCompanyId);
                 if (table == null)
                 {
                     return Json(new { success = false, message = "Masa bulunamadı." });
@@ -646,39 +669,31 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
+                int companyId = CurrentCompanyId;
                 string requestScheme = Request.Url.Scheme;
                 string requestHost = Request.Url.Authority;
 
                 string targetMenuUrl = "";
 
+                // Menü sayfası restoranı masadan (tableId) veya masasız QR'da doğrudan companyId'den bulur
                 if (tableId.HasValue && tableId.Value > 0)
                 {
+                    bool isOwnTable = db.AppTables.Any(t => t.TableId == tableId.Value && t.CompanyId == companyId);
+                    if (!isOwnTable)
+                    {
+                        return Json(new { success = false, message = "Masa bulunamadı." }, JsonRequestBehavior.AllowGet);
+                    }
                     targetMenuUrl = $"{requestScheme}://{requestHost}/Menu/Index?tableId={tableId.Value}";
                 }
                 else
                 {
-                    targetMenuUrl = $"{requestScheme}://{requestHost}/Menu/Index";
+                    targetMenuUrl = $"{requestScheme}://{requestHost}/Menu/Index?companyId={companyId}";
                 }
 
                 string qrImageUrl = $"https://quickchart.io/qr?text={Url.Encode(targetMenuUrl)}&size=300&margin=1";
 
-                // Oturum açan kullanıcının / Admin'in Şirket Adını Çekiyoruz
-                string companyName = "Restoran";
-                int currentUserId = Session["UserId"] != null ? Convert.ToInt32(Session["UserId"]) : 0;
-                var currentUser = db.AppUsers.FirstOrDefault(u => u.UserId == currentUserId);
-
-                if (currentUser != null && !string.IsNullOrEmpty(currentUser.CompanyName))
-                {
-                    companyName = currentUser.CompanyName;
-                }
-                else
-                {
-                    var adminUser = db.AppUsers.FirstOrDefault(u => u.Role == "Admin");
-                    if (adminUser != null && !string.IsNullOrEmpty(adminUser.CompanyName))
-                    {
-                        companyName = adminUser.CompanyName;
-                    }
-                }
+                var company = db.Companies.FirstOrDefault(c => c.Id == companyId);
+                string companyName = company != null && !string.IsNullOrEmpty(company.Name) ? company.Name : "Restoran";
 
                 return Json(new { success = true, qrImageUrl = qrImageUrl, targetUrl = targetMenuUrl, companyName = companyName }, JsonRequestBehavior.AllowGet);
             }
@@ -694,8 +709,9 @@ namespace RestaurantApp.Web.Controllers
 
         [HttpGet]
         [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
-        public JsonResult GetCategories(int companyId)
+        public JsonResult GetCategories()
         {
+            int companyId = CurrentCompanyId;
             var categories = db.AppCategories
                 .Where(c => c.CompanyId == companyId)
                 .Select(c => new
@@ -710,7 +726,7 @@ namespace RestaurantApp.Web.Controllers
 
         [HttpPost]
         [JwtAuthorize(Roles = "Admin")]
-        public JsonResult AddCategory(string categoryName, int companyId)
+        public JsonResult AddCategory(string categoryName)
         {
             if (string.IsNullOrWhiteSpace(categoryName))
             {
@@ -720,7 +736,7 @@ namespace RestaurantApp.Web.Controllers
             var category = new AppCategories
             {
                 CategoryName = categoryName,
-                CompanyId = companyId,
+                CompanyId = CurrentCompanyId,
                 IsActive = true
             };
 
@@ -739,8 +755,9 @@ namespace RestaurantApp.Web.Controllers
             try
             {
                 // Masada hazır ürünü bulunan veya mutfakta hazırlanmakta olan aktif siparişleri listele
+                int companyId = CurrentCompanyId;
                 var pendingOrders = db.AppOrders
-                    .Where(o => o.Status != "Tamamlandı" && o.Status != "İptal" &&
+                    .Where(o => o.CompanyId == companyId && o.Status != "Tamamlandı" && o.Status != "İptal" &&
                                 o.AppOrderDetails.Any(d => !d.IsReturned && d.ReturnReason != "Servis Edildi"))
                     .OrderByDescending(o => o.CreatedDate)
                     .ToList()
@@ -774,7 +791,7 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                var order = db.AppOrders.FirstOrDefault(o => o.OrderId == orderId);
+                var order = db.AppOrders.FirstOrDefault(o => o.OrderId == orderId && o.CompanyId == CurrentCompanyId);
                 if (order == null)
                 {
                     return Json(new { success = false, message = "Sipariş bulunamadı." }, JsonRequestBehavior.AllowGet);
@@ -820,7 +837,7 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                var order = db.AppOrders.FirstOrDefault(o => o.OrderId == orderId);
+                var order = db.AppOrders.FirstOrDefault(o => o.OrderId == orderId && o.CompanyId == CurrentCompanyId);
                 if (order == null)
                 {
                     return Json(new { success = false, message = "Sipariş bulunamadı." });
@@ -849,7 +866,7 @@ namespace RestaurantApp.Web.Controllers
                     return Json(new { success = false, message = "Silinmek istenen ürün kalemi bulunamadı." });
                 }
 
-                var order = db.AppOrders.FirstOrDefault(o => o.OrderId == detail.OrderId);
+                var order = db.AppOrders.FirstOrDefault(o => o.OrderId == detail.OrderId && o.CompanyId == CurrentCompanyId);
                 if (order == null)
                 {
                     return Json(new { success = false, message = "Bağlı sipariş bulunamadı." });
@@ -902,7 +919,7 @@ namespace RestaurantApp.Web.Controllers
                         bool hasOtherActiveOrders = db.AppOrders.Any(o => o.TableId == tableId && o.OrderId != order.OrderId && o.Status != "Tamamlandı" && o.Status != "İptal");
                         if (!hasOtherActiveOrders)
                         {
-                            var table = db.AppTables.FirstOrDefault(t => t.TableId == tableId);
+                            var table = db.AppTables.FirstOrDefault(t => t.TableId == tableId && t.CompanyId == CurrentCompanyId);
                             if (table != null)
                             {
                                 table.Status = "Bos";
@@ -926,8 +943,9 @@ namespace RestaurantApp.Web.Controllers
 
         [HttpGet]
         [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
-        public JsonResult GetProducts(int companyId)
+        public JsonResult GetProducts()
         {
+            int companyId = CurrentCompanyId;
             string cacheKey = $"Company_Products_{companyId}";
 
             var products = CacheHelper.GetOrAdd(cacheKey, () =>
@@ -956,7 +974,7 @@ namespace RestaurantApp.Web.Controllers
         public JsonResult GetProductById(int productId)
         {
             var product = db.AppProducts
-                .Where(p => p.ProductId == productId)
+                .Where(p => p.ProductId == productId && p.CompanyId == CurrentCompanyId)
                 .Select(p => new
                 {
                     p.ProductId,
@@ -988,10 +1006,12 @@ namespace RestaurantApp.Web.Controllers
                     return Json(new { success = false, message = "Ürün adı boş geçilemez." });
                 }
 
-                if (product.CompanyId == 0)
+                // Şirket istemciden gelen değerle değil, oturumdaki şirketle belirlenir
+                product.CompanyId = CurrentCompanyId;
+
+                if (!IsOwnCategory(product.CategoryId))
                 {
-                    var admin = db.AppUsers.FirstOrDefault(u => u.Role == "Admin");
-                    product.CompanyId = admin != null ? admin.CompanyId : 1;
+                    return Json(new { success = false, message = "Geçersiz kategori seçimi." });
                 }
 
                 if (string.IsNullOrWhiteSpace(product.ImageUrl))
@@ -1021,10 +1041,15 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                var product = db.AppProducts.FirstOrDefault(p => p.ProductId == updatedProduct.ProductId);
+                var product = db.AppProducts.FirstOrDefault(p => p.ProductId == updatedProduct.ProductId && p.CompanyId == CurrentCompanyId);
                 if (product == null)
                 {
                     return Json(new { success = false, message = "Ürün bulunamadı." });
+                }
+
+                if (!IsOwnCategory(updatedProduct.CategoryId))
+                {
+                    return Json(new { success = false, message = "Geçersiz kategori seçimi." });
                 }
 
                 product.ProductName = updatedProduct.ProductName;
@@ -1060,7 +1085,7 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                var product = db.AppProducts.FirstOrDefault(p => p.ProductId == productId);
+                var product = db.AppProducts.FirstOrDefault(p => p.ProductId == productId && p.CompanyId == CurrentCompanyId);
                 if (product == null)
                 {
                     return Json(new { success = false, message = "Silinmek istenen ürün bulunamadı." });
@@ -1119,7 +1144,7 @@ namespace RestaurantApp.Web.Controllers
         [JwtAuthorize(Roles = "Admin")]
         public JsonResult ToggleProductStatus(int productId)
         {
-            var product = db.AppProducts.FirstOrDefault(p => p.ProductId == productId);
+            var product = db.AppProducts.FirstOrDefault(p => p.ProductId == productId && p.CompanyId == CurrentCompanyId);
             if (product == null)
             {
                 return Json(new { success = false, message = "Ürün bulunamadı." });
@@ -1147,7 +1172,7 @@ namespace RestaurantApp.Web.Controllers
             try
             {
                 var activeOrders = db.AppOrders
-                    .Where(o => o.TableId == tableId && o.Status != "Tamamlandı" && o.Status != "İptal")
+                    .Where(o => o.TableId == tableId && o.CompanyId == CurrentCompanyId && o.Status != "Tamamlandı" && o.Status != "İptal")
                     .ToList();
 
                 if (!activeOrders.Any())

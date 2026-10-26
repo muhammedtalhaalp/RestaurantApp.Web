@@ -135,6 +135,8 @@ function initKitchenSignalR() {
         };
         // ==========================================
 
+        // Token, bağlantının restoranın bildirim grubuna eklenmesi için gönderilir
+        $.connection.hub.qs = { access_token: localStorage.getItem("JWToken") };
         $.connection.hub.start().done(function () {
             console.log("Mutfak SignalR Bağlantısı Başarılı.");
         }).fail(function (err) {

@@ -180,6 +180,7 @@
     </Compile>
     <Compile Include="Helpers\EmailHelper.cs" />
     <Compile Include="Helpers\JwtHelper.cs" />
+    <Compile Include="Controllers\TenantController.cs" />
     <Compile Include="Helpers\OrderAmounts.cs" />
     <Compile Include="Helpers\PasswordHasher.cs" />
     <Compile Include="Controllers\TableController.cs" />

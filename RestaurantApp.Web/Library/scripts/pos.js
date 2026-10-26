@@ -609,7 +609,7 @@ function renderPosTableCards(sectionFilter) {
 }
 
 function loadCategories() {
-    $.get("/Category/GetCategories?companyId=1", function (res) {
+    $.get("/Category/GetCategories", function (res) {
         if (res.success && res.data) {
             var html = `<button class="btn btn-primary category-btn active" onclick="filterCategory(0, this)">Tüm Ürünler</button>`;
 
@@ -640,7 +640,7 @@ function loadCategories() {
 
 function loadProducts(categoryId) {
     activeCategoryId = categoryId;
-    $.get("/Order/GetProducts?companyId=1", function (res) {
+    $.get("/Order/GetProducts", function (res) {
         if (res.success && res.data) {
             currentRawProducts = res.data;
             renderProductsView();

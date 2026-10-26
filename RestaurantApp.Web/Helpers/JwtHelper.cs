@@ -9,6 +9,9 @@ namespace RestaurantApp.Web.Helpers
 {
     public static class JwtHelper
     {
+        // Kullanıcının bağlı olduğu şirket (çoklu restoran). Tüm veri sorguları bu claim ile sınırlanır.
+        public const string CompanyIdClaim = "CompanyId";
+
         // Token imzalama anahtarı Secrets.config içindeki "JwtSecretKey" ayarından okunur
         internal static byte[] GetSigningKey()
         {
@@ -20,7 +23,32 @@ namespace RestaurantApp.Web.Helpers
             return Encoding.UTF8.GetBytes(secretKey);
         }
 
-        public static string GenerateToken(int userId, string username, string role)
+        // Token'ın imzasını, süresini ve şirket bilgisini doğrular. Geçersizse SecurityTokenException fırlatır.
+        public static ClaimsPrincipal ValidateToken(string token)
+        {
+            var validationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(GetSigningKey()),
+                ValidateIssuer = false,
+                ValidateAudience = false,
+                ClockSkew = TimeSpan.Zero
+            };
+
+            SecurityToken validatedToken;
+            ClaimsPrincipal principal = new JwtSecurityTokenHandler().ValidateToken(token, validationParameters, out validatedToken);
+
+            // Şirket bilgisi olmayan (eski sürümde üretilmiş) token kabul edilmez
+            int companyId;
+            if (!int.TryParse(principal.FindFirst(CompanyIdClaim)?.Value, out companyId))
+            {
+                throw new SecurityTokenException("Token'da şirket bilgisi yok.");
+            }
+
+            return principal;
+        }
+
+        public static string GenerateToken(int userId, string username, string role, int companyId)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = GetSigningKey();
@@ -31,7 +59,8 @@ namespace RestaurantApp.Web.Helpers
                 {
                     new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
                     new Claim(ClaimTypes.Name, username),
-                    new Claim(ClaimTypes.Role, role)
+                    new Claim(ClaimTypes.Role, role),
+                    new Claim(CompanyIdClaim, companyId.ToString())
                 }),
                 Expires = DateTime.UtcNow.AddHours(8), // Token 8 saat geçerli olsun
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)

@@ -15,7 +15,7 @@ namespace RestaurantApp.Web.Filters
         public override void OnAuthorization(AuthorizationContext filterContext)
         {
             // Anahtar try dışında okunur: ayar eksikse sessizce Login'e atmak yerine açık hata versin
-            var key = JwtHelper.GetSigningKey();
+            JwtHelper.GetSigningKey();
 
             // 1. Önce Session'dan, yoksa Request Header'dan Token'ı al
             var token = filterContext.HttpContext.Session["JWToken"] as string;
@@ -43,20 +43,8 @@ namespace RestaurantApp.Web.Filters
 
             try
             {
-                // 2. Token'ın imzasını ve süresini doğrula
-                var tokenHandler = new JwtSecurityTokenHandler();
-
-                var validationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(key),
-                    ValidateIssuer = false,
-                    ValidateAudience = false,
-                    ClockSkew = TimeSpan.Zero
-                };
-
-                // Token'ı çözüyoruz (Validate)
-                ClaimsPrincipal principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
+                // 2. Token'ın imzasını, süresini ve şirket bilgisini doğrula (geçersizse catch bloğu Login'e yönlendirir)
+                ClaimsPrincipal principal = JwtHelper.ValidateToken(token);
 
                 // 3. Rol Kontrolü (Attribute üzerinde Roles = "Yonetici" gibi belirtilmişse)
                 if (!string.IsNullOrEmpty(Roles))

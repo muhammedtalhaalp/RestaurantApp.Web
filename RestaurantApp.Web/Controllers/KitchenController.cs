@@ -10,7 +10,7 @@ using System.Web.Mvc;
 namespace RestaurantApp.Web.Controllers
 {
     [JwtAuthorize(Roles = "Admin, Mutfak Şefi, Mutfak")]
-    public class KitchenController : Controller
+    public class KitchenController : TenantController
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
 
@@ -35,8 +35,10 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
+                int companyId = CurrentCompanyId;
+
                 var activeOrders = db.AppOrders
-                    .Where(o => o.Status != "Tamamlandı" && o.Status != "İptal" &&
+                    .Where(o => o.CompanyId == companyId && o.Status != "Tamamlandı" && o.Status != "İptal" &&
                                 o.AppOrderDetails.Any(d => !d.IsReturned && d.ReturnReason != "Hazır" && d.ReturnReason != "Servis Edildi"))
                     .ToList()
                     .Select(o =>
@@ -100,7 +102,7 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                var order = db.AppOrders.FirstOrDefault(x => x.OrderId == orderId);
+                var order = db.AppOrders.FirstOrDefault(x => x.OrderId == orderId && x.CompanyId == CurrentCompanyId);
                 if (order == null)
                     return Json(new { success = false, message = "Sipariş bulunamadı." });
 
@@ -156,7 +158,7 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                var order = db.AppOrders.FirstOrDefault(x => x.OrderId == orderId);
+                var order = db.AppOrders.FirstOrDefault(x => x.OrderId == orderId && x.CompanyId == CurrentCompanyId);
                 if (order == null)
                     return Json(new { success = false, message = "Sipariş bulunamadı." });
 
@@ -200,6 +202,7 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
+                int companyId = CurrentCompanyId;
                 DateTime startDate = DateTime.Today;
                 DateTime endDate = DateTime.Now;
 
@@ -207,7 +210,7 @@ namespace RestaurantApp.Web.Controllers
                 else if (filter == "month") startDate = DateTime.Today.AddMonths(-1);
 
                 var completedOrders = db.AppOrders
-                    .Where(o => o.CreatedDate >= startDate && o.CreatedDate <= endDate &&
+                    .Where(o => o.CompanyId == companyId && o.CreatedDate >= startDate && o.CreatedDate <= endDate &&
                                 (o.Status == "Hazır" || o.Status == "Servis Edildi" || o.Status == "Tamamlandı") &&
                                 o.DeliveredDate.HasValue)
                     .ToList();
@@ -248,7 +251,7 @@ namespace RestaurantApp.Web.Controllers
                 }
 
                 var topProducts = db.AppOrderDetails
-                    .Where(d => d.AppOrders.CreatedDate >= startDate && !d.IsReturned)
+                    .Where(d => d.AppOrders.CompanyId == companyId && d.AppOrders.CreatedDate >= startDate && !d.IsReturned)
                     .GroupBy(d => d.AppProducts.ProductName)
                     .Select(g => new
                     {
@@ -291,7 +294,9 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                var query = db.AppProducts.Where(p => p.IsActive);
+                int companyId = CurrentCompanyId;
+
+                var query = db.AppProducts.Where(p => p.CompanyId == companyId && p.IsActive);
 
                 if (categoryId.HasValue && categoryId.Value > 0)
                 {
@@ -311,7 +316,7 @@ namespace RestaurantApp.Web.Controllers
                 }).ToList();
 
                 var categories = db.AppCategories
-                    .Where(c => c.IsActive)
+                    .Where(c => c.CompanyId == companyId && c.IsActive)
                     .Select(c => new
                     {
                         categoryId = c.CategoryId,
@@ -344,7 +349,7 @@ namespace RestaurantApp.Web.Controllers
                 if (model == null || model.ProductId <= 0)
                     return Json(new { success = false, message = "Geçersiz ürün bilgisi." });
 
-                var product = db.AppProducts.FirstOrDefault(p => p.ProductId == model.ProductId);
+                var product = db.AppProducts.FirstOrDefault(p => p.ProductId == model.ProductId && p.CompanyId == CurrentCompanyId);
                 if (product == null)
                     return Json(new { success = false, message = "Ürün bulunamadı." });
 
@@ -397,8 +402,10 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
+                int companyId = CurrentCompanyId;
+
                 var products = db.AppProducts
-                    .Where(p => p.IsActive)
+                    .Where(p => p.CompanyId == companyId && p.IsActive)
                     .OrderBy(p => p.CategoryId)
                     .ThenBy(p => p.ProductName)
                     .Select(p => new
@@ -424,7 +431,7 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                var product = db.AppProducts.FirstOrDefault(p => p.ProductId == productId);
+                var product = db.AppProducts.FirstOrDefault(p => p.ProductId == productId && p.CompanyId == CurrentCompanyId);
                 if (product == null)
                     return Json(new { success = false, message = "Ürün bulunamadı." });
 

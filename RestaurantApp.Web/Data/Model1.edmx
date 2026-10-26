@@ -50,6 +50,7 @@
           <Property Name="MealCardAmount" Type="decimal" Precision="18" Scale="2" />
           <Property Name="PaymentType" Type="nvarchar" MaxLength="50" />
           <Property Name="IsPriority" Type="bit" Nullable="false" />
+          <Property Name="CompanyId" Type="int" Nullable="false" />
         </EntityType>
         <EntityType Name="AppProducts">
           <Key>
@@ -79,6 +80,7 @@
           <Property Name="PosY" Type="int" />
           <Property Name="Width" Type="int" />
           <Property Name="Height" Type="int" />
+          <Property Name="CompanyId" Type="int" Nullable="false" />
         </EntityType>
         <EntityType Name="AppUsers">
           <Key>
@@ -332,6 +334,7 @@
           <Property Name="MealCardAmount" Type="Decimal" Precision="18" Scale="2" />
           <Property Name="PaymentType" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
           <Property Name="IsPriority" Type="Boolean" Nullable="false" />
+          <Property Name="CompanyId" Type="Int32" Nullable="false" />
         </EntityType>
         <EntityType Name="AppProducts">
           <Key>
@@ -365,6 +368,7 @@
           <Property Name="PosY" Type="Int32" />
           <Property Name="Width" Type="Int32" />
           <Property Name="Height" Type="Int32" />
+          <Property Name="CompanyId" Type="Int32" Nullable="false" />
         </EntityType>
         <EntityType Name="AppUsers">
           <Key>
@@ -534,6 +538,7 @@
             <EntityTypeMapping TypeName="RestaurantAppDBModel.AppOrders">
               <MappingFragment StoreEntitySet="AppOrders">
                 <ScalarProperty Name="IsPriority" ColumnName="IsPriority" />
+                <ScalarProperty Name="CompanyId" ColumnName="CompanyId" />
                 <ScalarProperty Name="PaymentType" ColumnName="PaymentType" />
                 <ScalarProperty Name="MealCardAmount" ColumnName="MealCardAmount" />
                 <ScalarProperty Name="CreditCardAmount" ColumnName="CreditCardAmount" />
@@ -573,6 +578,7 @@
             <EntityTypeMapping TypeName="RestaurantAppDBModel.AppTables">
               <MappingFragment StoreEntitySet="AppTables">
                 <ScalarProperty Name="Height" ColumnName="Height" />
+                <ScalarProperty Name="CompanyId" ColumnName="CompanyId" />
                 <ScalarProperty Name="Width" ColumnName="Width" />
                 <ScalarProperty Name="PosY" ColumnName="PosY" />
                 <ScalarProperty Name="PosX" ColumnName="PosX" />

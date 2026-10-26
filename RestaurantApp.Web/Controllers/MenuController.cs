@@ -19,11 +19,23 @@ namespace RestaurantApp.Web.Controllers
         }
 
         // 1. QR Menü Ana Sayfa Verileri (Slider, Öne Çıkanlar, Kategoriler)
+        // Müşteri giriş yapmadığı için restoran, QR koddaki masadan (tableId) veya masasız QR'daki companyId'den bulunur
         [HttpGet]
-        public JsonResult GetMenuData(int companyId = 1)
+        public JsonResult GetMenuData(int? tableId, int? companyId)
         {
             try
             {
+                if (tableId.HasValue)
+                {
+                    var table = db.AppTables.FirstOrDefault(t => t.TableId == tableId.Value && t.IsActive);
+                    companyId = table?.CompanyId;
+                }
+
+                if (!companyId.HasValue)
+                {
+                    return Json(new { success = false, message = "Menü bulunamadı. Lütfen QR kodu tekrar okutun." }, JsonRequestBehavior.AllowGet);
+                }
+
                 // Aktif Kategoriler
                 var categories = db.AppCategories
                     .Where(c => c.CompanyId == companyId && c.IsActive)

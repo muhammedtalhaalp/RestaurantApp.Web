@@ -1,4 +1,4 @@
-﻿const currentCompanyId = 1;
+﻿
 const STATE_SAVE_KEY = 'lezzetpos_menu_filters';
 let rawProductsList = [];
 let rawCategoriesList = [];
@@ -189,7 +189,7 @@ function addCategoryFromModal() {
         return;
     }
 
-    $.post('/Category/Create', { categoryName: catName, companyId: currentCompanyId }, function (res) {
+    $.post('/Category/Create', { categoryName: catName }, function (res) {
         if (res && res.success) {
             Swal.fire('Başarılı', res.message, 'success');
             $('#txtCategoryNameModal').val('');
@@ -206,7 +206,7 @@ function addCategoryFromModal() {
 }
 
 function loadProducts() {
-    $.get('/Admin/GetProducts', { companyId: currentCompanyId }, function (res) {
+    $.get('/Admin/GetProducts', function (res) {
         if (res && res.success) {
             rawProductsList = res.data || [];
             renderProductsTable();
@@ -377,7 +377,6 @@ function saveProductToDb(name, catId, price, desc, imageUrl, $btn) {
         Price: parseFloat(price),
         Description: desc,
         ImageUrl: imageUrl,
-        CompanyId: currentCompanyId,
         IsAvailable: true
     };
 

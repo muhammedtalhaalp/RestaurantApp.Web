@@ -126,6 +126,8 @@ function initWaiterSignalR() {
             loadWaiterOrders();
         };
 
+        // Token, bağlantının restoranın bildirim grubuna eklenmesi için gönderilir
+        $.connection.hub.qs = { access_token: localStorage.getItem("JWToken") };
         $.connection.hub.start().done(function () {
             console.log("Garson SignalR Bağlantısı Başarılı.");
         });
