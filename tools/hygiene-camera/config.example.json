@@ -1,0 +1,33 @@
+{
+  "server_url": "https://localhost:44309",
+  "verify_ssl": false,
+  "username": "kamera@restoraniniz.com",
+  "password": "",
+  "camera_index": 0,
+
+  "roboflow": {
+    "api_url": "https://detect.roboflow.com",
+    "api_key": "",
+    "model_id": "",
+    "confidence": 50,
+    "overlap": 30,
+    "class_confidence": {
+      "no-apron": 30
+    }
+  },
+
+  "violation_classes": {
+    "bonesiz": "Bone takılmamış",
+    "onluksuz": "Önlük giyilmemiş",
+    "no-hairnet": "Bone takılmamış",
+    "no-apron": "Önlük giyilmemiş",
+    "without-cap": "Bone takılmamış",
+    "without-apron": "Önlük giyilmemiş"
+  },
+
+  "check_interval_seconds": 1.0,
+  "detection_window": 5,
+  "detections_required": 3,
+  "detections_to_include": 1,
+  "cooldown_seconds": 60
+}

@@ -430,6 +430,14 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
+        // Oturumdaki (Session) JWT; SignalR bağlantısı restoranın bildirim grubuna bununla katılır.
+        // localStorage'a güvenilmez: eski/eksik kalabilir, oturumla uyumsuz olabilir.
+        window.lezzetAuthToken = @Html.Raw(HttpUtility.JavaScriptStringEncode(Session["JWToken"] as string ?? "", true));
+
+        function getAuthToken() {
+            return window.lezzetAuthToken || localStorage.getItem("JWToken");
+        }
+
         function fetchLayoutNotifications() {
             var serverRole = "@userRole";
             var localRole = (localStorage.getItem("Role") || "").trim();

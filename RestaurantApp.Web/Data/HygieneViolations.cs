@@ -19,5 +19,6 @@ namespace RestaurantApp.Web.Data
         public Nullable<System.DateTime> DetectedAt { get; set; }
         public Nullable<bool> IsResolved { get; set; }
         public int CompanyId { get; set; }
+        public string ImageFileName { get; set; }
     }
 }

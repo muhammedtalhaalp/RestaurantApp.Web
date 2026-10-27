@@ -32,7 +32,7 @@ function initAdminSignalR() {
         };
 
         // Token, bağlantının restoranın bildirim grubuna eklenmesi için gönderilir
-        $.connection.hub.qs = { access_token: localStorage.getItem("JWToken") };
+        $.connection.hub.qs = { access_token: getAuthToken() };
         $.connection.hub.start().done(function () {
             console.log("Admin Sipariş Takip SignalR Bağlantısı Başarılı.");
         }).fail(function (err) {

@@ -363,3 +363,11 @@ MigrationBackup/
 FodyWeavers.xsd
 # Gizli ayarlar (JWT anahtarı, SMTP şifresi)
 RestaurantApp.Web/Secrets.config
+
+# Hijyen kamerası ihlal fotoğrafları (çalışan görüntüleri, repoya girmez)
+RestaurantApp.Web/App_Data/hygiene/
+
+# Hijyen kamerası programının yerel ayarları (şifre ve API anahtarı içerir)
+tools/hygiene-camera/config.json
+tools/hygiene-camera/__pycache__/
+tools/hygiene-camera/.venv/

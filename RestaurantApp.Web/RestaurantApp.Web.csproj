@@ -264,7 +264,6 @@
     <Content Include="Library\scripts\order-index.js" />
     <Content Include="Library\scripts\kitchen-report.js" />
     <Content Include="Library\scripts\kitchen.js" />
-    <Content Include="Library\scripts\login.js" />
     <Content Include="Library\scripts\order-tracking.js" />
     <Content Include="Library\scripts\pos.js" />
     <Content Include="Library\scripts\profileSettings.js" />

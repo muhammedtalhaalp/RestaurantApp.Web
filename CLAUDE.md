@@ -52,18 +52,33 @@ The real project lives in `RestaurantApp.Web/`.
 - Passwords are stored with `Helpers/PasswordHasher` (PBKDF2-SHA256, format `PBKDF2$iter$salt$hash`). Legacy plaintext passwords are still accepted and are re-hashed on the next successful login. Always use `PasswordHasher.Hash` and `Verify`, and never compare `PasswordHash` in a LINQ query.
 - Roles (exact strings): `Admin`, `Garson`, `Kasiyer`, `Garson/Kasiyer`, `Mutfak Şefi`, `Mutfak`. Access is applied per controller and per action with `[JwtAuthorize(Roles = "...")]`. `_Layout.cshtml` builds the navigation from `Session["UserRole"]`.
 - `JwtAuthorizeAttribute` honors `[AllowAnonymous]` on the action or the controller. The only public endpoints are `MenuController` (the QR menu for customers) and the `Auth` login actions.
-- `AiVisionController` is called by an external hygiene-camera program, not by page JS. The program must log in through `/Auth/ApiLogin` with a kitchen account and send `Authorization: Bearer <token>`. Violations are saved under that token's company, and the alert goes only to that restaurant's kitchen.
+- `AiVisionController` is called by the hygiene-camera program in `tools/hygiene-camera/`, not by page JS. See below.
 
 ### Real-time (SignalR)
 - `Startup.cs` (OWIN) calls `app.MapSignalR()`. `Hubs/OrderHub` (`orderHub`) sends `onNewOrderCreated`, `onOrderReady`, `onOrderDelivered` and `receiveHygieneAlert`.
-- **Notifications are per company.** On connect, the hub validates the JWT passed as `access_token` in the query string and adds the connection to the group `OrderHub.CompanyGroup(companyId)`. Client JS must set `$.connection.hub.qs = { access_token: localStorage.getItem("JWToken") }` before `hub.start()`. Send to `Clients.Group(...)`, never `Clients.All`.
+- **Notifications are per company.** On connect, the hub validates the JWT passed as `access_token` in the query string and adds the connection to the group `OrderHub.CompanyGroup(companyId)`. Client JS must set `$.connection.hub.qs = { access_token: getAuthToken() }` before `hub.start()`. `getAuthToken()` is defined in `_Layout.cshtml` and returns the **Session** token rendered into the page (`window.lezzetAuthToken`). Don't rely on `localStorage` alone: it was never filled by the real login page, which once broke every live notification. Send to `Clients.Group(...)`, never `Clients.All`.
 - Server code pushes through `GlobalHost.ConnectionManager.GetHubContext<OrderHub>()` (for example in `OrderController`). Client JS also calls hub methods directly, for example `kitchen.js` calls `sendOrderReadyNotification`.
 - A page that needs SignalR includes `~/Scripts/jquery.signalR-2.4.3.min.js` and `~/signalr/hubs` in its `scripts` section.
 
 ### Front-end
 - Each page is a Razor view plus its own JS/CSS pair: `Library/scripts/<page>.js` and `Library/styles/<page>.css`. The views load these through `@section styles` / `@section scripts` with a `?v=@DateTime.Now.Ticks` cache-buster, not through `BundleConfig`.
+- `Views/Auth/Login.cshtml` has no layout. Its login and register AJAX are **inline scripts in the view**; there is no separate login JS file.
 - The page JS talks to controller actions returning `JsonResult` through `$.ajax` with hard-coded URLs (for example `/Kitchen/GetActiveOrders`). Responses are usually `{ success, message, data }`-style objects.
 - The project uses the old-style `.csproj`, so new files (views, JS, CSS, C#) must be added to `RestaurantApp.Web.csproj` as `Content`/`Compile` items, or they won't deploy or compile.
+
+### Hygiene camera (`tools/hygiene-camera/`)
+- `hygiene_camera.py` is a standalone Python program (OpenCV + Roboflow hosted detection API). It runs on the PC the kitchen camera is attached to. It is not part of the .NET build.
+- How it works:
+  - It logs in through `/Auth/ApiLogin` with a `Mutfak` account and calls `/AiVision/ReportHygieneViolation` with `Authorization: Bearer <token>`, sending `violationType` and an optional `image` file (JPEG/PNG, up to 2 MB).
+  - Model classes listed in `violation_classes` (e.g. `bonesiz`, `no-hairnet`) count as violations. A violation is reported only after it has been seen in M of the last N checks, and then not again until a cooldown has passed.
+- Setup and the Roboflow training guide are in its `README.md`.
+- The program's settings live in `config.json`, which is gitignored (it holds the password and API key). Its virtualenv `.venv/` is also gitignored.
+- Violation photos are employee images. They are stored in `App_Data/hygiene/<CompanyId>/`, which is not web-accessible and is gitignored, and they are served only through `AiVisionController.GetViolationImage` after a company check. Never move them under `Content/`.
+- The kitchen screen (`kitchen.js`, `receiveHygieneAlert(violationType, timeStr, imageUrl)`) shows the photo. `violationType` comes from outside the app, so it is HTML-escaped (`escapeHtml`) before being shown.
+- The kitchen screen also has a "Hijyen İhlalleri" history modal: `AiVision/GetViolations?range=today|week` lists the violations and returns `unresolvedTodayCount` for the button badge, and `AiVision/MarkViolationResolved` sets `IsResolved`. Both are company-scoped. A new alert refreshes the badge.
+  - `AiVision/DeleteViolations` bulk-deletes records together with their photo files. It is restricted to **Admin and Mutfak Şefi**, so kitchen staff and the camera account cannot erase their own violations. The view hides the checkboxes through `window.canDeleteHygieneViolations`.
+  - The camera program sends one merged report per trigger (e.g. `"Bone takılmamış, Önlük giyilmemiş"`). When any violation passes `detections_required`, every violation seen at least `detections_to_include` times in the same window is added to that report. Per-class thresholds can be set with `roboflow.class_confidence`.
+  - The recommended model is `chef-dataset/1` (classes `without_apron`, `without_cap`). The README has a benchmark on the user's own webcam photos. CCTV-trained models such as `kitchenhygiene/2` could not see aprons at close range.
 
 ### Helpers
 - `CacheHelper` is a `MemoryCache` wrapper. Cached keys such as `Company_Products_{companyId}` and `AllCategories` must be invalidated with `CacheHelper.Remove(...)` after any write to products or categories. Existing write actions already do this.

@@ -325,3 +325,16 @@
     border-radius: 6px;
     font-weight: 700;
 }
+/* Hijyen ihlalleri listesindeki seçim kutucukları: varsayılan Bootstrap kutusu açık zeminde zor fark ediliyor */
+.hygiene-check {
+    width: 1.35em;
+    height: 1.35em;
+    border: 2px solid #495057;
+    cursor: pointer;
+}
+
+.hygiene-check:checked,
+.hygiene-check:indeterminate {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}

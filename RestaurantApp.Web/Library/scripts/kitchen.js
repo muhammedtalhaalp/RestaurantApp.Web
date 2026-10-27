@@ -22,10 +22,187 @@ $(document).ready(function () {
 
     initKitchenSignalR();
     loadKitchenOrders();
+    loadHygieneViolations();
 
     setInterval(updateDelayedOrdersState, 15000);
     setInterval(loadKitchenOrders, 20000);
 });
+
+function escapeHtml(text) {
+    return $("<div>").text(text == null ? "" : String(text)).html();
+}
+
+// ===================================================
+// HİJYEN KAMERASI İHLAL GEÇMİŞİ
+// ===================================================
+var hygieneRange = "today";
+
+function openHygieneViolationsModal() {
+    loadHygieneViolations();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalHygieneViolations')).show();
+}
+
+function selectHygieneRange(range, btnEl) {
+    hygieneRange = range;
+    $("#hygieneRangeButtons .btn").removeClass("active");
+    $(btnEl).addClass("active");
+    loadHygieneViolations();
+}
+
+// Listeyi ve bugünkü çözülmemiş ihlal rozetini yeniler
+function loadHygieneViolations() {
+    $.ajax({
+        url: "/AiVision/GetViolations",
+        type: "GET",
+        data: { range: hygieneRange },
+        cache: false,
+        success: function (res) {
+            if (!res || !res.success) return;
+
+            var $badge = $("#hygieneUnresolvedBadge");
+            if (res.unresolvedTodayCount > 0) {
+                $badge.text(res.unresolvedTodayCount).show();
+            } else {
+                $badge.hide();
+            }
+
+            renderHygieneViolations(res.data || []);
+        }
+    });
+}
+
+// Liste yeni ihlal geldiğinde yeniden çizilir; seçimler kaybolmasın diye kimlikler burada tutulur
+var selectedViolationIds = new Set();
+
+function renderHygieneViolations(list) {
+    var canDelete = window.canDeleteHygieneViolations === true;
+    $(".hygiene-delete-only").toggle(canDelete);
+
+    var $tbody = $("#hygieneViolationsTableBody").empty();
+    var unresolved = list.filter(v => !v.isResolved).length;
+    $("#hygieneSummaryText").text(`${list.length} ihlal, ${unresolved} çözülmemiş`);
+
+    // Listede artık olmayan (silinmiş / aralık dışı) kayıtlar seçimden çıkarılır
+    var visibleIds = new Set(list.map(v => v.id));
+    selectedViolationIds.forEach(id => { if (!visibleIds.has(id)) selectedViolationIds.delete(id); });
+
+    if (list.length === 0) {
+        $tbody.html(`<tr><td colspan="${canDelete ? 5 : 4}" class="text-center py-4 text-muted"><i class="fa-solid fa-circle-check text-success me-1"></i>Bu aralıkta hijyen ihlali yok.</td></tr>`);
+        updateHygieneSelectionUI();
+        return;
+    }
+
+    $.each(list, function (i, v) {
+        var checkboxHtml = canDelete
+            ? `<td><input type="checkbox" class="form-check-input hygiene-check chk-hygiene-violation" value="${v.id}" ${selectedViolationIds.has(v.id) ? 'checked' : ''} onchange="toggleHygieneViolation(${v.id}, this.checked)"></td>`
+            : '';
+
+        var photoHtml = v.imageUrl
+            ? `<img src="${encodeURI(v.imageUrl)}" alt="İhlal fotoğrafı" class="rounded-2 border" style="width: 96px; height: 64px; object-fit: cover; cursor: zoom-in;" onclick="showHygienePhoto(${v.id})">`
+            : '<span class="text-muted small">Fotoğraf yok</span>';
+
+        var statusHtml = v.isResolved
+            ? '<span class="badge bg-success"><i class="fa-solid fa-check me-1"></i>Çözüldü</span>'
+            : `<button class="btn btn-sm btn-outline-success fw-semibold rounded-3" onclick="markHygieneViolationResolved(${v.id})"><i class="fa-solid fa-check me-1"></i>Çözüldü</button>`;
+
+        $tbody.append(`
+            <tr class="${v.isResolved ? 'opacity-50' : ''}" data-violation-id="${v.id}" data-image-url="${v.imageUrl ? encodeURI(v.imageUrl) : ''}" data-violation-type="${escapeHtml(v.violationType)}" data-time="${escapeHtml(v.detectedDate + ' ' + v.detectedTime)}">
+                ${checkboxHtml}
+                <td>${photoHtml}</td>
+                <td class="small"><div class="fw-semibold">${escapeHtml(v.detectedTime)}</div><div class="text-muted">${escapeHtml(v.detectedDate)}</div></td>
+                <td class="fw-semibold ${v.isResolved ? '' : 'text-danger'}">${escapeHtml(v.violationType)}</td>
+                <td class="text-center">${statusHtml}</td>
+            </tr>`);
+    });
+
+    updateHygieneSelectionUI();
+}
+
+function toggleHygieneViolation(violationId, isChecked) {
+    if (isChecked) selectedViolationIds.add(violationId);
+    else selectedViolationIds.delete(violationId);
+    updateHygieneSelectionUI();
+}
+
+function toggleAllHygieneViolations(isChecked) {
+    $("#hygieneViolationsTableBody .chk-hygiene-violation").each(function () {
+        this.checked = isChecked;
+        toggleHygieneViolation(parseInt(this.value), isChecked);
+    });
+}
+
+function updateHygieneSelectionUI() {
+    var total = $("#hygieneViolationsTableBody .chk-hygiene-violation").length;
+    var selected = selectedViolationIds.size;
+
+    $("#hygieneSelectedCount").text(selected);
+    $("#btnDeleteSelectedViolations").prop("disabled", selected === 0);
+
+    var selectAll = document.getElementById("chkSelectAllViolations");
+    if (selectAll) {
+        selectAll.checked = total > 0 && selected === total;
+        selectAll.indeterminate = selected > 0 && selected < total;
+    }
+}
+
+function deleteSelectedHygieneViolations() {
+    var ids = Array.from(selectedViolationIds);
+    if (ids.length === 0) return;
+
+    Swal.fire({
+        title: `${ids.length} ihlal kaydı silinsin mi?`,
+        text: "Kayıtlar ve fotoğrafları kalıcı olarak silinir, geri alınamaz.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Evet, Sil",
+        cancelButtonText: "Vazgeç"
+    }).then((result) => {
+        if (!result.isConfirmed) return;
+
+        $.ajax({
+            url: "/AiVision/DeleteViolations",
+            type: "POST",
+            traditional: true,
+            data: { ids: ids },
+            success: function (res) {
+                if (res && res.success) {
+                    selectedViolationIds.clear();
+                    loadHygieneViolations();
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message, showConfirmButton: false, timer: 1500 });
+                } else {
+                    Swal.fire("Hata", (res && res.message) || "Silme yetkiniz yok veya işlem yapılamadı.", "error");
+                }
+            },
+            error: function () {
+                Swal.fire("Hata", "Silme sırasında sunucu hatası oluştu.", "error");
+            }
+        });
+    });
+}
+
+function showHygienePhoto(violationId) {
+    var $row = $(`#hygieneViolationsTableBody tr[data-violation-id="${violationId}"]`);
+    // attr() kaçışı geri çözer: başlık titleText ile düz metin olarak, zaman yeniden kaçışlanarak basılır
+    Swal.fire({
+        titleText: $row.attr("data-violation-type"),
+        html: `<img src="${$row.attr("data-image-url")}" alt="İhlal fotoğrafı" class="img-fluid rounded-3 border"><div class="small text-muted mt-2">${escapeHtml($row.attr("data-time"))}</div>`,
+        width: 760,
+        confirmButtonText: 'Kapat',
+        confirmButtonColor: '#4a154b'
+    });
+}
+
+function markHygieneViolationResolved(violationId) {
+    $.post("/AiVision/MarkViolationResolved", { id: violationId }, function (res) {
+        if (res && res.success) {
+            loadHygieneViolations();
+        } else {
+            Swal.fire("Hata", (res && res.message) || "İşlem yapılamadı.", "error");
+        }
+    });
+}
 
 function getAudioContext() {
     if (!audioCtx) {
@@ -116,17 +293,30 @@ function initKitchenSignalR() {
         // ==========================================
         // YENİ EKLENEN: HİJYEN İHLALİ SİNYALİ DİNLEYİCİSİ
         // ==========================================
-        orderHubProxy.client.receiveHygieneAlert = function (violationType, timeStr) {
+        // imageUrl: ihlal anındaki kamera karesi (/AiVision/GetViolationImage/..), fotoğraf yoksa null
+        orderHubProxy.client.receiveHygieneAlert = function (violationType, timeStr, imageUrl) {
             console.warn("⚠️ HİJYEN İHLALİ TESPİT EDİLDİ: " + violationType);
 
             // Dikkat çekmek için "alarm" sesini çal
             playSelectedKitchenSound("alarm");
 
+            // Geçmiş listesinin rozetini (ve açıksa listeyi) güncelle
+            loadHygieneViolations();
+
+            // İhlal türü kamera programından gelir; HTML olarak yorumlanmaması için kaçışlanır
+            var safeViolationType = escapeHtml(violationType);
+            var safeTimeStr = escapeHtml(timeStr);
+
+            var imageHtml = imageUrl
+                ? `<img src="${encodeURI(imageUrl)}" alt="İhlal fotoğrafı" class="img-fluid rounded-3 border mb-3" style="max-height: 320px;">`
+                : '';
+
             // Ekranda büyük ve kırmızı bir uyarı patlat
             Swal.fire({
-                icon: 'error',
+                icon: imageUrl ? undefined : 'error',
                 title: '🚨 Mutfak Hijyen İhlali!',
-                html: `Kamerada kurallara uymayan personel tespit edildi!<br><br><b>İhlal Türü:</b> <span class="text-danger fw-bold fs-5">${violationType}</span><br><small class="text-muted">Tespit Saati: ${timeStr}</small>`,
+                width: imageUrl ? 640 : undefined,
+                html: `${imageHtml}<div>Kamerada kurallara uymayan personel tespit edildi!</div><br><b>İhlal Türü:</b> <span class="text-danger fw-bold fs-5">${safeViolationType}</span><br><small class="text-muted">Tespit Saati: ${safeTimeStr}</small>`,
                 confirmButtonColor: '#d33',
                 confirmButtonText: 'Anladım / Uyarıyı Kapat',
                 timer: 10000, // 10 saniye sonra otomatik kapanır
@@ -136,7 +326,7 @@ function initKitchenSignalR() {
         // ==========================================
 
         // Token, bağlantının restoranın bildirim grubuna eklenmesi için gönderilir
-        $.connection.hub.qs = { access_token: localStorage.getItem("JWToken") };
+        $.connection.hub.qs = { access_token: getAuthToken() };
         $.connection.hub.start().done(function () {
             console.log("Mutfak SignalR Bağlantısı Başarılı.");
         }).fail(function (err) {

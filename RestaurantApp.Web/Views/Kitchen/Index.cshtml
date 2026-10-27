@@ -17,6 +17,12 @@
             <p class="text-muted small mb-0">Siparişleri takip edebilir, karta tıklayarak ürün bazlı hazırlık yapabilirsiniz.</p>
         </div>
         <div class="d-flex align-items-center gap-2">
+            <!-- Hijyen Kamerası İhlal Geçmişi Butonu (rozet: bugünkü çözülmemiş ihlal sayısı) -->
+            <button class="btn btn-outline-warning text-dark btn-sm rounded-3 px-3 h-38 fw-semibold position-relative" type="button" onclick="openHygieneViolationsModal()">
+                <i class="fa-solid fa-shield-virus me-1"></i> Hijyen İhlalleri
+                <span id="hygieneUnresolvedBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none;">0</span>
+            </button>
+
             <!-- 86 List / Stok Durumu Butonu -->
             <button class="btn btn-outline-danger btn-sm rounded-3 px-3 h-38 fw-semibold" type="button" onclick="openKitchenStockModal()">
                 <i class="fa-solid fa-ban me-1"></i> Tükendi / Stok (86)
@@ -122,7 +128,63 @@
     </div>
 </div>
 
+<!-- 3. HİJYEN İHLALLERİ GEÇMİŞİ MODALI -->
+<div class="modal fade" id="modalHygieneViolations" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header border-bottom p-3 bg-warning d-flex justify-content-between align-items-center">
+                <h5 class="modal-title fw-bold mb-0 d-flex align-items-center text-dark">
+                    <i class="fa-solid fa-shield-virus me-2"></i>Hijyen Kamerası İhlalleri
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div class="btn-group btn-group-sm" role="group" id="hygieneRangeButtons">
+                        <button type="button" class="btn btn-outline-dark active" data-range="today" onclick="selectHygieneRange('today', this)">Bugün</button>
+                        <button type="button" class="btn btn-outline-dark" data-range="week" onclick="selectHygieneRange('week', this)">Son 7 Gün</button>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted" id="hygieneSummaryText"></span>
+                        <button type="button" class="btn btn-sm btn-danger fw-semibold rounded-3 hygiene-delete-only" id="btnDeleteSelectedViolations" onclick="deleteSelectedHygieneViolations()" disabled>
+                            <i class="fa-solid fa-trash-can me-1"></i>Seçilenleri Sil (<span id="hygieneSelectedCount">0</span>)
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive rounded-3 border" style="max-height: 420px; overflow-y: auto;">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="hygiene-delete-only" style="width: 40px;">
+                                    <input type="checkbox" class="form-check-input hygiene-check" id="chkSelectAllViolations" title="Tümünü seç" onchange="toggleAllHygieneViolations(this.checked)">
+                                </th>
+                                <th style="width: 110px;">Fotoğraf</th>
+                                <th style="width: 130px;">Zaman</th>
+                                <th>İhlal</th>
+                                <th class="text-center" style="width: 150px;">Durum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="hygieneViolationsTableBody">
+                            <!-- JS Dolduracak -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer p-2 bg-light border-top d-flex justify-content-end">
+                <button type="button" class="btn btn-secondary px-4 fw-semibold rounded-3 btn-sm" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section scripts {
+    @{
+        string kitchenUserRole = Session["UserRole"] as string ?? "";
+    }
+    <script>
+        // İhlal kayıtlarını yalnızca Admin ve Mutfak Şefi silebilir (sunucu da AiVision/DeleteViolations'da kontrol eder)
+        window.canDeleteHygieneViolations = @((kitchenUserRole == "Admin" || kitchenUserRole == "Mutfak Şefi") ? "true" : "false");
+    </script>
     <script src="~/Scripts/jquery.signalR-2.4.3.min.js"></script>
     <script src="~/signalr/hubs"></script>
     <script src="~/Library/scripts/kitchen.js?v=@DateTime.Now.Ticks"></script>

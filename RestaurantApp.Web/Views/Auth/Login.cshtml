@@ -441,9 +441,12 @@
                     },
                     success: function (response) {
                         if (response.success) {
-                            if (response.fullName) {
-                                localStorage.setItem("FullName", response.fullName);
-                            }
+                            // Önceki kullanıcıdan kalan bilgiler temizlenir; sayfa JS'leri token'ı Authorization başlığında gönderir
+                            localStorage.removeItem("JWToken");
+                            localStorage.setItem("JWToken", response.token);
+                            localStorage.setItem("Username", response.username || "");
+                            localStorage.setItem("FullName", response.fullName || "");
+                            localStorage.setItem("Role", response.role || "");
 
                             // DİREKT YÖNLENDİRME (Pop-up yok)
                             window.location.href = response.redirectUrl;
@@ -477,6 +480,7 @@
                     data: {
                         FullName: fullName,
                         CompanyName: companyName,
+                        Username: email,
                         Email: email,
                         Password: password
                     },
