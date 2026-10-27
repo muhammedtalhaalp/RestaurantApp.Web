@@ -747,10 +747,11 @@ namespace RestaurantApp.Web.Controllers
         {
             try
             {
-                // Masada hazır ürünü bulunan veya mutfakta hazırlanmakta olan aktif siparişleri listele
+                // Masada hazır ürünü bulunan veya mutfakta hazırlanmakta olan aktif siparişleri listele.
+                // Paket servis siparişleri burada değil, Paket Servis ekranında (DeliveryController) yönetilir.
                 int companyId = CurrentCompanyId;
                 var pendingOrders = db.AppOrders
-                    .Where(o => o.CompanyId == companyId && o.Status != "Tamamlandı" && o.Status != "İptal" &&
+                    .Where(o => o.CompanyId == companyId && o.OrderType != "PaketServis" && o.Status != "Tamamlandı" && o.Status != "İptal" &&
                                 o.AppOrderDetails.Any(d => !d.IsReturned && d.ReturnReason != "Servis Edildi"))
                     .OrderByDescending(o => o.CreatedDate)
                     .ToList()

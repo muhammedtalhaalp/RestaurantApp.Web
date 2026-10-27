@@ -6,9 +6,16 @@ namespace RestaurantApp.Web.Helpers
     // Ciro ve rapor hesaplarında sipariş değeri için bu yardımcıları kullanın.
     public static class OrderAmounts
     {
-        public static decimal Paid(AppOrders order)
+        // Kasaya giren tahsilat (nakit + kart + yemek kartı)
+        public static decimal PaidAtRestaurant(AppOrders order)
         {
             return (order.CashAmount ?? 0) + (order.CreditCardAmount ?? 0) + (order.MealCardAmount ?? 0);
+        }
+
+        // Tüm tahsilat: kasaya girenler + platformun (Yemeksepeti vb.) online tahsil ettiği tutar
+        public static decimal Paid(AppOrders order)
+        {
+            return PaidAtRestaurant(order) + (order.OnlineAmount ?? 0);
         }
 
         // Siparişin toplam değeri = tahsil edilen + kalan borç

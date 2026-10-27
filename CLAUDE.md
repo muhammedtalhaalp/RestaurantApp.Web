@@ -31,12 +31,12 @@ The real project lives in `RestaurantApp.Web/`.
   - `AppOrderDetails` has no `CompanyId`. Reach it through a company-checked order.
   - The public QR menu (`MenuController`) finds the company from `?tableId=` or `?companyId=` in the URL.
 - Status values are Turkish string literals compared directly in code:
-  - Order statuses: `Hazırlanıyor`, `Hazır`, `Servis Edildi`, `Teslim Edildi`, `Tamamlandı`, `İptal`.
+  - Order statuses: `Hazırlanıyor`, `Hazır`, `Servis Edildi`, `Teslim Edildi`, `Yolda` (delivery only), `Tamamlandı`, `İptal`.
   - Table statuses: `Bos`, `Dolu`.
   - Keep these spellings exactly.
 - Non-obvious column semantics. Read these before touching orders or payments:
   - **`AppOrderDetails.ReturnReason` doubles as the per-item kitchen status.** `null` means it is being prepared. `"Hazır"` means ready. `"Servis Edildi"` means served. Only when `IsReturned = true` does it hold an actual return reason. Kitchen, waiter and report queries all filter on these values.
-  - **`AppOrders.TotalAmount` is the remaining unpaid balance, not the order total.** Amounts actually collected are in `CashAmount`, `CreditCardAmount` and `MealCardAmount`. Use `Helpers/OrderAmounts.Value(order)` (paid + remaining) for revenue and reports.
+  - **`AppOrders.TotalAmount` is the remaining unpaid balance, not the order total.** Amounts actually collected are in `CashAmount`, `CreditCardAmount`, `MealCardAmount` and, for prepaid delivery orders, `OnlineAmount`. Use `Helpers/OrderAmounts.Value(order)` (paid + remaining) for revenue and reports.
     - Always update `TotalAmount` **incrementally**: add the value of added items, and subtract returns, deletions and payments (`TableController.ApplyPayment`).
     - Never recompute it from `AppOrderDetails`. Doing so silently wipes out payments already taken, and older orders also have detail rows that were deleted by the previous item-payment code.
   - `AppOrderDetails.PaidQuantity` records how many units of a line have been paid by item-based payment. Paid lines are no longer deleted. A line with `PaidQuantity > 0` cannot be returned or reduced.
@@ -65,6 +65,24 @@ The real project lives in `RestaurantApp.Web/`.
 - `Views/Auth/Login.cshtml` has no layout. Its login and register AJAX are **inline scripts in the view**; there is no separate login JS file.
 - The page JS talks to controller actions returning `JsonResult` through `$.ajax` with hard-coded URLs (for example `/Kitchen/GetActiveOrders`). Responses are usually `{ success, message, data }`-style objects.
 - The project uses the old-style `.csproj`, so new files (views, JS, CSS, C#) must be added to `RestaurantApp.Web.csproj` as `Content`/`Compile` items, or they won't deploy or compile.
+- **New `.cshtml` files must be saved as UTF-8 *with BOM*.** Without a BOM, Razor reads the file with the Windows Turkish code page, and every Turkish character in the view's own text shows up garbled (e.g. "ÅŸ" instead of "ş"). All existing views start with `EF BB BF`. Check with `head -c3 file | od -An -tx1`.
+
+### Delivery orders (Paket Servis)
+- A delivery order is an `AppOrders` row with `OrderType = "PaketServis"`.
+  - `OrderChannel` is one of `Telefon`, `GelAl`, `Yemeksepeti`, `Getir`, `Trendyol`, `Diger`.
+  - `DeliveryPaymentPlan` is one of `Online`, `KapidaNakit`, `KapidaKart`.
+  - Keys and labels live in `Helpers/DeliveryOptions.cs` (server) and `Library/scripts/delivery-channels.js` (client). Keep the two in sync.
+  - Platform logos are optional PNG files in `Content/images/channels/` (`yemeksepeti.png`, `getir.png`, `trendyol.png`). `DeliveryChannels.iconHtml` shows the logo once it loads and falls back to the Font Awesome icon if it is missing.
+- Lifecycle, managed only by `DeliveryController` / the `/Delivery/Index` board:
+  - `Hazırlanıyor` → kitchen marks all items ready → `Yolda` (`MarkOutForDelivery`, sets `OutForDeliveryDate`) → `Tamamlandı` (`CompleteDelivery`). `GelAl` skips `Yolda`.
+  - `CancelOrder` sets `İptal` and requires a `CancelReason`.
+  - The board's "ready" stage is computed from the items (`DeliveryOptions.IsKitchenReady`), not stored.
+- Payment:
+  - **`Online`**: `CreateOrder` moves the whole amount into **`OnlineAmount`** (platform-collected money that never enters the till) and leaves `TotalAmount = 0`.
+  - **`KapidaNakit` / `KapidaKart`**: the amount stays in `TotalAmount` until `CompleteDelivery(paymentMethod: "Nakit"|"Kart")` books it to `CashAmount` / `CreditCardAmount`.
+  - `OrderAmounts.Paid` includes `OnlineAmount`. Use `OrderAmounts.PaidAtRestaurant` for anything about cash in the till.
+- Delivery orders are excluded from the waiter/admin "Sipariş Takip" lists (`GetPendingDeliveryOrders`), and `ApproveOrderDelivery` rejects them. Don't push them through the table/"Servis Edildi" flow.
+- The POS opens the delivery modal directly with `/Order/POS?paket=1`.
 
 ### Hygiene camera (`tools/hygiene-camera/`)
 - `hygiene_camera.py` is a standalone Python program (OpenCV + Roboflow hosted detection API). It runs on the PC the kitchen camera is attached to. It is not part of the .NET build.

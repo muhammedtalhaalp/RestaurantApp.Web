@@ -39,6 +39,15 @@ namespace RestaurantApp.Web.Data
         public string PaymentType { get; set; }
         public bool IsPriority { get; set; }
         public int CompanyId { get; set; }
+        public string OrderChannel { get; set; }
+        public string CustomerName { get; set; }
+        public string CustomerPhone { get; set; }
+        public string ExternalOrderNo { get; set; }
+        public string DeliveryPaymentPlan { get; set; }
+        public Nullable<decimal> OnlineAmount { get; set; }
+        public Nullable<decimal> ChangeFor { get; set; }
+        public Nullable<System.DateTime> OutForDeliveryDate { get; set; }
+        public string CancelReason { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<AppOrderDetails> AppOrderDetails { get; set; }

@@ -1,5 +1,6 @@
 ﻿using RestaurantApp.Web.Data;
 using RestaurantApp.Web.Filters;
+using RestaurantApp.Web.Helpers;
 using RestaurantApp.Web.Hubs;
 using Microsoft.AspNet.SignalR;
 using System;
@@ -113,6 +114,10 @@ namespace RestaurantApp.Web.Controllers
                 if (order == null)
                     return Json(new { success = false, message = "Sipariş bulunamadı." });
 
+                // Paket siparişlerin teslimatı (Yola Çıktı / Teslim Edildi / tahsilat) Paket Servis ekranından yönetilir
+                if (order.OrderType == "PaketServis")
+                    return Json(new { success = false, message = "Paket servis siparişleri Paket Servis ekranından teslim edilir." });
+
                 var readyItems = db.AppOrderDetails
                     .Where(d => d.OrderId == orderId && !d.IsReturned && d.ReturnReason == "Hazır")
                     .ToList();
@@ -187,9 +192,24 @@ namespace RestaurantApp.Web.Controllers
                     return Json(new { success = false, message = "Sepette ürün bulunmamaktadır." });
                 }
 
+                bool isDelivery = model.OrderType == "PaketServis";
+                if (model.OrderType != "Masa" && !isDelivery)
+                {
+                    return Json(new { success = false, message = "Geçersiz sipariş türü." });
+                }
+
                 if (model.OrderType == "Masa" && !model.TableId.HasValue)
                 {
                     return Json(new { success = false, message = "Lütfen bir masa seçiniz." });
+                }
+
+                if (isDelivery)
+                {
+                    string deliveryError = NormalizeDeliveryInfo(model);
+                    if (deliveryError != null)
+                    {
+                        return Json(new { success = false, message = deliveryError });
+                    }
                 }
 
                 int companyId = CurrentCompanyId;
@@ -223,6 +243,16 @@ namespace RestaurantApp.Web.Controllers
                     }
                 }
 
+                // Paket siparişi her zaman yeni bir siparişte açılır; para üstü tutarı kayıttan önce kontrol edilir
+                if (isDelivery && model.ChangeFor.HasValue)
+                {
+                    decimal orderTotal = requestedItems.Sum(i => i.Quantity * products[i.ProductId].Price);
+                    if (model.ChangeFor.Value < orderTotal)
+                    {
+                        return Json(new { success = false, message = $"Para üstü için girilen tutar ({model.ChangeFor.Value:N2} ₺) sipariş tutarından ({orderTotal:N2} ₺) az olamaz." });
+                    }
+                }
+
                 DateTime now = DateTime.Now;
 
                 AppOrders mainOrder = null;
@@ -243,9 +273,15 @@ namespace RestaurantApp.Web.Controllers
                         CompanyId = companyId,
                         OrderType = model.OrderType,
                         TableId = model.OrderType == "Masa" ? model.TableId : (int?)null,
-                        DeliveryAddress = model.OrderType == "PaketServis" ? model.DeliveryAddress : null,
-                        Latitude = model.OrderType == "PaketServis" ? model.Latitude : (decimal?)null,
-                        Longitude = model.OrderType == "PaketServis" ? model.Longitude : (decimal?)null,
+                        DeliveryAddress = isDelivery ? model.DeliveryAddress : null,
+                        Latitude = isDelivery ? model.Latitude : (decimal?)null,
+                        Longitude = isDelivery ? model.Longitude : (decimal?)null,
+                        OrderChannel = isDelivery ? model.OrderChannel : null,
+                        CustomerName = isDelivery ? model.CustomerName : null,
+                        CustomerPhone = isDelivery ? model.CustomerPhone : null,
+                        ExternalOrderNo = isDelivery ? model.ExternalOrderNo : null,
+                        DeliveryPaymentPlan = isDelivery ? model.DeliveryPaymentPlan : null,
+                        ChangeFor = isDelivery ? model.ChangeFor : null,
                         TotalAmount = 0,
                         OrderNote = !string.IsNullOrWhiteSpace(model.OrderNote) ? model.OrderNote.Trim() : null,
                         Status = "Hazırlanıyor",
@@ -318,6 +354,18 @@ namespace RestaurantApp.Web.Controllers
                 // TotalAmount kalan borçtur: yeniden hesaplanmaz, eklenen tutar kadar artırılır (alınmış ödemeler korunur)
                 mainOrder.TotalAmount += addedAmount;
 
+                if (isDelivery)
+                {
+                    if (mainOrder.DeliveryPaymentPlan == DeliveryOptions.PlanOnline)
+                    {
+                        // Platformda / peşin ödenmiş sipariş: tutar online tahsilat olarak kaydedilir, kalan borç kalmaz.
+                        // Kasaya girmediği için nakit/kart kolonlarına değil OnlineAmount'a yazılır.
+                        mainOrder.OnlineAmount = (mainOrder.OnlineAmount ?? 0) + mainOrder.TotalAmount;
+                        mainOrder.TotalAmount = 0;
+                        mainOrder.PaymentType = "Online - " + DeliveryOptions.ChannelLabel(mainOrder.OrderChannel);
+                    }
+                }
+
                 db.SaveChanges();
 
                 try
@@ -336,6 +384,49 @@ namespace RestaurantApp.Web.Controllers
             {
                 return Json(new { success = false, message = "Sipariş işlenirken hata: " + ex.Message });
             }
+        }
+
+        // Paket siparişin kanal / müşteri / ödeme bilgisini temizler ve doğrular. Hata varsa mesajı döner.
+        private static string NormalizeDeliveryInfo(CreateOrderViewModel model)
+        {
+            Func<string, int, string> clean = (value, maxLength) =>
+            {
+                if (string.IsNullOrWhiteSpace(value)) return null;
+                value = value.Trim();
+                return value.Length > maxLength ? value.Substring(0, maxLength) : value;
+            };
+
+            model.CustomerName = clean(model.CustomerName, 100);
+            model.CustomerPhone = clean(model.CustomerPhone, 30);
+            model.ExternalOrderNo = clean(model.ExternalOrderNo, 50);
+            model.DeliveryAddress = clean(model.DeliveryAddress, 500);
+
+            if (!DeliveryOptions.IsValidChannel(model.OrderChannel))
+                return "Lütfen siparişin geldiği kanalı seçiniz.";
+
+            if (!DeliveryOptions.IsValidPlan(model.DeliveryPaymentPlan))
+                return "Lütfen ödeme şeklini seçiniz.";
+
+            bool isPickup = model.OrderChannel == DeliveryOptions.ChannelPickup;
+            if (isPickup)
+            {
+                // Gel-Al: müşteri gelip alır, adres ve konum tutulmaz
+                model.DeliveryAddress = null;
+                model.Latitude = null;
+                model.Longitude = null;
+            }
+            else if (model.DeliveryAddress == null)
+            {
+                return "Lütfen teslimat adresini giriniz.";
+            }
+
+            if (model.OrderChannel == DeliveryOptions.ChannelPhone && model.CustomerPhone == null)
+                return "Telefon siparişlerinde müşteri telefonu zorunludur.";
+
+            if (model.DeliveryPaymentPlan != DeliveryOptions.PlanCashOnDelivery || model.ChangeFor <= 0)
+                model.ChangeFor = null;
+
+            return null;
         }
 
         #region ÜRÜN İADE İŞLEMİ
@@ -422,6 +513,15 @@ namespace RestaurantApp.Web.Controllers
         public decimal TotalAmount { get; set; }
         public string OrderNote { get; set; }
         public bool IsPriority { get; set; } // EKLENDİ
+
+        // Paket servis alanları (bkz. Helpers/DeliveryOptions)
+        public string OrderChannel { get; set; }
+        public string CustomerName { get; set; }
+        public string CustomerPhone { get; set; }
+        public string ExternalOrderNo { get; set; }
+        public string DeliveryPaymentPlan { get; set; }
+        public decimal? ChangeFor { get; set; }
+
         public List<OrderItemViewModel> Items { get; set; }
     }
 

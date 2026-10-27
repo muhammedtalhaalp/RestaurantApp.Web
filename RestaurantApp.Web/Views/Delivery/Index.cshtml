@@ -1,0 +1,150 @@
+﻿@{
+    ViewBag.Title = "Paket Servis";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/delivery.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+}
+
+<div class="delivery-page">
+    <!-- ÜST BAŞLIK -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h4 class="fw-bold text-dark mb-0">
+                <i class="fa-solid fa-motorcycle me-2 text-brand"></i>Paket Servis
+            </h4>
+            <p class="text-muted small mb-0">Paket ve gel-al siparişlerini mutfaktan kapıya kadar takip edin.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="live-indicator" id="deliveryLiveIndicator" title="Canlı bağlantı">
+                <span class="live-dot"></span><span class="small fw-semibold">Canlı</span>
+            </span>
+            <button class="btn btn-outline-brand btn-sm rounded-3 px-3 fw-semibold h-38" type="button" onclick="loadDeliveryBoard()">
+                <i class="fa-solid fa-rotate me-1"></i>Yenile
+            </button>
+            <a class="btn btn-brand btn-sm rounded-3 px-3 fw-semibold h-38 d-flex align-items-center" href="/Order/POS?paket=1">
+                <i class="fa-solid fa-plus me-1"></i>Yeni Paket Sipariş
+            </a>
+        </div>
+    </div>
+
+    <!-- GÜNÜN ÖZETİ -->
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-xl-3">
+            <div class="kpi-card">
+                <div class="kpi-icon" style="--kpi-color:#4a154b"><i class="fa-solid fa-box-open"></i></div>
+                <div>
+                    <div class="kpi-label">Aktif Sipariş</div>
+                    <div class="kpi-value" id="kpiActive">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="kpi-card">
+                <div class="kpi-icon" style="--kpi-color:#2563eb"><i class="fa-solid fa-route"></i></div>
+                <div>
+                    <div class="kpi-label">Yolda</div>
+                    <div class="kpi-value" id="kpiOnTheWay">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="kpi-card">
+                <div class="kpi-icon" style="--kpi-color:#16a34a"><i class="fa-solid fa-circle-check"></i></div>
+                <div>
+                    <div class="kpi-label">Bugün Teslim</div>
+                    <div class="kpi-value"><span id="kpiDelivered">0</span> <small class="kpi-sub" id="kpiCancelled"></small></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-xl-3">
+            <div class="kpi-card">
+                <div class="kpi-icon" style="--kpi-color:#f27a1a"><i class="fa-solid fa-turkish-lira-sign"></i></div>
+                <div class="min-w-0">
+                    <div class="kpi-label">Bugünkü Paket Cirosu</div>
+                    <div class="kpi-value" id="kpiRevenue">0,00 ₺</div>
+                    <div class="kpi-sub text-truncate" id="kpiRevenueSplit">&nbsp;</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KANAL FİLTRESİ VE ARAMA -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="d-flex flex-wrap gap-2" id="channelFilterBar">
+            <!-- JS dolduracak -->
+        </div>
+        <div class="search-box">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="txtDeliverySearch" class="form-control form-control-sm" placeholder="Sipariş no, müşteri, telefon, adres..." />
+        </div>
+    </div>
+
+    <!-- PANO: MUTFAKTA -> HAZIR -> YOLDA -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4">
+            <div class="board-column" style="--stage-color:#d97706">
+                <div class="board-column-header">
+                    <span><i class="fa-solid fa-fire-burner me-2"></i>Mutfakta</span>
+                    <span class="board-count" id="countKitchen">0</span>
+                </div>
+                <div class="board-column-body" id="columnKitchen"></div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="board-column" style="--stage-color:#16a34a">
+                <div class="board-column-header">
+                    <span><i class="fa-solid fa-bell-concierge me-2"></i>Hazır · Kurye / Müşteri Bekliyor</span>
+                    <span class="board-count" id="countReady">0</span>
+                </div>
+                <div class="board-column-body" id="columnReady"></div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="board-column" style="--stage-color:#2563eb">
+                <div class="board-column-header">
+                    <span><i class="fa-solid fa-route me-2"></i>Yolda</span>
+                    <span class="board-count" id="countOnTheWay">0</span>
+                </div>
+                <div class="board-column-body" id="columnOnTheWay"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- KANAL BAZINDA BUGÜN + TAMAMLANANLAR -->
+    <div class="row g-3">
+        <div class="col-xl-4">
+            <div class="panel-card h-100">
+                <div class="panel-card-header"><i class="fa-solid fa-chart-pie me-2 text-brand"></i>Bugün Kanallara Göre</div>
+                <div class="panel-card-body" id="channelBreakdown"></div>
+            </div>
+        </div>
+        <div class="col-xl-8">
+            <div class="panel-card h-100">
+                <div class="panel-card-header"><i class="fa-solid fa-clock-rotate-left me-2 text-brand"></i>Bugün Kapanan Siparişler</div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 recent-table">
+                        <thead>
+                            <tr>
+                                <th>Saat</th>
+                                <th>Sipariş</th>
+                                <th>Müşteri</th>
+                                <th>Ödeme</th>
+                                <th class="text-end">Tutar</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentOrdersBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Scripts/jquery.signalR-2.4.3.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+    <script src="~/Library/scripts/delivery-channels.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/Library/scripts/delivery.js?v=@DateTime.Now.Ticks"></script>
+}

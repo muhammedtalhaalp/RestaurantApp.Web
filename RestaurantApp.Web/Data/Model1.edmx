@@ -51,6 +51,15 @@
           <Property Name="PaymentType" Type="nvarchar" MaxLength="50" />
           <Property Name="IsPriority" Type="bit" Nullable="false" />
           <Property Name="CompanyId" Type="int" Nullable="false" />
+          <Property Name="OrderChannel" Type="nvarchar" MaxLength="30" />
+          <Property Name="CustomerName" Type="nvarchar" MaxLength="100" />
+          <Property Name="CustomerPhone" Type="nvarchar" MaxLength="30" />
+          <Property Name="ExternalOrderNo" Type="nvarchar" MaxLength="50" />
+          <Property Name="DeliveryPaymentPlan" Type="nvarchar" MaxLength="20" />
+          <Property Name="OnlineAmount" Type="decimal" Precision="18" Scale="2" />
+          <Property Name="ChangeFor" Type="decimal" Precision="18" Scale="2" />
+          <Property Name="OutForDeliveryDate" Type="datetime" />
+          <Property Name="CancelReason" Type="nvarchar" MaxLength="250" />
         </EntityType>
         <EntityType Name="AppProducts">
           <Key>
@@ -337,6 +346,15 @@
           <Property Name="PaymentType" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
           <Property Name="IsPriority" Type="Boolean" Nullable="false" />
           <Property Name="CompanyId" Type="Int32" Nullable="false" />
+          <Property Name="OrderChannel" Type="String" MaxLength="30" FixedLength="false" Unicode="true" />
+          <Property Name="CustomerName" Type="String" MaxLength="100" FixedLength="false" Unicode="true" />
+          <Property Name="CustomerPhone" Type="String" MaxLength="30" FixedLength="false" Unicode="true" />
+          <Property Name="ExternalOrderNo" Type="String" MaxLength="50" FixedLength="false" Unicode="true" />
+          <Property Name="DeliveryPaymentPlan" Type="String" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="OnlineAmount" Type="Decimal" Precision="18" Scale="2" />
+          <Property Name="ChangeFor" Type="Decimal" Precision="18" Scale="2" />
+          <Property Name="OutForDeliveryDate" Type="DateTime" Precision="3" />
+          <Property Name="CancelReason" Type="String" MaxLength="250" FixedLength="false" Unicode="true" />
         </EntityType>
         <EntityType Name="AppProducts">
           <Key>
@@ -543,6 +561,15 @@
               <MappingFragment StoreEntitySet="AppOrders">
                 <ScalarProperty Name="IsPriority" ColumnName="IsPriority" />
                 <ScalarProperty Name="CompanyId" ColumnName="CompanyId" />
+                <ScalarProperty Name="OrderChannel" ColumnName="OrderChannel" />
+                <ScalarProperty Name="CustomerName" ColumnName="CustomerName" />
+                <ScalarProperty Name="CustomerPhone" ColumnName="CustomerPhone" />
+                <ScalarProperty Name="ExternalOrderNo" ColumnName="ExternalOrderNo" />
+                <ScalarProperty Name="DeliveryPaymentPlan" ColumnName="DeliveryPaymentPlan" />
+                <ScalarProperty Name="OnlineAmount" ColumnName="OnlineAmount" />
+                <ScalarProperty Name="ChangeFor" ColumnName="ChangeFor" />
+                <ScalarProperty Name="OutForDeliveryDate" ColumnName="OutForDeliveryDate" />
+                <ScalarProperty Name="CancelReason" ColumnName="CancelReason" />
                 <ScalarProperty Name="PaymentType" ColumnName="PaymentType" />
                 <ScalarProperty Name="MealCardAmount" ColumnName="MealCardAmount" />
                 <ScalarProperty Name="CreditCardAmount" ColumnName="CreditCardAmount" />

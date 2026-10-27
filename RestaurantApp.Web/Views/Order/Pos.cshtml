@@ -233,25 +233,78 @@
     </div>
 </div>
 
-<!-- 3. PAKET SERVİS MODALI -->
+<!-- 3. PAKET SERVİS MODALI: kanal, müşteri, ödeme ve teslimat adresi -->
 <div class="modal fade" id="posPaketModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold"><i class="fa-solid fa-motorcycle me-2" style="color: #4a154b;"></i>Paket Servis Teslimat Adresi</h5>
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+            <div class="modal-header border-0 pb-0 px-4 pt-4">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0"><i class="fa-solid fa-motorcycle me-2" style="color: #4a154b;"></i>Paket Servis Siparişi</h5>
+                    <p class="text-muted small mb-0">Siparişin geldiği kanalı, müşteri ve ödeme bilgisini girin.</p>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                <div class="mb-3">
-                    <label class="form-label fw-bold small text-secondary"><i class="fa-solid fa-location-dot me-1" style="color: #4a154b;"></i>Açık Adres:</label>
-                    <input type="text" id="txtDeliveryAddress" class="form-control" placeholder="Açık adres yazın..." autocomplete="off" />
+                <div class="row g-4">
+                    <!-- SOL: KANAL, MÜŞTERİ, ÖDEME -->
+                    <div class="col-lg-5">
+                        <div class="paket-section-title">1. Sipariş Kanalı</div>
+                        <div class="channel-tile-grid mb-3" id="paketChannelTiles">
+                            <!-- pos.js (DeliveryChannels) dolduracak -->
+                        </div>
+
+                        <div class="mb-3 d-none" id="paketExternalNoGroup">
+                            <label class="form-label paket-label" for="txtPaketExternalNo"><i class="fa-solid fa-hashtag me-1"></i><span id="lblPaketExternalNo">Platform Sipariş No</span></label>
+                            <input type="text" id="txtPaketExternalNo" class="form-control" maxlength="50" placeholder="Örn: 48213" autocomplete="off" />
+                        </div>
+
+                        <div class="paket-section-title">2. Müşteri</div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-sm-6">
+                                <label class="form-label paket-label" for="txtPaketCustomerName">Ad Soyad</label>
+                                <input type="text" id="txtPaketCustomerName" class="form-control" maxlength="100" placeholder="Müşteri adı" autocomplete="off" />
+                            </div>
+                            <div class="col-sm-6">
+                                <label class="form-label paket-label" for="txtPaketCustomerPhone">Telefon <span class="text-danger d-none" id="paketPhoneRequired">*</span></label>
+                                <input type="tel" id="txtPaketCustomerPhone" class="form-control" maxlength="30" placeholder="05xx xxx xx xx" autocomplete="off" />
+                            </div>
+                        </div>
+
+                        <div class="paket-section-title">3. Ödeme</div>
+                        <div class="payment-plan-group mb-2" id="paketPaymentPlans">
+                            <!-- pos.js dolduracak -->
+                        </div>
+                        <div class="d-none" id="paketChangeForGroup">
+                            <label class="form-label paket-label" for="txtPaketChangeFor"><i class="fa-solid fa-coins me-1"></i>Para üstü için müşterinin vereceği tutar (isteğe bağlı)</label>
+                            <div class="input-group">
+                                <input type="number" id="txtPaketChangeFor" class="form-control" min="0" step="1" placeholder="Örn: 500" />
+                                <span class="input-group-text">₺</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SAĞ: TESLİMAT ADRESİ / GEL-AL BİLGİSİ -->
+                    <div class="col-lg-7">
+                        <div class="paket-section-title">4. Teslimat</div>
+                        <div id="paketAddressGroup">
+                            <label class="form-label paket-label" for="txtDeliveryAddress"><i class="fa-solid fa-location-dot me-1" style="color: #4a154b;"></i>Açık Adres <span class="text-danger">*</span></label>
+                            <input type="text" id="txtDeliveryAddress" class="form-control mb-2" placeholder="Adres yazın veya haritadan seçin..." autocomplete="off" />
+                            <div id="map" class="mb-0 rounded-4"></div>
+                        </div>
+                        <div id="paketPickupInfo" class="pickup-info d-none">
+                            <i class="fa-solid fa-store"></i>
+                            <div class="fw-bold">Gel-Al Siparişi</div>
+                            <div class="small text-muted">Müşteri siparişi restorandan teslim alacak. Adres gerekmez; sipariş hazır olunca Paket Servis ekranından teslim edilir.</div>
+                        </div>
+                        <input type="hidden" id="latitude" />
+                        <input type="hidden" id="longitude" />
+                    </div>
                 </div>
-                <label class="form-label fw-bold small text-muted">Teslimat Konumu:</label>
-                <div id="map" class="mb-3"></div>
-                <input type="hidden" id="latitude" />
-                <input type="hidden" id="longitude" />
-                <button type="button" class="btn btn-purple-main w-100 fw-bold py-2.5 rounded-3 shadow-sm" onclick="confirmPaketServisModal()">
-                    <i class="fa-solid fa-check me-2"></i>Adresi Onayla ve Siparişe Başla
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 pt-0">
+                <button type="button" class="btn btn-light border fw-semibold px-4 rounded-3" data-bs-dismiss="modal">Vazgeç</button>
+                <button type="button" class="btn btn-purple-main fw-bold px-4 py-2 rounded-3 shadow-sm" onclick="confirmPaketServisModal()">
+                    <i class="fa-solid fa-check me-2"></i>Onayla ve Ürün Eklemeye Başla
                 </button>
             </div>
         </div>
@@ -285,6 +338,7 @@
 </div>
 
 @section scripts {
+    <script src="~/Library/scripts/delivery-channels.js?v=@DateTime.Now.Ticks"></script>
     <script src="~/Library/scripts/pos.js?v=@DateTime.Now.Ticks"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB4PzsQaSlz70n5upY-1Ha30lrk_makrQo&libraries=places&callback=initGoogleMap" async defer></script>
 }

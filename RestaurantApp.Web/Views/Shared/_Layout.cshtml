@@ -300,6 +300,9 @@
                         <li class="@(currentController == "Admin" && currentAction == "OrderTracking" ? "active" : "")">
                             <a href="/Admin/OrderTracking"><i class="fa-solid fa-clock-rotate-left"></i><span class="link-text">Sipariş Takip</span></a>
                         </li>
+                        <li class="@(currentController == "Delivery" ? "active" : "")">
+                            <a href="/Delivery/Index"><i class="fa-solid fa-motorcycle"></i><span class="link-text">Paket Servis</span></a>
+                        </li>
                         <li class="@(currentController == "Admin" && currentAction == "KitchenReport" ? "active" : "")">
                             <a href="/Admin/KitchenReport"><i class="fa-solid fa-receipt"></i><span class="link-text">Mutfak Raporu</span></a>
                         </li>
@@ -354,6 +357,9 @@
                         </li>
                         <li class="@(currentController == "Order" && currentAction == "WaiterOrderTracking" ? "active" : "")">
                             <a href="/Order/WaiterOrderTracking"><i class="fa-solid fa-bell-concierge me-2"></i><span class="link-text">Sipariş Takip</span></a>
+                        </li>
+                        <li class="@(currentController == "Delivery" ? "active" : "")">
+                            <a href="/Delivery/Index"><i class="fa-solid fa-motorcycle me-2"></i><span class="link-text">Paket Servis</span></a>
                         </li>
                         <li class="@(currentController == "Table" && currentAction == "TableControl" ? "active" : "")">
                             <a href="/Table/TableControl"><i class="fa-solid fa-chair me-2"></i><span class="link-text">Masa Kontrolü</span></a>

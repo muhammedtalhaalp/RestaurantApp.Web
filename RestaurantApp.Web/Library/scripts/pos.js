@@ -123,8 +123,15 @@ $(document).ready(function () {
     loadProducts(0);
     loadTables();
     loadQuickNotes();
+    renderPaketChannelTiles();
+    renderPaketPaymentPlans();
 
-    openInitialModal();
+    // Paket Servis ekranındaki "Yeni Paket Sipariş" düğmesi /Order/POS?paket=1 ile gelir
+    if (new URLSearchParams(window.location.search).get("paket") === "1") {
+        selectInitialOrderType("PaketServis");
+    } else {
+        openInitialModal();
+    }
 
     $("#btnGridView").on("click", function () {
         currentViewMode = "grid";
@@ -186,7 +193,8 @@ function selectInitialOrderType(type) {
     } else if (type === "PaketServis") {
         $("#orderType").val("PaketServis");
         $("#tableId").val("");
-        var paketModal = new bootstrap.Modal(document.getElementById('posPaketModal'));
+        resetPaketForm();
+        var paketModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('posPaketModal'));
         paketModal.show();
 
         setTimeout(function () {
@@ -198,23 +206,119 @@ function selectInitialOrderType(type) {
     }
 }
 
+// ===================================================
+// PAKET SERVİS: KANAL / MÜŞTERİ / ÖDEME (DeliveryChannels -> delivery-channels.js)
+// ===================================================
+var paketSelectedChannel = "Telefon";
+var paketSelectedPlan = "KapidaNakit";
+var deliveryInfo = null; // Onaylanan paket bilgisi; sipariş gönderilirken kullanılır
+
+function renderPaketChannelTiles() {
+    var html = Object.keys(DeliveryChannels.channels).map(function (key) {
+        var c = DeliveryChannels.channels[key];
+        return `<button type="button" class="channel-tile ${key === paketSelectedChannel ? 'active' : ''}" style="--channel-color:${c.color}" onclick="selectPaketChannel('${key}')">
+                    ${DeliveryChannels.iconHtml(key)}<span>${c.label}</span>
+                </button>`;
+    }).join("");
+    $("#paketChannelTiles").html(html);
+}
+
+function renderPaketPaymentPlans() {
+    var html = Object.keys(DeliveryChannels.plans).map(function (key) {
+        var p = DeliveryChannels.plans[key];
+        return `<button type="button" class="payment-plan ${key === paketSelectedPlan ? 'active' : ''}" onclick="selectPaketPlan('${key}')">
+                    <i class="fa-solid ${p.icon}"></i><span>${DeliveryChannels.planLabel(key, paketSelectedChannel)}</span>
+                </button>`;
+    }).join("");
+    $("#paketPaymentPlans").html(html);
+}
+
+function selectPaketChannel(key) {
+    paketSelectedChannel = key;
+    // Platform siparişleri platformda ödenmiş gelir; diğer kanallarda varsayılan kapıda nakit
+    paketSelectedPlan = DeliveryChannels.get(key).platform ? "Online" : "KapidaNakit";
+    renderPaketChannelTiles();
+    renderPaketPaymentPlans();
+    updatePaketFormVisibility();
+}
+
+function selectPaketPlan(key) {
+    paketSelectedPlan = key;
+    renderPaketPaymentPlans();
+    updatePaketFormVisibility();
+}
+
+function updatePaketFormVisibility() {
+    var channel = DeliveryChannels.get(paketSelectedChannel);
+    var isPickup = paketSelectedChannel === "GelAl";
+
+    $("#paketExternalNoGroup").toggleClass("d-none", !(channel.platform || paketSelectedChannel === "Diger"));
+    $("#lblPaketExternalNo").text(channel.platform ? `${channel.label} Sipariş No` : "Referans / Sipariş No");
+    $("#paketPhoneRequired").toggleClass("d-none", paketSelectedChannel !== "Telefon");
+    $("#paketChangeForGroup").toggleClass("d-none", paketSelectedPlan !== "KapidaNakit");
+    $("#paketAddressGroup").toggleClass("d-none", isPickup);
+    $("#paketPickupInfo").toggleClass("d-none", !isPickup);
+
+    if (!isPickup) {
+        setTimeout(function () {
+            if (typeof google !== "undefined" && map && marker) {
+                google.maps.event.trigger(map, 'resize');
+                map.setCenter(marker.getPosition());
+            }
+        }, 200);
+    }
+}
+
+function resetPaketForm() {
+    paketSelectedChannel = "Telefon";
+    paketSelectedPlan = "KapidaNakit";
+    deliveryInfo = null;
+    $("#txtPaketExternalNo, #txtPaketCustomerName, #txtPaketCustomerPhone, #txtPaketChangeFor, #txtDeliveryAddress").val("");
+    renderPaketChannelTiles();
+    renderPaketPaymentPlans();
+    updatePaketFormVisibility();
+}
+
+function warnPaket(title, text) {
+    Swal.fire({ title: title, text: text, icon: "warning", confirmButtonColor: "#4a154b" });
+}
+
 function confirmPaketServisModal() {
+    var isPickup = paketSelectedChannel === "GelAl";
     var address = ($("#txtDeliveryAddress").val() || "").trim();
-    if (!address) {
-        Swal.fire({
-            title: "Teslimat Adresi Eksik!",
-            text: "Lütfen paket servis için açık adresi giriniz.",
-            icon: "warning",
-            confirmButtonColor: "#4a154b"
-        });
+    var phone = ($("#txtPaketCustomerPhone").val() || "").trim();
+    var changeFor = parseFloat($("#txtPaketChangeFor").val());
+
+    if (!isPickup && !address) {
+        warnPaket("Teslimat Adresi Eksik!", "Lütfen paket servis için açık adresi giriniz.");
+        return;
+    }
+    if (paketSelectedChannel === "Telefon" && !phone) {
+        warnPaket("Telefon Eksik!", "Telefon siparişlerinde müşterinin telefon numarası zorunludur.");
         return;
     }
 
-    var paketModalElem = document.getElementById('posPaketModal');
-    var paketModalInstance = bootstrap.Modal.getInstance(paketModalElem);
+    deliveryInfo = {
+        channel: paketSelectedChannel,
+        plan: paketSelectedPlan,
+        isPickup: isPickup,
+        externalOrderNo: ($("#txtPaketExternalNo").val() || "").trim() || null,
+        customerName: ($("#txtPaketCustomerName").val() || "").trim() || null,
+        customerPhone: phone || null,
+        changeFor: paketSelectedPlan === "KapidaNakit" && changeFor > 0 ? changeFor : null,
+        address: isPickup ? null : address,
+        latitude: isPickup ? null : parseFloat($("#latitude").val()),
+        longitude: isPickup ? null : parseFloat($("#longitude").val())
+    };
+
+    var paketModalInstance = bootstrap.Modal.getInstance(document.getElementById('posPaketModal'));
     if (paketModalInstance) paketModalInstance.hide();
 
-    var targetText = "Paket Servis (" + (address.length > 20 ? address.substring(0, 20) + "..." : address) + ")";
+    var channelLabel = DeliveryChannels.get(deliveryInfo.channel).label;
+    var targetText = channelLabel
+        + (deliveryInfo.externalOrderNo ? ` #${deliveryInfo.externalOrderNo}` : "")
+        + (deliveryInfo.customerName ? ` · ${deliveryInfo.customerName}` : "")
+        + (!isPickup && !deliveryInfo.customerName ? ` · ${address.length > 20 ? address.substring(0, 20) + "..." : address}` : "");
     cart = [];
     existingCart = [];
     confirmTargetSession(targetText);
@@ -342,12 +446,25 @@ function executeResetTargetUI() {
 function executeSubmitOrder(orderType, tableId, address, lat, lng, isPriority) {
     var generalNote = ($("#txtOrderGeneralNote").val() || "").trim();
 
+    var isDelivery = orderType === "PaketServis";
+    if (isDelivery && !deliveryInfo) {
+        Swal.fire("Uyarı", "Lütfen önce paket servis bilgilerini onaylayın.", "warning");
+        selectInitialOrderType("PaketServis");
+        return;
+    }
+
     var orderData = {
         OrderType: orderType,
         TableId: orderType === "Masa" ? parseInt(tableId) : null,
-        DeliveryAddress: orderType === "PaketServis" ? address : null,
-        Latitude: orderType === "PaketServis" ? lat : null,
-        Longitude: orderType === "PaketServis" ? lng : null,
+        DeliveryAddress: isDelivery ? deliveryInfo.address : null,
+        Latitude: isDelivery ? deliveryInfo.latitude : null,
+        Longitude: isDelivery ? deliveryInfo.longitude : null,
+        OrderChannel: isDelivery ? deliveryInfo.channel : null,
+        CustomerName: isDelivery ? deliveryInfo.customerName : null,
+        CustomerPhone: isDelivery ? deliveryInfo.customerPhone : null,
+        ExternalOrderNo: isDelivery ? deliveryInfo.externalOrderNo : null,
+        DeliveryPaymentPlan: isDelivery ? deliveryInfo.plan : null,
+        ChangeFor: isDelivery ? deliveryInfo.changeFor : null,
         TotalAmount: calculateTotal(),
         OrderNote: generalNote || null,
         IsPriority: isPriority === true,
@@ -357,6 +474,7 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng, isPriority) {
             UnitPrice: item.price
         }))
     };
+    var submittedDelivery = isDelivery ? Object.assign({}, deliveryInfo) : null;
 
     var $btn = $("#btn-submit-order");
     $btn.prop("disabled", true).html('<i class="fa-solid fa-spinner fa-spin me-2"></i>Gönderiliyor...');
@@ -371,7 +489,9 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng, isPriority) {
             if (response.success) {
                 Swal.fire({
                     title: 'Sipariş Mutfağa İletildi!',
-                    text: 'Sipariş fişi yazdırılsın mı?',
+                    html: isDelivery
+                        ? `Paket sipariş <b>#${response.orderId}</b> Paket Servis ekranına eklendi.<br>Sipariş fişi yazdırılsın mı?`
+                        : 'Sipariş fişi yazdırılsın mı?',
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonColor: '#4a154b',
@@ -380,7 +500,7 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng, isPriority) {
                     cancelButtonText: 'Hayır, Devam Et'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        printOrderReceipt(orderType, tableId, address, generalNote, isPriority);
+                        printOrderReceipt(orderType, tableId, address, generalNote, isPriority, submittedDelivery, response.orderId);
                     }
 
                     cart = [];
@@ -390,6 +510,7 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng, isPriority) {
                     renderExistingOrders();
                     renderCart();
                     $("#txtDeliveryAddress").val("");
+                    deliveryInfo = null;
                     loadTables();
                     executeResetTargetUI();
                 });
@@ -404,13 +525,39 @@ function executeSubmitOrder(orderType, tableId, address, lat, lng, isPriority) {
     });
 }
 
-function printOrderReceipt(orderType, tableId, address, generalNote, isPriority) {
+function escapeReceiptText(text) {
+    return $("<div>").text(text == null ? "" : String(text)).html();
+}
+
+// delivery: paket siparişte onaylanan kanal / müşteri / ödeme bilgisi (masa siparişinde null)
+function printOrderReceipt(orderType, tableId, address, generalNote, isPriority, delivery, orderId) {
     var nowStr = new Date().toLocaleString('tr-TR');
 
     var targetTitle = "Paket Servis";
     if (orderType === "Masa") {
         var selectedTable = posTablesData.find(t => t.tableId == tableId);
         targetTitle = selectedTable ? selectedTable.tableName : `Masa #${tableId}`;
+    } else if (delivery) {
+        targetTitle = DeliveryChannels.get(delivery.channel).label + (delivery.externalOrderNo ? ` #${escapeReceiptText(delivery.externalOrderNo)}` : "");
+    }
+
+    var newTotal = calculateNewCartTotal();
+    var deliveryHtml = "";
+    if (delivery) {
+        var isPaid = delivery.plan === "Online";
+        var paymentLine = isPaid
+            ? `*** ÖDENDİ - ${DeliveryChannels.get(delivery.channel).label.toUpperCase()} ***`
+            : `${DeliveryChannels.planLabel(delivery.plan, delivery.channel).toUpperCase()}: ${newTotal.toFixed(2)} ₺`;
+        var changeLine = !isPaid && delivery.changeFor
+            ? `<div>Müşteri ${delivery.changeFor.toFixed(2)} ₺ verecek, para üstü: <strong>${(delivery.changeFor - newTotal).toFixed(2)} ₺</strong></div>`
+            : "";
+        deliveryHtml = `
+            ${orderId ? `<div><strong>Sipariş No:</strong> #${orderId}</div>` : ''}
+            ${delivery.customerName ? `<div><strong>Müşteri:</strong> ${escapeReceiptText(delivery.customerName)}</div>` : ''}
+            ${delivery.customerPhone ? `<div><strong>Telefon:</strong> ${escapeReceiptText(delivery.customerPhone)}</div>` : ''}
+            ${delivery.isPickup ? '<div><strong>GEL-AL</strong> (restorandan teslim)</div>' : ''}
+            <div style="margin-top:4px; padding:4px; border:1px solid #000; text-align:center; font-weight:bold;">${paymentLine}</div>
+            ${changeLine}`;
     }
 
     var itemsHtml = "";
@@ -432,7 +579,7 @@ function printOrderReceipt(orderType, tableId, address, generalNote, isPriority)
     var noteSectionHtml = generalNote ? `
         <div class="divider"></div>
         <div class="info-block" style="background-color: #f8f9fa; padding: 4px; border-radius: 4px;">
-            <strong>Sipariş Notu:</strong> ${generalNote}
+            <strong>Sipariş Notu:</strong> ${escapeReceiptText(generalNote)}
         </div>` : '';
 
     var receiptHtml = `
@@ -464,7 +611,8 @@ function printOrderReceipt(orderType, tableId, address, generalNote, isPriority)
             <div class="info-block">
                 <div><strong>Tarih:</strong> ${nowStr}</div>
                 <div><strong>Hedef:</strong> ${targetTitle}</div>
-                ${orderType === "PaketServis" && address ? `<div style="margin-top:2px;"><strong>Adres:</strong> ${address}</div>` : ''}
+                ${orderType === "PaketServis" && delivery && delivery.address ? `<div style="margin-top:2px;"><strong>Adres:</strong> ${escapeReceiptText(delivery.address)}</div>` : ''}
+                ${deliveryHtml}
             </div>
             ${noteSectionHtml}
             <div class="divider"></div>

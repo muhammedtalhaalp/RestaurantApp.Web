@@ -32,6 +32,12 @@ function escapeHtml(text) {
     return $("<div>").text(text == null ? "" : String(text)).html();
 }
 
+// Paket siparişin kart başlığı: kanal + platform sipariş no (ör. "Yemeksepeti #48213")
+function kitchenDeliveryTitle(order) {
+    var title = order.channelLabel || "Paket Servis";
+    return escapeHtml(order.externalOrderNo ? `${title} #${order.externalOrderNo}` : title);
+}
+
 // ===================================================
 // HİJYEN KAMERASI İHLAL GEÇMİŞİ
 // ===================================================
@@ -352,8 +358,10 @@ function loadKitchenOrders() {
                     var isPriority = order.isPriority === true;
                     var rawTableName = order.tableName || '';
                     var tableNameFormatted = rawTableName.toLowerCase().startsWith('masa') ? rawTableName : `Masa ${rawTableName}`;
-                    var headerTitle = isMasa ? tableNameFormatted : "Paket Servis";
-                    var subInfo = isMasa ? "" : `<div class="small text-muted mb-1 text-ellipsis-1"><i class="fa-solid fa-location-dot me-1"></i>${order.deliveryAddress || 'Adres Girilmedi'}</div>`;
+                    var headerTitle = isMasa ? tableNameFormatted : kitchenDeliveryTitle(order);
+                    var subInfo = isMasa ? "" : (order.channel === "GelAl"
+                        ? `<div class="small text-muted mb-1 text-ellipsis-1"><i class="fa-solid fa-bag-shopping me-1"></i>Gel-Al (restorandan teslim)</div>`
+                        : `<div class="small text-muted mb-1 text-ellipsis-1"><i class="fa-solid fa-location-dot me-1"></i>${escapeHtml(order.deliveryAddress || 'Adres Girilmedi')}</div>`);
 
                     var elapsedMinutes = calculateElapsedMinutes(order.orderFullDate);
                     var isOrderDelayed = elapsedMinutes >= 15;
@@ -436,7 +444,7 @@ function openKitchenOrderDetailModal(orderId) {
     var isPriority = order.isPriority === true;
     var rawTableName = order.tableName || '';
     var tableNameFormatted = rawTableName.toLowerCase().startsWith('masa') ? rawTableName : `Masa ${rawTableName}`;
-    var headerTitle = isMasa ? tableNameFormatted : "Paket Servis";
+    var headerTitle = isMasa ? tableNameFormatted : kitchenDeliveryTitle(order);
 
     if (isPriority) {
         $("#modalKitchenHeader").addClass("kitchen-modal-header-priority");
@@ -449,11 +457,11 @@ function openKitchenOrderDetailModal(orderId) {
     var subInfoHtml = `
         <div class="d-flex justify-content-between text-muted small pb-2 border-bottom">
             <span>Sipariş Saati: <b>${order.orderDate}</b></span>
-            <span>Tür: <b>${order.orderType}</b></span>
+            <span>Tür: <b>${order.orderType === "PaketServis" ? escapeHtml(order.channelLabel || "Paket Servis") : "Masa"}</b></span>
         </div>`;
 
     if (!isMasa && order.deliveryAddress) {
-        subInfoHtml += `<div class="small text-muted mt-2"><i class="fa-solid fa-location-dot me-1 text-danger"></i><b>Adres:</b> ${order.deliveryAddress}</div>`;
+        subInfoHtml += `<div class="small text-muted mt-2"><i class="fa-solid fa-location-dot me-1 text-danger"></i><b>Adres:</b> ${escapeHtml(order.deliveryAddress)}</div>`;
     }
 
     $("#modalKitchenSubInfo").html(subInfoHtml);

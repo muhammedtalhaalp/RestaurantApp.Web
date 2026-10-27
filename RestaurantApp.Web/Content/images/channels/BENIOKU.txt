@@ -1,0 +1,19 @@
+PAKET SERVİS PLATFORM LOGOLARI
+==============================
+
+Bu klasöre konan logolar POS'taki paket servis penceresinde, Paket Servis ekranındaki
+kanal rozetlerinde, filtrelerde ve kanal grafiğinde otomatik olarak gösterilir.
+Dosya yoksa kanalın renkli ikonu gösterilmeye devam eder.
+
+Dosya adları (birebir böyle olmalı, küçük harf):
+  yemeksepeti.png
+  getir.png
+  trendyol.png
+
+Öneriler:
+- Markaların resmi sitesinden, basın kitinden veya uygulama mağazası sayfasındaki
+  uygulama ikonundan alın. Logoyu değiştirmeyin / yeniden çizmeyin (tescilli marka).
+- Kare (1:1) ve şeffaf arka planlı PNG en iyi sonucu verir. Küçük gösterildiği için
+  64x64 - 256x256 piksel yeterlidir.
+
+Logo yolları Library/scripts/delivery-channels.js içindeki "logo" alanlarında tanımlıdır.

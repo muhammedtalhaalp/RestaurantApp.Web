@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNet.SignalR;
 using RestaurantApp.Web.Data;
 using RestaurantApp.Web.Filters;
+using RestaurantApp.Web.Helpers;
 using RestaurantApp.Web.Hubs;
 using System;
 using System.Collections.Generic;
@@ -65,6 +66,9 @@ namespace RestaurantApp.Web.Controllers
                             isPriority = o.IsPriority,
                             tableName = o.OrderType == "Masa" && o.AppTables != null ? o.AppTables.TableNumber : "Paket Servis",
                             deliveryAddress = o.DeliveryAddress,
+                            channel = o.OrderChannel,
+                            channelLabel = o.OrderType == "PaketServis" ? DeliveryOptions.ChannelLabel(o.OrderChannel) : null,
+                            externalOrderNo = o.ExternalOrderNo,
                             waitingSince = waitingSince,
                             orderDate = waitingSince.ToString("HH:mm"),
                             orderFullDate = waitingSince.ToString("yyyy-MM-ddTHH:mm:ss"),
@@ -82,6 +86,9 @@ namespace RestaurantApp.Web.Controllers
                         o.isPriority,
                         o.tableName,
                         o.deliveryAddress,
+                        o.channel,
+                        o.channelLabel,
+                        o.externalOrderNo,
                         o.orderDate,
                         o.orderFullDate,
                         o.orderNote,
