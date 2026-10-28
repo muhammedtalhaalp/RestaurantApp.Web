@@ -128,6 +128,17 @@
           <Property Name="CommissionRate" Type="decimal" Precision="5" Scale="2" Nullable="false" />
           <Property Name="UpdatedDate" Type="datetime" Nullable="false" />
         </EntityType>
+        <EntityType Name="UserDevices">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="UserId" Type="int" Nullable="false" />
+          <Property Name="Token" Type="nvarchar" MaxLength="400" Nullable="false" />
+          <Property Name="Platform" Type="nvarchar" MaxLength="20" Nullable="false" />
+          <Property Name="AppName" Type="nvarchar" MaxLength="40" />
+          <Property Name="UpdatedDate" Type="datetime" Nullable="false" />
+        </EntityType>
         <EntityType Name="HygieneViolations">
           <Key>
             <PropertyRef Name="Id" />
@@ -233,6 +244,7 @@
           <EntitySet Name="Companies" EntityType="Self.Companies" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="HygieneViolations" EntityType="Self.HygieneViolations" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="ChannelSettings" EntityType="Self.ChannelSettings" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="UserDevices" EntityType="Self.UserDevices" Schema="dbo" store:Type="Tables" />
           <AssociationSet Name="FK_AppCategories_Companies" Association="Self.FK_AppCategories_Companies">
             <End Role="Companies" EntitySet="Companies" />
             <End Role="AppCategories" EntitySet="AppCategories" />
@@ -308,6 +320,7 @@
           </AssociationSet>
           <EntitySet Name="HygieneViolations" EntityType="RestaurantAppDBModel.HygieneViolations" />
           <EntitySet Name="ChannelSettings" EntityType="RestaurantAppDBModel.ChannelSettings" />
+          <EntitySet Name="UserDevices" EntityType="RestaurantAppDBModel.UserDevices" />
         </EntityContainer>
         <EntityType Name="AppCategories">
           <Key>
@@ -544,6 +557,17 @@
           <Property Name="CommissionRate" Type="Decimal" Precision="5" Scale="2" Nullable="false" />
           <Property Name="UpdatedDate" Type="DateTime" Precision="3" Nullable="false" />
         </EntityType>
+        <EntityType Name="UserDevices">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="UserId" Type="Int32" Nullable="false" />
+          <Property Name="Token" Type="String" MaxLength="400" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="Platform" Type="String" MaxLength="20" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="AppName" Type="String" MaxLength="40" FixedLength="false" Unicode="true" />
+          <Property Name="UpdatedDate" Type="DateTime" Precision="3" Nullable="false" />
+        </EntityType>
         <EntityType Name="HygieneViolations">
           <Key>
             <PropertyRef Name="Id" />
@@ -688,6 +712,18 @@
                 <ScalarProperty Name="CompanyId" ColumnName="CompanyId" />
                 <ScalarProperty Name="Channel" ColumnName="Channel" />
                 <ScalarProperty Name="CommissionRate" ColumnName="CommissionRate" />
+                <ScalarProperty Name="UpdatedDate" ColumnName="UpdatedDate" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="UserDevices">
+            <EntityTypeMapping TypeName="RestaurantAppDBModel.UserDevices">
+              <MappingFragment StoreEntitySet="UserDevices">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="UserId" ColumnName="UserId" />
+                <ScalarProperty Name="Token" ColumnName="Token" />
+                <ScalarProperty Name="Platform" ColumnName="Platform" />
+                <ScalarProperty Name="AppName" ColumnName="AppName" />
                 <ScalarProperty Name="UpdatedDate" ColumnName="UpdatedDate" />
               </MappingFragment>
             </EntityTypeMapping>

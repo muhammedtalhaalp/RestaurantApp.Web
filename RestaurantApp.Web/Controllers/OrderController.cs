@@ -10,7 +10,7 @@ using System.Web.Mvc;
 
 namespace RestaurantApp.Web.Controllers
 {
-    [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer, Mutfak Şefi, Mutfak")]
+    [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Mutfak Şefi, Mutfak")]
     public class OrderController : TenantController
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
@@ -105,7 +105,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpPost]
-        [JwtAuthorize(Roles = "Admin, Garson/Kasiyer, Garson, Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult ApproveOrderDelivery(int orderId)
         {
             try
@@ -148,7 +148,7 @@ namespace RestaurantApp.Web.Controllers
 
         // SİPARİŞİ ACİL / VIP YAPMA VEYA ACİLİYETİ KALDIRMA API METODU
         [HttpPost]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult ToggleOrderPriority(int orderId)
         {
             try
@@ -434,7 +434,7 @@ namespace RestaurantApp.Web.Controllers
         #region ÜRÜN İADE İŞLEMİ
 
         [HttpPost]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult ReturnOrderItem(int orderDetailId, string reason)
         {
             try

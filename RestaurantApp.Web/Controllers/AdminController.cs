@@ -10,13 +10,13 @@ using System.Web.Mvc;
 
 namespace RestaurantApp.Web.Controllers
 {
-    [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+    [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
     public class AdminController : TenantController
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
 
         // Personel Yönetimi ekranından eklenip silinebilen roller
-        private static readonly string[] StaffRoles = { "Mutfak Şefi", "Mutfak", "Garson/Kasiyer", "Garson", "Kasiyer", "Kurye" };
+        private static readonly string[] StaffRoles = { "Mutfak Şefi", "Mutfak", "Kasiyer", "Garson", "Kurye" };
 
         private bool IsOwnCategory(int categoryId)
         {
@@ -390,7 +390,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpGet]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult GetKitchenReportByDate(string reportDate)
         {
             try
@@ -463,7 +463,7 @@ namespace RestaurantApp.Web.Controllers
         #region MASA VE KROKİ İŞLEMLERİ
 
         [HttpPost]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult CloseTableOrder(int tableId)
         {
             try
@@ -524,7 +524,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpGet]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult GetTables()
         {
             try
@@ -770,7 +770,7 @@ namespace RestaurantApp.Web.Controllers
         #region KATEGORİ İŞLEMLERİ
 
         [HttpGet]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult GetCategories()
         {
             int companyId = CurrentCompanyId;
@@ -811,7 +811,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpGet]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult GetPendingDeliveryOrders()
         {
             try
@@ -849,7 +849,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpGet]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult GetOrderDetails(int orderId)
         {
             try
@@ -895,7 +895,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpPost]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult DeliverOrder(int orderId)
         {
             try
@@ -918,7 +918,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpPost]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult DeleteOrderItem(int orderDetailId)
         {
             try
@@ -1005,7 +1005,7 @@ namespace RestaurantApp.Web.Controllers
         #region MENÜ / ÜRÜN İŞLEMLERİ (CACHE DESTEKLİ)
 
         [HttpGet]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult GetProducts()
         {
             int companyId = CurrentCompanyId;
@@ -1229,7 +1229,7 @@ namespace RestaurantApp.Web.Controllers
         #region DOLU MASA ADİSYON ÇEKME METODU
 
         [HttpGet]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult GetActiveOrderByTableId(int tableId)
         {
             try

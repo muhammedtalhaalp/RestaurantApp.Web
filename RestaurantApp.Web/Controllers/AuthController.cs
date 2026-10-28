@@ -129,7 +129,7 @@ namespace RestaurantApp.Web.Controllers
             {
                 redirectUrl = "/Kitchen/Index";
             }
-            else if (user.Role == "Garson" || user.Role == "Kasiyer" || user.Role == "Garson/Kasiyer")
+            else if (user.Role == "Garson" || user.Role == "Kasiyer")
             {
                 redirectUrl = "/Order/Index";
             }

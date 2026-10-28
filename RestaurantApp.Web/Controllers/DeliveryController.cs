@@ -17,7 +17,7 @@ namespace RestaurantApp.Web.Controllers
     //   Kapıda ödemeli siparişlerde tahsilat "Teslim Edildi" adımında alınır; online ödenmişlerde borç zaten sıfırdır.
     //   Sipariş bir kuryeye atanabilir; kurye kendi ekranından (CourierController) aynı adımları yapar.
     //   Gün sonunda kuryenin topladığı nakit "Kurye Kasası"ndan teslim alınır (SettleCourier).
-    [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+    [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
     public class DeliveryController : TenantController
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
@@ -205,6 +205,7 @@ namespace RestaurantApp.Web.Controllers
                 if (order.OrderChannel == DeliveryOptions.ChannelPickup)
                     return Json(new { success = false, message = "Gel-Al siparişlerine kurye atanmaz." });
 
+                int? previousCourierId = order.CourierId;
                 string message;
                 if (courierId.HasValue)
                 {
@@ -225,6 +226,14 @@ namespace RestaurantApp.Web.Controllers
 
                 db.SaveChanges();
                 NotifyDeliveryChanged();
+
+                // Kuryenin telefonuna bildirim (yeni atanan kuryeye ve sipariş elinden alınan kuryeye)
+                if (order.CourierId != previousCourierId)
+                {
+                    if (order.CourierId.HasValue) CourierNotifications.Assigned(order);
+                    if (previousCourierId.HasValue) CourierNotifications.Unassigned(order, previousCourierId.Value);
+                }
+
                 return Json(new { success = true, message = message });
             }
             catch (Exception ex)
@@ -293,6 +302,7 @@ namespace RestaurantApp.Web.Controllers
                 db.SaveChanges();
 
                 NotifyDeliveryChanged();
+                CourierNotifications.Cancelled(order);
                 return Json(new { success = true, message = $"#{order.OrderId} siparişi iptal edildi." });
             }
             catch (Exception ex)

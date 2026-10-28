@@ -7,7 +7,7 @@ using System.Web.Mvc;
 
 namespace RestaurantApp.Web.Controllers
 {
-    [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+    [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
     public class CategoryController : TenantController
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();

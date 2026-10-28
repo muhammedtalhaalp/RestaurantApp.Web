@@ -1,17 +1,22 @@
 ﻿using System;
-using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Net;
 using System.Security.Claims;
-using System.Text;
 using System.Web;
 using System.Web.Mvc;
-using Microsoft.IdentityModel.Tokens;
 using RestaurantApp.Web.Helpers;
 
 namespace RestaurantApp.Web.Filters
 {
+    // Tarayıcı istekleri: token Session'dan okunur; yetkisizse Login veya AccessDenied sayfasına yönlendirilir.
+    // API istemcileri (mobil uygulama, hijyen kamerası): Session yoktur, token "Authorization: Bearer" başlığıyla
+    // gelir. Bunlara yönlendirme yerine 401 (giriş gerekli) / 403 (yetki yok) + JSON döner. Mobil uygulama ayrıca
+    // her istekte "X-Client-App" başlığı gönderir; böylece token'ı olmadığında ve şifre değiştirme (OTP) için
+    // oturum çerezini taşıdığında da JSON cevap alır.
     public class JwtAuthorizeAttribute : AuthorizeAttribute
     {
+        public const string ClientAppHeader = "X-Client-App";
+
         public override void OnAuthorization(AuthorizationContext filterContext)
         {
             // [AllowAnonymous] işaretli action veya controller'da yetki kontrolü yapılmaz
@@ -24,68 +29,78 @@ namespace RestaurantApp.Web.Filters
             // Anahtar try dışında okunur: ayar eksikse sessizce Login'e atmak yerine açık hata versin
             JwtHelper.GetSigningKey();
 
-            // 1. Önce Session'dan, yoksa Request Header'dan Token'ı al
+            var request = filterContext.HttpContext.Request;
+
+            // 1. Önce Session'dan, yoksa Authorization başlığından token'ı al
             var token = filterContext.HttpContext.Session["JWToken"] as string;
+            bool isApiClient = !string.IsNullOrEmpty(request.Headers[ClientAppHeader]);
 
             if (string.IsNullOrEmpty(token))
             {
-                var authHeader = filterContext.HttpContext.Request.Headers["Authorization"];
+                var authHeader = request.Headers["Authorization"];
                 if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
                 {
                     token = authHeader.Substring(7);
+                    isApiClient = true;
                 }
             }
 
             if (string.IsNullOrEmpty(token))
             {
-                // Token yoksa doğrudan Login sayfasına yönlendir
-                filterContext.Result = new RedirectToRouteResult(
-                    new System.Web.Routing.RouteValueDictionary
-                    {
-                { "controller", "Auth" },
-                { "action", "Login" }
-                    });
+                Deny(filterContext, isApiClient, HttpStatusCode.Unauthorized, "Oturum açmanız gerekiyor.");
                 return;
             }
 
+            ClaimsPrincipal principal;
             try
             {
-                // 2. Token'ın imzasını, süresini ve şirket bilgisini doğrula (geçersizse catch bloğu Login'e yönlendirir)
-                ClaimsPrincipal principal = JwtHelper.ValidateToken(token);
-
-                // 3. Rol Kontrolü (Attribute üzerinde Roles = "Yonetici" gibi belirtilmişse)
-                if (!string.IsNullOrEmpty(Roles))
-                {
-                    var allowedRoles = Roles.Split(',').Select(r => r.Trim()).ToList();
-                    var userRole = principal.FindFirst(ClaimTypes.Role)?.Value;
-
-                    if (userRole == null || !allowedRoles.Contains(userRole))
-                    {
-                        // Yetkisi yoksa doğrudan Yetkisiz Erişim (AccessDenied) sayfasına yönlendir
-                        filterContext.Result = new RedirectToRouteResult(
-                            new System.Web.Routing.RouteValueDictionary
-                            {
-            { "controller", "Error" },
-            { "action", "AccessDenied" }
-                            });
-                        return;
-                    }
-                }
-
-                // Her şey yolundaysa kullanıcıyı sisteme tanıt
-                filterContext.HttpContext.User = principal;
+                // 2. Token'ın imzasını, süresini ve şirket bilgisini doğrula
+                principal = JwtHelper.ValidateToken(token);
             }
             catch (Exception)
             {
-                // Token geçersiz veya süresi dolmuşsa Session'ı temizle ve Login'e at
+                // Token geçersiz veya süresi dolmuş: tarayıcıda Session temizlenir
                 filterContext.HttpContext.Session.Clear();
-                filterContext.Result = new RedirectToRouteResult(
-                    new System.Web.Routing.RouteValueDictionary
-                    {
-                        { "controller", "Auth" },
-                        { "action", "Login" }
-                    });
+                Deny(filterContext, isApiClient, HttpStatusCode.Unauthorized, "Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.");
+                return;
             }
+
+            // 3. Rol kontrolü (Attribute üzerinde Roles = "Admin, Kasiyer" gibi belirtilmişse)
+            if (!string.IsNullOrEmpty(Roles))
+            {
+                var allowedRoles = Roles.Split(',').Select(r => r.Trim()).ToList();
+                var userRole = principal.FindFirst(ClaimTypes.Role)?.Value;
+
+                if (userRole == null || !allowedRoles.Contains(userRole))
+                {
+                    Deny(filterContext, isApiClient, HttpStatusCode.Forbidden, "Bu işlem için yetkiniz yok.");
+                    return;
+                }
+            }
+
+            // Her şey yolundaysa kullanıcıyı sisteme tanıt
+            filterContext.HttpContext.User = principal;
+        }
+
+        private static void Deny(AuthorizationContext filterContext, bool isApiClient, HttpStatusCode status, string message)
+        {
+            if (isApiClient)
+            {
+                var response = filterContext.HttpContext.Response;
+                response.StatusCode = (int)status;
+                response.TrySkipIisCustomErrors = true;
+                filterContext.Result = new JsonResult
+                {
+                    Data = new { success = false, code = status == HttpStatusCode.Unauthorized ? "unauthorized" : "forbidden", message = message },
+                    JsonRequestBehavior = JsonRequestBehavior.AllowGet
+                };
+                return;
+            }
+
+            string action = status == HttpStatusCode.Forbidden ? "AccessDenied" : "Login";
+            string controller = status == HttpStatusCode.Forbidden ? "Error" : "Auth";
+            filterContext.Result = new RedirectToRouteResult(
+                new System.Web.Routing.RouteValueDictionary { { "controller", controller }, { "action", action } });
         }
     }
 }

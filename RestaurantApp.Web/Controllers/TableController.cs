@@ -7,7 +7,7 @@ using RestaurantApp.Web.Filters;
 
 namespace RestaurantApp.Web.Controllers
 {
-    [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+    [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
     public class TableController : TenantController
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
@@ -104,7 +104,7 @@ namespace RestaurantApp.Web.Controllers
 
         // 1. ÜRÜN BAZLI PARÇALI ÖDEME (ÖDENEN ADETLER PaidQuantity'YE YAZILIR, SATIRLAR SİLİNMEZ)
         [HttpPost]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult PayByItems(int tableId, List<PaidItemModel> paidItems, decimal? cashAmount, decimal? creditCardAmount, decimal? mealCardAmount, string paymentType)
         {
             try
@@ -181,7 +181,7 @@ namespace RestaurantApp.Web.Controllers
 
         // 2. SERBEST TUTAR BAZLI PARÇALI ÖDEME
         [HttpPost]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult PayByAmount(int tableId, decimal paidAmount, decimal? cashAmount, decimal? creditCardAmount, decimal? mealCardAmount, string paymentType)
         {
             try
@@ -229,7 +229,7 @@ namespace RestaurantApp.Web.Controllers
 
         // 3. MASAYI BOŞALTMA İŞLEMİ
         [HttpPost]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult VacateTable(int tableId)
         {
             try
@@ -271,7 +271,7 @@ namespace RestaurantApp.Web.Controllers
         #region MASA TAŞIMA VE BİRLEŞTİRME
 
         [HttpPost]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult TransferTable(int sourceTableId, int targetTableId)
         {
             try
@@ -301,7 +301,7 @@ namespace RestaurantApp.Web.Controllers
         }
 
         [HttpPost]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult MergeTables(int sourceTableId, int targetTableId)
         {
             try
@@ -357,7 +357,7 @@ namespace RestaurantApp.Web.Controllers
         #endregion
 
         [HttpGet]
-        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer, Garson/Kasiyer")]
+        [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
         public JsonResult GetEmptyTables()
         {
             try

@@ -22,7 +22,7 @@ The real project lives in `RestaurantApp.Web/`.
 ## Architecture
 
 ### Data layer (database-first)
-- `Data/Model1.edmx` is the source of truth. `Model1.Context.cs`, `Model1.cs` and the entity classes (`AppUsers`, `AppOrders`, `AppOrderDetails`, `AppProducts`, `AppCategories`, `AppTables`, `Companies`, `HygieneViolations`, `ChannelSettings`) are **T4-generated**. Don't hand-edit them: change the DB, then use "Update Model from Database" in the EDMX designer.
+- `Data/Model1.edmx` is the source of truth. `Model1.Context.cs`, `Model1.cs` and the entity classes (`AppUsers`, `AppOrders`, `AppOrderDetails`, `AppProducts`, `AppCategories`, `AppTables`, `Companies`, `HygieneViolations`, `ChannelSettings`, `UserDevices`) are **T4-generated**. Don't hand-edit them: change the DB, then use "Update Model from Database" in the EDMX designer.
 - Controllers create the context directly (`private RestaurantAppDBEntities db = new RestaurantAppDBEntities();`). There is no repository or service layer, and the business logic lives in the controller actions.
 - **Multi-tenant by `CompanyId`.** `AppUsers`, `AppProducts`, `AppCategories`, `AppTables`, `AppOrders` and `HygieneViolations` all carry a `CompanyId`.
   - The current company comes **only** from the JWT `CompanyId` claim (`JwtHelper.CompanyIdClaim`). Never read it from a request parameter, and never fall back to "first admin" or `1`.
@@ -50,9 +50,12 @@ The real project lives in `RestaurantApp.Web/`.
 
 ### Auth
 - Custom JWT, not ASP.NET Identity. `AuthController.ApiLogin` issues the token with `Helpers/JwtHelper` and stores `JWToken`, `UserId`, `UserRole` and `FullName` in **Session**. The client also keeps the token in `localStorage`, and every page JS sends it through `$.ajaxSetup`.
-- `Filters/JwtAuthorizeAttribute` reads the token from Session, or from an `Authorization: Bearer` header, validates it with `JwtHelper.ValidateToken` (signature, expiry, and presence of the `CompanyId` claim) and checks `Roles`. It redirects to `Auth/Login` or to `Error/AccessDenied`. Leaving `Roles` empty means any logged-in user. On success it sets `HttpContext.User`. To find the current user, read the `ClaimTypes.NameIdentifier` claim (see `AuthController.GetCurrentUser`), and never fall back to "the first active user".
+- `Filters/JwtAuthorizeAttribute` reads the token from Session, or from an `Authorization: Bearer` header, validates it with `JwtHelper.ValidateToken` (signature, expiry, and presence of the `CompanyId` claim) and checks `Roles`.
+  - Browser requests (token in Session) are redirected to `Auth/Login` or `Error/AccessDenied`.
+  - API clients (token in the `Authorization: Bearer` header, or an `X-Client-App` header, as the Flutter app and the hygiene camera send) get `401`/`403` with JSON `{ success:false, code:"unauthorized"|"forbidden", message }` instead of a redirect.
+  - Leaving `Roles` empty means any logged-in user. On success it sets `HttpContext.User`. To find the current user, read the `ClaimTypes.NameIdentifier` claim (see `AuthController.GetCurrentUser`), and never fall back to "the first active user".
 - Passwords are stored with `Helpers/PasswordHasher` (PBKDF2-SHA256, format `PBKDF2$iter$salt$hash`). Legacy plaintext passwords are still accepted and are re-hashed on the next successful login. Always use `PasswordHasher.Hash` and `Verify`, and never compare `PasswordHash` in a LINQ query.
-- Roles (exact strings): `Admin`, `Garson`, `Kasiyer`, `Garson/Kasiyer`, `Mutfak Şefi`, `Mutfak`, `Kurye`. A `Kurye` is sent to `/Courier/Index` after login.
+- Roles (exact strings): `Admin`, `Garson`, `Kasiyer`, `Mutfak Şefi`, `Mutfak`, `Kurye`. A `Kurye` is sent to `/Courier/Index` after login. The old combined role `Garson/Kasiyer` was renamed to `Kasiyer` by `Database/007`; don't reintroduce it.
 - Staff referenced by orders (`AppOrders.UserId` or `CourierId`) cannot be hard-deleted. `AdminController.DeleteStaff` sets `IsActive = false` instead, which blocks login and hides them from lists. Access is applied per controller and per action with `[JwtAuthorize(Roles = "...")]`. `_Layout.cshtml` builds the navigation from `Session["UserRole"]`.
 - `JwtAuthorizeAttribute` honors `[AllowAnonymous]` on the action or the controller. The only public endpoints are `MenuController` (the QR menu for customers) and the `Auth` login actions.
 - `AiVisionController` is called by the hygiene-camera program in `tools/hygiene-camera/`, not by page JS. See below.
@@ -101,6 +104,37 @@ The real project lives in `RestaurantApp.Web/`.
   - `DeliveryOptions.CommissionAmount(order)` = order value × that rate. `AdminController.GetChannelReport` shows gross, commission and net per channel, with dine-in orders as a "Masa" row, on the "Ciro ve Grafikler" page.
 - Delivery orders are excluded from the waiter/admin "Sipariş Takip" lists (`GetPendingDeliveryOrders`), and `ApproveOrderDelivery` rejects them. Don't push them through the table/"Servis Edildi" flow.
 - The POS opens the delivery modal directly with `/Order/POS?paket=1`.
+
+### Mobile courier app (`mobile/lezzet_kurye/`, Flutter)
+- An Android app for the `Kurye` role. It is a separate client of the same server and is not part of the .NET build. Its screens match the web courier page: login, "Teslimatlarım", the collect-payment sheet, and profile (name/e-mail, password change by e-mail code, logout).
+- It talks to the server through `lib/core/api_client.dart`:
+  - Every request carries the JWT as `Authorization: Bearer` plus the header `X-Client-App: lezzet-kurye`, so the server answers with 401/403 JSON instead of redirects.
+  - POST bodies are form-encoded, as the MVC actions expect.
+  - It keeps the `ASP.NET_SessionId` cookie because the password-change OTP lives in Session.
+  - It uses only existing endpoints: `/Auth/ApiLogin`, `/Auth/GetUserProfile`/`UpdateUserProfile`/OTP actions, `/Courier/*` and `/Device/*`. Don't add mobile-only copies of business rules; change `CourierController`/`DeliveryWorkflow` instead.
+- Development connection:
+  - The phone reaches Visual Studio's IIS Express over USB with `adb reverse tcp:50693 tcp:50693`; the app's default server is `http://localhost:50693`.
+  - The address can be changed on the login screen.
+  - Cleartext HTTP is allowed only in the debug manifest.
+- Toolchain: Flutter SDK lives in `C:\src\flutter_windows_3.47.8-stable\flutter`. `flutter build apk --debug`, then `flutter install -d <device>`. `flutter analyze` must be clean.
+- Channel keys, labels and colors in `lib/widgets/channel_badge.dart` mirror `delivery-channels.js`; the logos are copied into `assets/channels/`.
+
+### Push notifications (Firebase Cloud Messaging)
+- Devices are identified by their **Firebase Installation ID (FID)**, not the classic FCM token.
+  - The classic `getToken()` fails on this new Firebase project with "FCM Registration failed".
+  - The app calls `FirebaseMessaging.register()` and receives the FID through `onRegistered`. The Android manifest needs `firebase_messaging_installation_id_enabled=true`.
+  - The server targets the message with `"fid"` instead of `"token"`.
+- `UserDevices` (`Database/008`) stores the FIDs; its column is still named `Token`. `DeviceController.RegisterToken` / `UnregisterToken` manage them. An FID registered by another user moves to that user.
+- `Helpers/PushNotifier` sends through FCM HTTP v1.
+  - It signs the Google OAuth JWT itself with `CngKey`/`RSACng`, so no NuGet package is needed.
+  - It queues the send with `HostingEnvironment.QueueBackgroundWorkItem` and deletes tokens FCM reports as unregistered.
+  - If the key file is missing, pushes are silently skipped.
+- **The service-account key is a secret.** It lives in `App_Data/firebase/service-account.json`, which is gitignored and must be copied to the server by hand. `FirebaseServiceAccountPath` in `Secrets.config` can override the location. Never print it or commit it. `mobile/lezzet_kurye/android/app/google-services.json` is not secret.
+- `Helpers/CourierNotifications` holds the texts:
+  - `Assigned` and `Unassigned`, sent from `DeliveryController.AssignCourier`.
+  - `Ready`, sent from the `KitchenController` ready actions when a delivery order becomes fully ready.
+  - `Cancelled`, sent from `DeliveryController.CancelOrder`.
+- Android channel id is `deliveries` on both sides. Test a send without a phone through FCM HTTP v1 with `validate_only: true`: a fake FID returns 404 UNREGISTERED, which means the server credentials are fine.
 
 ### Hygiene camera (`tools/hygiene-camera/`)
 - `hygiene_camera.py` is a standalone Python program (OpenCV + Roboflow hosted detection API). It runs on the PC the kitchen camera is attached to. It is not part of the .NET build.

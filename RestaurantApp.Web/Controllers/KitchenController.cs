@@ -116,6 +116,8 @@ namespace RestaurantApp.Web.Controllers
                 if (orderDetailIds == null || !orderDetailIds.Any())
                     return Json(new { success = false, message = "Lütfen hazır olan en az bir ürün seçiniz." });
 
+                bool wasReady = DeliveryOptions.IsKitchenReady(order);
+
                 var targetDetails = db.AppOrderDetails
                     .Where(d => d.OrderId == orderId && orderDetailIds.Contains(d.OrderDetailId) && !d.IsReturned)
                     .ToList();
@@ -140,6 +142,10 @@ namespace RestaurantApp.Web.Controllers
                 }
 
                 db.SaveChanges();
+
+                // Paket sipariş tamamen hazır olduysa atanmış kuryeye bildirim
+                if (isAllOrderReady && !wasReady && order.OrderType == "PaketServis")
+                    CourierNotifications.Ready(order);
 
                 return Json(new
                 {
@@ -169,6 +175,7 @@ namespace RestaurantApp.Web.Controllers
                 if (order == null)
                     return Json(new { success = false, message = "Sipariş bulunamadı." });
 
+                bool wasReady = DeliveryOptions.IsKitchenReady(order);
                 var details = db.AppOrderDetails.Where(d => d.OrderId == orderId && !d.IsReturned && d.ReturnReason != "Servis Edildi").ToList();
                 List<string> readyProductNames = new List<string>();
                 List<int> detailIds = new List<int>();
@@ -183,6 +190,9 @@ namespace RestaurantApp.Web.Controllers
 
                 order.Status = "Hazır";
                 db.SaveChanges();
+
+                if (!wasReady && order.OrderType == "PaketServis")
+                    CourierNotifications.Ready(order);
 
                 return Json(new
                 {

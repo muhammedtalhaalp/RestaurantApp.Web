@@ -167,6 +167,7 @@
     <Compile Include="Controllers\CategoryController.cs" />
     <Compile Include="Controllers\DeliveryController.cs" />
     <Compile Include="Controllers\CourierController.cs" />
+    <Compile Include="Controllers\DeviceController.cs" />
     <Compile Include="Controllers\ErrorController.cs" />
     <Compile Include="Controllers\KitchenController.cs" />
     <Compile Include="Controllers\MenuController.cs" />
@@ -183,11 +184,16 @@
     <Compile Include="Data\ChannelSettings.cs">
       <DependentUpon>Model1.tt</DependentUpon>
     </Compile>
+    <Compile Include="Data\UserDevices.cs">
+      <DependentUpon>Model1.tt</DependentUpon>
+    </Compile>
     <Compile Include="Helpers\EmailHelper.cs" />
     <Compile Include="Helpers\JwtHelper.cs" />
     <Compile Include="Controllers\TenantController.cs" />
     <Compile Include="Helpers\DeliveryOptions.cs" />
     <Compile Include="Helpers\DeliveryWorkflow.cs" />
+    <Compile Include="Helpers\PushNotifier.cs" />
+    <Compile Include="Helpers\CourierNotifications.cs" />
     <Compile Include="Helpers\InvariantDecimalModelBinder.cs" />
     <Compile Include="Helpers\OrderAmounts.cs" />
     <Compile Include="Helpers\PasswordHasher.cs" />

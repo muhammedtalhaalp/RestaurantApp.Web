@@ -367,6 +367,9 @@ RestaurantApp.Web/Secrets.config
 # Hijyen kamerası ihlal fotoğrafları (çalışan görüntüleri, repoya girmez)
 RestaurantApp.Web/App_Data/hygiene/
 
+# Firebase hizmet hesabı anahtarı (sunucu bununla bildirim gönderir; şifre gibidir)
+RestaurantApp.Web/App_Data/firebase/
+
 # Hijyen kamerası programının yerel ayarları (şifre ve API anahtarı içerir)
 tools/hygiene-camera/config.json
 tools/hygiene-camera/__pycache__/

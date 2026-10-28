@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "557688003618",
+    "project_id": "lezzetpos-e9617",
+    "storage_bucket": "lezzetpos-e9617.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:557688003618:android:7d5df3407c6605f1aefe7b",
+        "android_client_info": {
+          "package_name": "com.lezzetpos.lezzet_kurye"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCC5gMeuikbIq4Ub3srG1B1X9gg2IijIQA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

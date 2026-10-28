@@ -110,11 +110,12 @@ class LezzetPosClient:
                 allow_redirects=False,
             )
 
-            # Yönlendirme = token geçersiz/süresi dolmuş (Login) veya rol yetkisiz (AccessDenied)
-            if response.status_code in (301, 302):
-                location = response.headers.get("Location", "")
-                if "AccessDenied" in location:
-                    raise RuntimeError("Bu hesabın ihlal bildirme yetkisi yok. Kamera için 'Mutfak' rolünde bir hesap kullanın.")
+            # 403 = rol yetkisiz; 401 = token geçersiz/süresi dolmuş. (Eski sunucu sürümleri bunun yerine
+            # Login / AccessDenied sayfasına 302 yönlendirmesi döner; o durum da aynı şekilde ele alınır.)
+            location = response.headers.get("Location", "")
+            if response.status_code == 403 or (response.status_code in (301, 302) and "AccessDenied" in location):
+                raise RuntimeError("Bu hesabın ihlal bildirme yetkisi yok. Kamera için 'Mutfak' rolünde bir hesap kullanın.")
+            if response.status_code in (401, 301, 302):
                 if attempt == 0:
                     print("Oturum süresi dolmuş, yeniden giriş yapılıyor...")
                     self.login()
