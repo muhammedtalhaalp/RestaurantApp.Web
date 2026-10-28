@@ -166,6 +166,7 @@
     <Compile Include="Controllers\AuthController.cs" />
     <Compile Include="Controllers\CategoryController.cs" />
     <Compile Include="Controllers\DeliveryController.cs" />
+    <Compile Include="Controllers\CourierController.cs" />
     <Compile Include="Controllers\ErrorController.cs" />
     <Compile Include="Controllers\KitchenController.cs" />
     <Compile Include="Controllers\MenuController.cs" />
@@ -179,10 +180,15 @@
     <Compile Include="Data\HygieneViolations.cs">
       <DependentUpon>Model1.tt</DependentUpon>
     </Compile>
+    <Compile Include="Data\ChannelSettings.cs">
+      <DependentUpon>Model1.tt</DependentUpon>
+    </Compile>
     <Compile Include="Helpers\EmailHelper.cs" />
     <Compile Include="Helpers\JwtHelper.cs" />
     <Compile Include="Controllers\TenantController.cs" />
     <Compile Include="Helpers\DeliveryOptions.cs" />
+    <Compile Include="Helpers\DeliveryWorkflow.cs" />
+    <Compile Include="Helpers\InvariantDecimalModelBinder.cs" />
     <Compile Include="Helpers\OrderAmounts.cs" />
     <Compile Include="Helpers\PasswordHasher.cs" />
     <Compile Include="Controllers\TableController.cs" />
@@ -259,6 +265,7 @@
     <Content Include="Content\Site.css" />
     <Content Include="Library\scripts\adminIndex.js" />
     <Content Include="Library\scripts\dashboard.js" />
+    <Content Include="Library\scripts\courier.js" />
     <Content Include="Library\scripts\delivery-channels.js" />
     <Content Include="Library\scripts\delivery.js" />
     <Content Include="Library\scripts\financial-reports.js" />
@@ -279,6 +286,7 @@
     <Content Include="Library\styles\admin-index.css" />
     <Content Include="Library\styles\dashboard.css" />
     <Content Include="Library\styles\delivery.css" />
+    <Content Include="Library\styles\courier.css" />
     <Content Include="Content\images\channels\BENIOKU.txt" />
     <Content Include="Content\images\channels\*.png" />
     <Content Include="Library\styles\financialReports.css" />
@@ -346,6 +354,7 @@
     <Content Include="Views\Admin\FloorPlanManagement.cshtml" />
     <Content Include="Views\Kitchen\Index.cshtml" />
     <Content Include="Views\Delivery\Index.cshtml" />
+    <Content Include="Views\Courier\Index.cshtml" />
     <Content Include="Views\Admin\OrderTracking.cshtml" />
     <Content Include="Views\Order\WaiterOrderTracking.cshtml" />
     <Content Include="Views\Admin\KitchenReport.cshtml" />

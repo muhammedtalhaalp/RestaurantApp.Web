@@ -60,6 +60,10 @@
           <Property Name="ChangeFor" Type="decimal" Precision="18" Scale="2" />
           <Property Name="OutForDeliveryDate" Type="datetime" />
           <Property Name="CancelReason" Type="nvarchar" MaxLength="250" />
+          <Property Name="CourierId" Type="int" />
+          <Property Name="CourierAssignedDate" Type="datetime" />
+          <Property Name="CourierSettledDate" Type="datetime" />
+          <Property Name="CommissionRate" Type="decimal" Precision="5" Scale="2" />
         </EntityType>
         <EntityType Name="AppProducts">
           <Key>
@@ -113,6 +117,16 @@
           <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
           <Property Name="Name" Type="nvarchar" MaxLength="100" Nullable="false" />
           <Property Name="CreatedDate" Type="datetime" />
+        </EntityType>
+        <EntityType Name="ChannelSettings">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="int" StoreGeneratedPattern="Identity" Nullable="false" />
+          <Property Name="CompanyId" Type="int" Nullable="false" />
+          <Property Name="Channel" Type="nvarchar" MaxLength="30" Nullable="false" />
+          <Property Name="CommissionRate" Type="decimal" Precision="5" Scale="2" Nullable="false" />
+          <Property Name="UpdatedDate" Type="datetime" Nullable="false" />
         </EntityType>
         <EntityType Name="HygieneViolations">
           <Key>
@@ -218,6 +232,7 @@
           <EntitySet Name="AppUsers" EntityType="Self.AppUsers" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="Companies" EntityType="Self.Companies" Schema="dbo" store:Type="Tables" />
           <EntitySet Name="HygieneViolations" EntityType="Self.HygieneViolations" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="ChannelSettings" EntityType="Self.ChannelSettings" Schema="dbo" store:Type="Tables" />
           <AssociationSet Name="FK_AppCategories_Companies" Association="Self.FK_AppCategories_Companies">
             <End Role="Companies" EntitySet="Companies" />
             <End Role="AppCategories" EntitySet="AppCategories" />
@@ -292,6 +307,7 @@
             <End Role="AppProducts" EntitySet="AppProducts" />
           </AssociationSet>
           <EntitySet Name="HygieneViolations" EntityType="RestaurantAppDBModel.HygieneViolations" />
+          <EntitySet Name="ChannelSettings" EntityType="RestaurantAppDBModel.ChannelSettings" />
         </EntityContainer>
         <EntityType Name="AppCategories">
           <Key>
@@ -355,6 +371,10 @@
           <Property Name="ChangeFor" Type="Decimal" Precision="18" Scale="2" />
           <Property Name="OutForDeliveryDate" Type="DateTime" Precision="3" />
           <Property Name="CancelReason" Type="String" MaxLength="250" FixedLength="false" Unicode="true" />
+          <Property Name="CourierId" Type="Int32" />
+          <Property Name="CourierAssignedDate" Type="DateTime" Precision="3" />
+          <Property Name="CourierSettledDate" Type="DateTime" Precision="3" />
+          <Property Name="CommissionRate" Type="Decimal" Precision="5" Scale="2" />
         </EntityType>
         <EntityType Name="AppProducts">
           <Key>
@@ -514,6 +534,16 @@
             </Dependent>
           </ReferentialConstraint>
         </Association>
+        <EntityType Name="ChannelSettings">
+          <Key>
+            <PropertyRef Name="Id" />
+          </Key>
+          <Property Name="Id" Type="Int32" Nullable="false" annotation:StoreGeneratedPattern="Identity" />
+          <Property Name="CompanyId" Type="Int32" Nullable="false" />
+          <Property Name="Channel" Type="String" MaxLength="30" FixedLength="false" Unicode="true" Nullable="false" />
+          <Property Name="CommissionRate" Type="Decimal" Precision="5" Scale="2" Nullable="false" />
+          <Property Name="UpdatedDate" Type="DateTime" Precision="3" Nullable="false" />
+        </EntityType>
         <EntityType Name="HygieneViolations">
           <Key>
             <PropertyRef Name="Id" />
@@ -570,6 +600,10 @@
                 <ScalarProperty Name="ChangeFor" ColumnName="ChangeFor" />
                 <ScalarProperty Name="OutForDeliveryDate" ColumnName="OutForDeliveryDate" />
                 <ScalarProperty Name="CancelReason" ColumnName="CancelReason" />
+                <ScalarProperty Name="CourierId" ColumnName="CourierId" />
+                <ScalarProperty Name="CourierAssignedDate" ColumnName="CourierAssignedDate" />
+                <ScalarProperty Name="CourierSettledDate" ColumnName="CourierSettledDate" />
+                <ScalarProperty Name="CommissionRate" ColumnName="CommissionRate" />
                 <ScalarProperty Name="PaymentType" ColumnName="PaymentType" />
                 <ScalarProperty Name="MealCardAmount" ColumnName="MealCardAmount" />
                 <ScalarProperty Name="CreditCardAmount" ColumnName="CreditCardAmount" />
@@ -644,6 +678,17 @@
                 <ScalarProperty Name="CreatedDate" ColumnName="CreatedDate" />
                 <ScalarProperty Name="Name" ColumnName="Name" />
                 <ScalarProperty Name="Id" ColumnName="Id" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="ChannelSettings">
+            <EntityTypeMapping TypeName="RestaurantAppDBModel.ChannelSettings">
+              <MappingFragment StoreEntitySet="ChannelSettings">
+                <ScalarProperty Name="Id" ColumnName="Id" />
+                <ScalarProperty Name="CompanyId" ColumnName="CompanyId" />
+                <ScalarProperty Name="Channel" ColumnName="Channel" />
+                <ScalarProperty Name="CommissionRate" ColumnName="CommissionRate" />
+                <ScalarProperty Name="UpdatedDate" ColumnName="UpdatedDate" />
               </MappingFragment>
             </EntityTypeMapping>
           </EntitySetMapping>

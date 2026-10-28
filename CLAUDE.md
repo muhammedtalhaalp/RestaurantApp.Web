@@ -22,7 +22,7 @@ The real project lives in `RestaurantApp.Web/`.
 ## Architecture
 
 ### Data layer (database-first)
-- `Data/Model1.edmx` is the source of truth. `Model1.Context.cs`, `Model1.cs` and the entity classes (`AppUsers`, `AppOrders`, `AppOrderDetails`, `AppProducts`, `AppCategories`, `AppTables`, `Companies`, `HygieneViolations`) are **T4-generated**. Don't hand-edit them: change the DB, then use "Update Model from Database" in the EDMX designer.
+- `Data/Model1.edmx` is the source of truth. `Model1.Context.cs`, `Model1.cs` and the entity classes (`AppUsers`, `AppOrders`, `AppOrderDetails`, `AppProducts`, `AppCategories`, `AppTables`, `Companies`, `HygieneViolations`, `ChannelSettings`) are **T4-generated**. Don't hand-edit them: change the DB, then use "Update Model from Database" in the EDMX designer.
 - Controllers create the context directly (`private RestaurantAppDBEntities db = new RestaurantAppDBEntities();`). There is no repository or service layer, and the business logic lives in the controller actions.
 - **Multi-tenant by `CompanyId`.** `AppUsers`, `AppProducts`, `AppCategories`, `AppTables`, `AppOrders` and `HygieneViolations` all carry a `CompanyId`.
   - The current company comes **only** from the JWT `CompanyId` claim (`JwtHelper.CompanyIdClaim`). Never read it from a request parameter, and never fall back to "first admin" or `1`.
@@ -44,13 +44,16 @@ The real project lives in `RestaurantApp.Web/`.
   - `CreateOrder` takes unit prices from the database (`AppProducts.Price`). It ignores any price sent by the client.
   - **Recipes are stored as JSON inside `AppProducts.Description`**, as `{hasRecipe, productDesc, cookTime, station, ingredients, instructions, chefTip}`; see `KitchenController.SaveRecipe`. Any code that shows a product description must handle both plain text and this JSON.
   - A table is meant to have one open order. "Open" means status is not `Tamamlandı` and not `İptal`, and `CreateOrder` appends items to the oldest open order. Existing data does contain tables with several open orders, so table-level code must sum and loop over all of them rather than taking `FirstOrDefault`.
-- Schema changes are hand-written, idempotent SQL scripts in `Database/` (numbered, e.g. `001_...sql`), run against `.\SQLEXPRESS` with `sqlcmd -S .\SQLEXPRESS -E -i <file>`. After each script, update the EDMX by hand: SSDL, CSDL and mapping must all change together, along with the matching generated entity class. Alternatively, run "Update Model from Database" in Visual Studio.
+- Schema changes are hand-written, idempotent SQL scripts in `Database/` (numbered, e.g. `001_...sql`), run against `.\SQLEXPRESS` with `sqlcmd -S .\SQLEXPRESS -E -I -i <file>`.
+  - **Always pass `-I`** (QUOTED_IDENTIFIER ON). `AppOrders` has a filtered index (`IX_AppOrders_CourierId`), so without `-I` both its creation and any later ad-hoc `sqlcmd` UPDATE or DELETE on `AppOrders`/`AppUsers` fail. EF connections already have the setting on.
+  - Make each step of a script check its own existence, so that a half-failed run can simply be re-run. After each script, update the EDMX by hand: SSDL, CSDL and mapping must all change together, along with the matching generated entity class. Alternatively, run "Update Model from Database" in Visual Studio.
 
 ### Auth
 - Custom JWT, not ASP.NET Identity. `AuthController.ApiLogin` issues the token with `Helpers/JwtHelper` and stores `JWToken`, `UserId`, `UserRole` and `FullName` in **Session**. The client also keeps the token in `localStorage`, and every page JS sends it through `$.ajaxSetup`.
 - `Filters/JwtAuthorizeAttribute` reads the token from Session, or from an `Authorization: Bearer` header, validates it with `JwtHelper.ValidateToken` (signature, expiry, and presence of the `CompanyId` claim) and checks `Roles`. It redirects to `Auth/Login` or to `Error/AccessDenied`. Leaving `Roles` empty means any logged-in user. On success it sets `HttpContext.User`. To find the current user, read the `ClaimTypes.NameIdentifier` claim (see `AuthController.GetCurrentUser`), and never fall back to "the first active user".
 - Passwords are stored with `Helpers/PasswordHasher` (PBKDF2-SHA256, format `PBKDF2$iter$salt$hash`). Legacy plaintext passwords are still accepted and are re-hashed on the next successful login. Always use `PasswordHasher.Hash` and `Verify`, and never compare `PasswordHash` in a LINQ query.
-- Roles (exact strings): `Admin`, `Garson`, `Kasiyer`, `Garson/Kasiyer`, `Mutfak Şefi`, `Mutfak`. Access is applied per controller and per action with `[JwtAuthorize(Roles = "...")]`. `_Layout.cshtml` builds the navigation from `Session["UserRole"]`.
+- Roles (exact strings): `Admin`, `Garson`, `Kasiyer`, `Garson/Kasiyer`, `Mutfak Şefi`, `Mutfak`, `Kurye`. A `Kurye` is sent to `/Courier/Index` after login.
+- Staff referenced by orders (`AppOrders.UserId` or `CourierId`) cannot be hard-deleted. `AdminController.DeleteStaff` sets `IsActive = false` instead, which blocks login and hides them from lists. Access is applied per controller and per action with `[JwtAuthorize(Roles = "...")]`. `_Layout.cshtml` builds the navigation from `Session["UserRole"]`.
 - `JwtAuthorizeAttribute` honors `[AllowAnonymous]` on the action or the controller. The only public endpoints are `MenuController` (the QR menu for customers) and the `Auth` login actions.
 - `AiVisionController` is called by the hygiene-camera program in `tools/hygiene-camera/`, not by page JS. See below.
 
@@ -62,8 +65,14 @@ The real project lives in `RestaurantApp.Web/`.
 
 ### Front-end
 - Each page is a Razor view plus its own JS/CSS pair: `Library/scripts/<page>.js` and `Library/styles/<page>.css`. The views load these through `@section styles` / `@section scripts` with a `?v=@DateTime.Now.Ticks` cache-buster, not through `BundleConfig`.
+- **New pages must use `_Layout.cshtml`** and follow the existing look: an `h4` title with a purple icon plus a muted subtitle, white rounded cards, and the brand color `#4a154b`. Users expect the same sidebar, profile menu and logout on every role's screen.
+- `_Layout.cshtml` is responsive.
+  - Below 992px the sidebar slides off-canvas and is opened with the top-bar `#btnMobileMenu` (the `body.sidebar-open` class, with a backdrop).
+  - The desktop collapse button is hidden there.
+  - The "ready orders" bell is not rendered for `Kurye`.
 - `Views/Auth/Login.cshtml` has no layout. Its login and register AJAX are **inline scripts in the view**; there is no separate login JS file.
 - The page JS talks to controller actions returning `JsonResult` through `$.ajax` with hard-coded URLs (for example `/Kitchen/GetActiveOrders`). Responses are usually `{ success, message, data }`-style objects.
+- **The server culture is tr-TR**, where the decimal separator is a comma, while JS sends `125.5`. `Helpers/InvariantDecimalModelBinder`, registered for `decimal` and `decimal?` in `Global.asax.cs`, binds form and query values with InvariantCulture. Don't remove it, and don't parse money strings with the current culture.
 - The project uses the old-style `.csproj`, so new files (views, JS, CSS, C#) must be added to `RestaurantApp.Web.csproj` as `Content`/`Compile` items, or they won't deploy or compile.
 - **New `.cshtml` files must be saved as UTF-8 *with BOM*.** Without a BOM, Razor reads the file with the Windows Turkish code page, and every Turkish character in the view's own text shows up garbled (e.g. "ÅŸ" instead of "ş"). All existing views start with `EF BB BF`. Check with `head -c3 file | od -An -tx1`.
 
@@ -81,6 +90,15 @@ The real project lives in `RestaurantApp.Web/`.
   - **`Online`**: `CreateOrder` moves the whole amount into **`OnlineAmount`** (platform-collected money that never enters the till) and leaves `TotalAmount = 0`.
   - **`KapidaNakit` / `KapidaKart`**: the amount stays in `TotalAmount` until `CompleteDelivery(paymentMethod: "Nakit"|"Kart")` books it to `CashAmount` / `CreditCardAmount`.
   - `OrderAmounts.Paid` includes `OnlineAmount`. Use `OrderAmounts.PaidAtRestaurant` for anything about cash in the till.
+- The step rules ("out for delivery" and "complete + collect payment") live in **`Helpers/DeliveryWorkflow`**, shared by `DeliveryController` (cashier board) and `CourierController` (courier phone screen). Change the rules there, not in either controller.
+- Couriers:
+  - `AppOrders.CourierId` holds the assigned `Kurye` user, set on the board with `AssignCourier`. Assignment is company-checked, and `GelAl` orders cannot get a courier.
+  - `CourierController` (role `Kurye`) serves `Views/Courier/Index.cshtml`, which uses the shared `_Layout`, so profile settings and logout come from the layout like every other role. A courier only sees and acts on orders where `CourierId == CurrentUserId`.
+  - End-of-day courier cash: completed orders with a courier and `CourierSettledDate == null` are the cash the courier still holds. `SettleCourier(courierId, expectedCash)` stamps `CourierSettledDate`, and refuses if the amount has changed since it was shown.
+- Platform commission:
+  - Rates are stored per company and channel in **`ChannelSettings`** (Admin only: `GetChannelSettings` / `SaveChannelSettings`).
+  - `CreateOrder` snapshots the rate into **`AppOrders.CommissionRate`**, so later rate changes don't rewrite history.
+  - `DeliveryOptions.CommissionAmount(order)` = order value × that rate. `AdminController.GetChannelReport` shows gross, commission and net per channel, with dine-in orders as a "Masa" row, on the "Ciro ve Grafikler" page.
 - Delivery orders are excluded from the waiter/admin "Sipariş Takip" lists (`GetPendingDeliveryOrders`), and `ApproveOrderDelivery` rejects them. Don't push them through the table/"Servis Edildi" flow.
 - The POS opens the delivery modal directly with `/Order/POS?paket=1`.
 

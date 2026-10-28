@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using RestaurantApp.Web.Data;
@@ -9,6 +10,7 @@ namespace RestaurantApp.Web.Helpers
     public static class DeliveryOptions
     {
         public const string StatusOutForDelivery = "Yolda";
+        public const string CourierRole = "Kurye";
 
         public const string ChannelPhone = "Telefon";
         public const string ChannelPickup = "GelAl";
@@ -50,6 +52,25 @@ namespace RestaurantApp.Web.Helpers
         public static bool IsPlatform(string channel)
         {
             return channel != null && PlatformChannels.Contains(channel);
+        }
+
+        public static IEnumerable<string> Platforms
+        {
+            get { return Channels.Keys.Where(IsPlatform); }
+        }
+
+        // Siparişe yazılacak komisyon oranı (%): yalnızca platform kanallarında, restoranın ayarından
+        public static decimal? CommissionRateFor(RestaurantAppDBEntities db, int companyId, string channel)
+        {
+            if (!IsPlatform(channel)) return null;
+            var setting = db.ChannelSettings.FirstOrDefault(s => s.CompanyId == companyId && s.Channel == channel);
+            return setting != null ? setting.CommissionRate : 0m;
+        }
+
+        // Komisyon tutarı: sipariş değeri x sipariş anındaki oran
+        public static decimal CommissionAmount(AppOrders order)
+        {
+            return Math.Round(OrderAmounts.Value(order) * (order.CommissionRate ?? 0) / 100m, 2);
         }
 
         public static string ChannelLabel(string channel)

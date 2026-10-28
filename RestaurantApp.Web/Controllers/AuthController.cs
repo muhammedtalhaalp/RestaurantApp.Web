@@ -133,6 +133,10 @@ namespace RestaurantApp.Web.Controllers
             {
                 redirectUrl = "/Order/Index";
             }
+            else if (user.Role == DeliveryOptions.CourierRole)
+            {
+                redirectUrl = "/Courier/Index";
+            }
 
             return Json(new
             {

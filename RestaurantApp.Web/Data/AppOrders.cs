@@ -48,6 +48,10 @@ namespace RestaurantApp.Web.Data
         public Nullable<decimal> ChangeFor { get; set; }
         public Nullable<System.DateTime> OutForDeliveryDate { get; set; }
         public string CancelReason { get; set; }
+        public Nullable<int> CourierId { get; set; }
+        public Nullable<System.DateTime> CourierAssignedDate { get; set; }
+        public Nullable<System.DateTime> CourierSettledDate { get; set; }
+        public Nullable<decimal> CommissionRate { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<AppOrderDetails> AppOrderDetails { get; set; }

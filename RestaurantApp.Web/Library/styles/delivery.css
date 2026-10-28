@@ -355,3 +355,56 @@
     .channel-logo.is-loaded { display: inline-block; }
 .channel-filter.active .channel-logo { background: #fff; padding: 1px; }
 .channel-row-title { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Kurye ataması */
+.courier-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    border: 1px solid #c7d2fe;
+    background: #eef2ff;
+    color: #3730a3;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+    .courier-chip:hover { background: #e0e7ff; }
+    .courier-chip.is-empty { border-style: dashed; border-color: #cbd5e1; background: #fff; color: #475569; }
+        .courier-chip.is-empty:hover { border-color: var(--brand); color: var(--brand); }
+
+.courier-option-list { display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.courier-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 2px solid var(--border-soft);
+    border-radius: 12px;
+    background: #fff;
+    transition: all 0.15s ease;
+}
+    .courier-option:hover, .courier-option.is-selected { border-color: var(--brand); background: var(--brand-soft); }
+
+.courier-avatar {
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    color: #fff;
+    background: var(--brand);
+}
+
+/* Komisyon ayarları */
+.commission-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-soft);
+}
+    .commission-row:last-child { border-bottom: none; }

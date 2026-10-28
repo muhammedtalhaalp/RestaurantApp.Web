@@ -16,6 +16,10 @@ namespace RestaurantApp.Web
             FilterConfig.RegisterGlobalFilters(GlobalFilters.Filters);
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
+
+            // Tutarlar JS'ten "125.5" biçiminde gelir; tr-TR kültüründe yanlış okunmasın diye (bkz. InvariantDecimalModelBinder)
+            ModelBinders.Binders.Add(typeof(decimal), new Helpers.InvariantDecimalModelBinder());
+            ModelBinders.Binders.Add(typeof(decimal?), new Helpers.InvariantDecimalModelBinder());
         }
     }
 }

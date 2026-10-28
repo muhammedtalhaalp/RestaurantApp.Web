@@ -1,0 +1,86 @@
+﻿﻿@{
+    ViewBag.Title = "Teslimatlarım";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/courier.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+}
+
+<div class="courier-page">
+    <!-- ÜST BAŞLIK -->
+    <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h4 class="fw-bold text-dark mb-0">
+                <i class="fa-solid fa-motorcycle me-2 text-brand"></i>Teslimatlarım
+            </h4>
+            <p class="text-muted small mb-0">Size atanan paket siparişleri. Restorandan alınca "Yola Çıktım", teslim edince "Teslim Ettim" deyin.</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span class="live-indicator" id="courierLiveIndicator" title="Canlı bağlantı">
+                <span class="live-dot"></span><span class="small fw-semibold d-none d-sm-inline">Canlı</span>
+            </span>
+            <button class="btn btn-outline-brand btn-sm rounded-3 px-3 fw-semibold h-38" type="button" onclick="loadMyOrders()" aria-label="Yenile">
+                <i class="fa-solid fa-rotate"></i><span class="d-none d-sm-inline ms-1">Yenile</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ÖZET -->
+    <div class="row g-2 g-md-3 mb-3">
+        <div class="col-4">
+            <div class="kpi-card">
+                <div class="kpi-icon" style="--kpi-color:#4a154b"><i class="fa-solid fa-box-open"></i></div>
+                <div>
+                    <div class="kpi-label">Aktif</div>
+                    <div class="kpi-value" id="sumActive">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="kpi-card">
+                <div class="kpi-icon" style="--kpi-color:#16a34a"><i class="fa-solid fa-circle-check"></i></div>
+                <div>
+                    <div class="kpi-label">Bugün Teslim</div>
+                    <div class="kpi-value" id="sumDelivered">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-4">
+            <div class="kpi-card">
+                <div class="kpi-icon" style="--kpi-color:#f27a1a"><i class="fa-solid fa-wallet"></i></div>
+                <div class="min-w-0">
+                    <div class="kpi-label">Elimdeki Nakit</div>
+                    <div class="kpi-value text-truncate" id="sumCash">0 ₺</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- AKTİF TESLİMATLAR -->
+        <div class="col-xl-7">
+            <div class="panel-card">
+                <div class="panel-card-header"><i class="fa-solid fa-route me-2 text-brand"></i>Aktif Teslimatlar</div>
+                <div class="panel-card-body" id="activeOrders">
+                    <div class="empty-state"><i class="fa-solid fa-spinner fa-spin"></i>Yükleniyor...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BUGÜN TESLİM EDİLENLER -->
+        <div class="col-xl-5">
+            <div class="panel-card">
+                <div class="panel-card-header"><i class="fa-solid fa-clock-rotate-left me-2 text-brand"></i>Bugün Teslim Ettiklerim</div>
+                <div id="recentOrders"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Scripts/jquery.signalR-2.4.3.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+    <script src="~/Library/scripts/delivery-channels.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/Library/scripts/courier.js?v=@DateTime.Now.Ticks"></script>
+}

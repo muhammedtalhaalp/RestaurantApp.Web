@@ -20,6 +20,12 @@
             <span class="live-indicator" id="deliveryLiveIndicator" title="Canlı bağlantı">
                 <span class="live-dot"></span><span class="small fw-semibold">Canlı</span>
             </span>
+            <button class="btn btn-outline-brand btn-sm rounded-3 px-3 fw-semibold h-38 d-none" type="button" id="btnCommissionSettings" onclick="openCommissionSettings()">
+                <i class="fa-solid fa-percent me-1"></i>Komisyon Oranları
+            </button>
+            <button class="btn btn-outline-brand btn-sm rounded-3 px-3 fw-semibold h-38" type="button" onclick="openCourierCash()">
+                <i class="fa-solid fa-cash-register me-1"></i>Kurye Kasası
+            </button>
             <button class="btn btn-outline-brand btn-sm rounded-3 px-3 fw-semibold h-38" type="button" onclick="loadDeliveryBoard()">
                 <i class="fa-solid fa-rotate me-1"></i>Yenile
             </button>
@@ -136,6 +142,40 @@
                         </thead>
                         <tbody id="recentOrdersBody"></tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- KURYE KASASI (GÜN SONU HESAP KAPATMA) -->
+<div class="modal fade" id="modalCourierCash" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+            <div class="modal-header border-0 px-4 pt-4 pb-2">
+                <div>
+                    <h5 class="modal-title fw-bold mb-0"><i class="fa-solid fa-cash-register me-2 text-brand"></i>Kurye Kasası</h5>
+                    <div class="small text-muted">Kuryelerin kapıda topladığı nakdi teslim alıp hesaplarını kapatın.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body px-4 pb-4">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 recent-table">
+                        <thead>
+                            <tr>
+                                <th>Kurye</th>
+                                <th class="text-center">Bugün Teslim</th>
+                                <th class="text-end">Elindeki Nakit</th>
+                                <th class="text-end">Kartla Tahsil</th>
+                                <th class="text-end">İşlem</th>
+                            </tr>
+                        </thead>
+                        <tbody id="courierCashBody"></tbody>
+                    </table>
+                </div>
+                <div class="small text-muted mt-3">
+                    <i class="fa-solid fa-circle-info me-1"></i>Kurye eklemek için Admin <b>Personel Yönetimi</b>'nden "Kurye" rolünde personel ekler.
                 </div>
             </div>
         </div>

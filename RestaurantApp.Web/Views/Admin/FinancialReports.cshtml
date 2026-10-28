@@ -127,10 +127,67 @@
             </div>
         </div>
     </div>
+
+    <!-- 4. Kanal Raporu: brüt ciro, platform komisyonu, net ciro -->
+    <div class="row g-4 mb-4">
+        <div class="col-12">
+            <div class="card chart-card shadow-sm p-4">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-store me-2" style="color: #4a154b;"></i>Satış Kanalları & Platform Komisyonu</h6>
+                        <div class="small text-muted">Komisyon, her siparişte sipariş anındaki oranla hesaplanır. Oranlar Paket Servis ekranındaki "Komisyon Oranları"ndan değiştirilir.</div>
+                    </div>
+                    <div class="btn-group btn-group-sm" role="group" id="channelPeriodGroup">
+                        <button type="button" class="btn btn-outline-secondary btn-time-filter active" onclick="changeChannelPeriod('today', this)">Bugün</button>
+                        <button type="button" class="btn btn-outline-secondary btn-time-filter" onclick="changeChannelPeriod('week', this)">Son 7 Gün</button>
+                        <button type="button" class="btn btn-outline-secondary btn-time-filter" onclick="changeChannelPeriod('month', this)">Son 30 Gün</button>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <div class="channel-total-box">
+                            <div class="small text-muted">Brüt Ciro</div>
+                            <div class="fs-4 fw-bold text-dark" id="channelTotalGross">0,00 ₺</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="channel-total-box is-commission">
+                            <div class="small text-muted">Platform Komisyonu</div>
+                            <div class="fs-4 fw-bold text-danger" id="channelTotalCommission">0,00 ₺</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="channel-total-box is-net">
+                            <div class="small text-muted">Net Ciro (Restorana Kalan)</div>
+                            <div class="fs-4 fw-bold text-success" id="channelTotalNet">0,00 ₺</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 channel-report-table">
+                        <thead>
+                            <tr>
+                                <th>Kanal</th>
+                                <th class="text-end">Sipariş</th>
+                                <th class="text-end">Brüt Ciro</th>
+                                <th class="text-end">Komisyon</th>
+                                <th class="text-end">Net Ciro</th>
+                                <th style="width: 22%;">Pay</th>
+                            </tr>
+                        </thead>
+                        <tbody id="channelReportBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @section scripts {
     <!-- Chart.js Kütüphanesi -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="~/Library/scripts/financial-reports.js"></script>
+    <script src="~/Library/scripts/delivery-channels.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/Library/scripts/financial-reports.js?v=@DateTime.Now.Ticks"></script>
 }

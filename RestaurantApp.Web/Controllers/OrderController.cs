@@ -282,6 +282,8 @@ namespace RestaurantApp.Web.Controllers
                         ExternalOrderNo = isDelivery ? model.ExternalOrderNo : null,
                         DeliveryPaymentPlan = isDelivery ? model.DeliveryPaymentPlan : null,
                         ChangeFor = isDelivery ? model.ChangeFor : null,
+                        // Sipariş anındaki platform komisyonu saklanır; oran sonradan değişse de bu sipariş etkilenmez
+                        CommissionRate = isDelivery ? DeliveryOptions.CommissionRateFor(db, companyId, model.OrderChannel) : null,
                         TotalAmount = 0,
                         OrderNote = !string.IsNullOrWhiteSpace(model.OrderNote) ? model.OrderNote.Trim() : null,
                         Status = "Hazırlanıyor",

@@ -88,3 +88,42 @@
     color: #ffffff !important;
     border-color: #4a154b !important;
 }
+
+/* SATIŞ KANALLARI & PLATFORM KOMİSYONU */
+.channel-total-box {
+    border: 1px solid #e7e9ef;
+    border-radius: 14px;
+    padding: 14px 16px;
+    background: #f8fafc;
+}
+    .channel-total-box.is-commission { background: #fef2f2; border-color: #fecaca; }
+    .channel-total-box.is-net { background: #f0fdf4; border-color: #bbf7d0; }
+
+.channel-report-table thead th {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #64748b;
+    background: #f8fafc;
+}
+.channel-report-table .channel-total-row td { background: #f8fafc; border-top: 2px solid #e2e8f0; }
+
+.channel-share-bar { height: 8px; border-radius: 999px; background: #f1f5f9; overflow: hidden; }
+    .channel-share-bar > div { height: 100%; border-radius: 999px; }
+
+/* Kanal rozeti ve logolar (delivery-channels.js) */
+.channel-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--channel-color);
+    background: color-mix(in srgb, var(--channel-color) 11%, #fff);
+    border: 1px solid color-mix(in srgb, var(--channel-color) 28%, #fff);
+}
+.channel-logo { display: none; width: 1.2em; height: 1.2em; object-fit: contain; border-radius: 4px; flex-shrink: 0; }
+    .channel-logo.is-loaded { display: inline-block; }

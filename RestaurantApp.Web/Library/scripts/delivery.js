@@ -92,6 +92,7 @@ function loadDeliveryBoard() {
                 return;
             }
             deliveryBoardData = res.data;
+            $("#btnCommissionSettings").toggleClass("d-none", !res.data.canManageCommission);
             renderSummary(res.data.summary);
             renderChannelFilter(res.data.active);
             renderDeliveryBoard();
@@ -218,6 +219,18 @@ function renderDeliveryCard(o) {
         ? `<div class="payment-box is-paid mt-2"><span><i class="fa-solid fa-circle-check me-1"></i>${escapeHtml(o.paymentPlanLabel || 'Ödendi')}</span><span class="payment-amount">${formatMoney(o.orderValue)}</span></div>`
         : `<div class="payment-box is-due mt-2"><span><i class="fa-solid ${o.paymentPlan === 'KapidaKart' ? 'fa-credit-card' : 'fa-money-bill-wave'} me-1"></i>${escapeHtml(o.paymentPlanLabel || 'Tahsil edilecek')}</span><span class="payment-amount">${formatMoney(o.dueAmount)}</span></div>${changeHint}`;
 
+    // Kurye: atanmışsa adı (tıklayınca değiştirilir), atanmamışsa "Kurye Ata"
+    var courierHtml = "";
+    if (!o.isPickup) {
+        courierHtml = o.courierName
+            ? `<button type="button" class="courier-chip mt-2" onclick="openAssignCourier(${o.orderId})" title="Kuryeyi değiştir">
+                   <i class="fa-solid fa-motorcycle"></i><span>${escapeHtml(o.courierName)}</span><i class="fa-solid fa-pen small opacity-50"></i>
+               </button>`
+            : `<button type="button" class="courier-chip is-empty mt-2" onclick="openAssignCourier(${o.orderId})">
+                   <i class="fa-solid fa-user-plus"></i><span>Kurye Ata</span>
+               </button>`;
+    }
+
     var primaryAction = "";
     if (o.stage === "kitchen") {
         primaryAction = `<button class="btn btn-light border flex-grow-1" disabled><i class="fa-solid fa-fire-burner me-1"></i>Mutfakta hazırlanıyor</button>`;
@@ -241,6 +254,7 @@ function renderDeliveryCard(o) {
             ${noteHtml}
             ${itemsHtml}
             ${paymentHtml}
+            ${courierHtml}
             <div class="card-actions">
                 ${primaryAction}
                 <button class="btn btn-cancel-order" title="Siparişi iptal et" onclick="openCancelDialog(${o.orderId})"><i class="fa-solid fa-xmark"></i></button>
@@ -268,6 +282,7 @@ function renderChannelBreakdown(s) {
                     <span class="fw-semibold channel-row-title" style="color:${meta.color}">${DeliveryChannels.iconHtml(c.channel)}<span class="text-dark">${meta.label}</span> <span class="text-muted fw-normal">· ${c.count} sipariş</span></span>
                     <span class="fw-bold">${formatMoney(c.amount)}</span>
                 </div>
+                ${c.commission > 0 ? `<div class="small text-muted text-end">komisyon <span class="text-danger">- ${formatMoney(c.commission)}</span> · net <span class="text-success fw-semibold">${formatMoney(c.amount - c.commission)}</span></div>` : ''}
                 <div class="channel-bar"><div style="width:${Math.max(4, c.amount / max * 100)}%"></div></div>
             </div>`;
     }).join(""));
@@ -282,7 +297,7 @@ function renderRecentOrders(list) {
         <tr class="${o.isCancelled ? 'is-cancelled' : ''}">
             <td>${escapeHtml(o.completedTime)}</td>
             <td><span class="fw-semibold">#${o.orderId}</span> ${DeliveryChannels.badge(o.channel, o.externalOrderNo)}</td>
-            <td>${escapeHtml(o.customerName || '-')}</td>
+            <td>${escapeHtml(o.customerName || '-')}${o.courierName ? `<div class="small text-muted"><i class="fa-solid fa-motorcycle me-1"></i>${escapeHtml(o.courierName)}</div>` : ''}</td>
             <td>${o.isCancelled
                 ? `<span class="badge bg-danger-subtle text-danger border border-danger-subtle">İptal</span> <span class="small">${escapeHtml(o.cancelReason || '')}</span>`
                 : escapeHtml(o.paymentType || '')}</td>
@@ -398,5 +413,194 @@ function openCancelDialog(orderId) {
         }
     }).then(r => {
         if (r.isConfirmed) postDeliveryAction("/Delivery/CancelOrder", { orderId: orderId, reason: r.value });
+    });
+}
+
+// ===================================================
+// KURYE ATAMA
+// ===================================================
+function courierInitial(name) {
+    return escapeHtml((name || "?").charAt(0).toLocaleUpperCase("tr-TR"));
+}
+
+function openAssignCourier(orderId) {
+    var o = findActiveOrder(orderId);
+    if (!o) return;
+    var couriers = deliveryBoardData.couriers || [];
+
+    if (!couriers.length) {
+        Swal.fire({
+            icon: "info",
+            title: "Henüz kurye yok",
+            html: "Kurye eklemek için Admin <b>Personel Yönetimi</b>'nden <b>Kurye</b> rolünde personel ekler.",
+            confirmButtonColor: "#4a154b"
+        });
+        return;
+    }
+
+    var options = couriers.map(c => `
+        <button type="button" class="courier-option ${c.courierId === o.courierId ? 'is-selected' : ''}" data-courier-id="${c.courierId}">
+            <span class="courier-avatar">${courierInitial(c.name)}</span>
+            <span class="flex-grow-1 text-start fw-semibold">${escapeHtml(c.name)}</span>
+            <span class="badge ${c.activeCount ? 'bg-warning-subtle text-warning-emphasis' : 'bg-success-subtle text-success'}">${c.activeCount ? c.activeCount + ' aktif teslimat' : 'Müsait'}</span>
+        </button>`).join("");
+
+    var unassignHtml = o.courierId
+        ? '<button type="button" class="btn btn-link text-danger btn-sm mt-2" id="btnUnassignCourier"><i class="fa-solid fa-user-minus me-1"></i>Kurye atamasını kaldır</button>'
+        : '';
+
+    Swal.fire({
+        title: `#${o.orderId} · Kurye Seç`,
+        html: `<div class="courier-option-list">${options}</div>${unassignHtml}`,
+        showConfirmButton: false,
+        showCancelButton: true,
+        cancelButtonText: "Kapat",
+        didOpen: (popup) => {
+            $(popup).find(".courier-option").on("click", function () {
+                Swal.close();
+                postDeliveryAction("/Delivery/AssignCourier", { orderId: orderId, courierId: $(this).data("courier-id") });
+            });
+            $(popup).find("#btnUnassignCourier").on("click", function () {
+                Swal.close();
+                postDeliveryAction("/Delivery/AssignCourier", { orderId: orderId });
+            });
+        }
+    });
+}
+
+// ===================================================
+// KURYE KASASI (GÜN SONU HESAP KAPATMA)
+// ===================================================
+var courierCashRows = [];
+
+function openCourierCash() {
+    loadCourierCash();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("modalCourierCash")).show();
+}
+
+function loadCourierCash() {
+    $("#courierCashBody").html('<tr><td colspan="5" class="text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-1"></i>Yükleniyor...</td></tr>');
+    $.get("/Delivery/GetCourierCash", function (res) {
+        if (!res || !res.success) {
+            $("#courierCashBody").html(`<tr><td colspan="5" class="text-center text-danger py-4">${escapeHtml((res && res.message) || "Kurye kasası yüklenemedi.")}</td></tr>`);
+            return;
+        }
+        courierCashRows = res.data;
+        if (!courierCashRows.length) {
+            $("#courierCashBody").html('<tr><td colspan="5" class="text-center text-muted py-4">Kayıtlı kurye yok.</td></tr>');
+            return;
+        }
+        $("#courierCashBody").html(courierCashRows.map(r => `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="courier-avatar">${courierInitial(r.name)}</span>
+                        <div>
+                            <div class="fw-semibold">${escapeHtml(r.name)}</div>
+                            ${r.settledTodayCash > 0 ? `<div class="small text-muted">Bugün teslim alınan: ${formatMoney(r.settledTodayCash)}</div>` : ''}
+                        </div>
+                    </div>
+                </td>
+                <td class="text-center">${r.deliveredTodayCount}</td>
+                <td class="text-end fw-bold ${r.unsettledCash > 0 ? 'text-dark' : 'text-muted'}">${formatMoney(r.unsettledCash)}</td>
+                <td class="text-end text-muted">${formatMoney(r.unsettledCard)}</td>
+                <td class="text-end">
+                    ${r.unsettledOrderCount > 0
+                        ? `<button class="btn btn-sm btn-brand rounded-3 fw-semibold" onclick="settleCourier(${r.courierId})"><i class="fa-solid fa-hand-holding-dollar me-1"></i>Hesabı Kapat</button>`
+                        : '<span class="badge bg-success-subtle text-success"><i class="fa-solid fa-check me-1"></i>Hesap kapalı</span>'}
+                </td>
+            </tr>`).join(""));
+    });
+}
+
+function settleCourier(courierId) {
+    var r = courierCashRows.find(x => x.courierId === courierId);
+    if (!r) return;
+
+    var cardNote = r.unsettledCard > 0
+        ? `<div class="small text-muted mt-2">Kartla tahsil edilen ${formatMoney(r.unsettledCard)} doğrudan POS cihazına geçmiştir.</div>`
+        : '';
+
+    Swal.fire({
+        title: `${escapeHtml(r.name)} · Hesap Kapatma`,
+        html: `
+            <div class="text-muted small mb-1">${r.unsettledOrderCount} teslimat</div>
+            <div class="collect-amount mb-2">${formatMoney(r.unsettledCash)}</div>
+            <div class="small text-muted">nakdi kuryeden teslim aldığınızı onaylıyor musunuz?</div>
+            ${cardNote}`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-check me-1"></i>Teslim Aldım, Hesabı Kapat',
+        cancelButtonText: "Vazgeç",
+        confirmButtonColor: "#4a154b"
+    }).then(result => {
+        if (!result.isConfirmed) return;
+        $.post("/Delivery/SettleCourier", { courierId: courierId, expectedCash: r.unsettledCash }, function (res) {
+            if (res && res.success) {
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message, showConfirmButton: false, timer: 2500 });
+            } else {
+                Swal.fire("İşlem yapılamadı", (res && res.message) || "Bilinmeyen hata.", "error");
+            }
+            openCourierCash();
+        });
+    });
+}
+
+// ===================================================
+// PLATFORM KOMİSYON ORANLARI (ADMIN)
+// ===================================================
+function openCommissionSettings() {
+    $.get("/Delivery/GetChannelSettings", function (res) {
+        if (!res || !res.success) {
+            Swal.fire("Hata", "Komisyon oranları yüklenemedi.", "error");
+            return;
+        }
+
+        var rows = res.data.map(s => `
+            <div class="commission-row">
+                <span>${DeliveryChannels.badge(s.channel)}</span>
+                <div class="input-group input-group-sm" style="max-width: 130px;">
+                    <span class="input-group-text">%</span>
+                    <input type="number" class="form-control text-end commission-input" data-channel="${s.channel}" min="0" max="100" step="0.5" value="${s.commissionRate}">
+                </div>
+            </div>`).join("");
+
+        Swal.fire({
+            title: "Platform Komisyon Oranları",
+            html: `<div class="text-muted small mb-3">Platformun her siparişten kestiği oran. Yalnızca <b>bundan sonraki</b> siparişlerde geçerli olur; geçmiş siparişler kendi oranıyla kalır.</div>${rows}`,
+            showCancelButton: true,
+            confirmButtonText: "Kaydet",
+            cancelButtonText: "Vazgeç",
+            confirmButtonColor: "#4a154b",
+            preConfirm: () => {
+                var rates = [];
+                var invalid = false;
+                $(".commission-input").each(function () {
+                    var value = parseFloat($(this).val());
+                    if (isNaN(value) || value < 0 || value > 100) invalid = true;
+                    rates.push({ Channel: $(this).data("channel"), CommissionRate: value });
+                });
+                if (invalid) {
+                    Swal.showValidationMessage("Oranlar 0 ile 100 arasında olmalı.");
+                    return false;
+                }
+                return rates;
+            }
+        }).then(result => {
+            if (!result.isConfirmed) return;
+            $.ajax({
+                url: "/Delivery/SaveChannelSettings",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify({ rates: result.value }),
+                success: function (r) {
+                    if (r && r.success) {
+                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: r.message, showConfirmButton: false, timer: 2500 });
+                    } else {
+                        Swal.fire("Kaydedilemedi", (r && r.message) || "Bilinmeyen hata.", "error");
+                    }
+                }
+            });
+        });
     });
 }

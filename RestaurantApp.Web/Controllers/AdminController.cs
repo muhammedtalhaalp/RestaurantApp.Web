@@ -16,7 +16,7 @@ namespace RestaurantApp.Web.Controllers
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
 
         // Personel Yönetimi ekranından eklenip silinebilen roller
-        private static readonly string[] StaffRoles = { "Mutfak Şefi", "Mutfak", "Garson/Kasiyer", "Garson", "Kasiyer" };
+        private static readonly string[] StaffRoles = { "Mutfak Şefi", "Mutfak", "Garson/Kasiyer", "Garson", "Kasiyer", "Kurye" };
 
         private bool IsOwnCategory(int categoryId)
         {
@@ -66,7 +66,7 @@ namespace RestaurantApp.Web.Controllers
                 var allowedRoles = StaffRoles;
 
                 var staffList = db.AppUsers
-                    .Where(u => u.CompanyId == companyId && allowedRoles.Contains(u.Role))
+                    .Where(u => u.CompanyId == companyId && u.IsActive && allowedRoles.Contains(u.Role))
                     .Select(u => new
                     {
                         id = u.UserId,
@@ -165,6 +165,16 @@ namespace RestaurantApp.Web.Controllers
                 if (staff == null)
                 {
                     return Json(new { success = false, message = "Silinmek istenen personel bulunamadı." });
+                }
+
+                // Siparişi açan veya teslim eden personel silinemez (geçmiş kayıtlar ona bağlı): pasife alınır,
+                // böylece giriş yapamaz ve listede görünmez ama raporlar bozulmaz
+                bool hasOrders = db.AppOrders.Any(o => o.UserId == id || o.CourierId == id);
+                if (hasOrders)
+                {
+                    staff.IsActive = false;
+                    db.SaveChanges();
+                    return Json(new { success = true, message = "Personelin geçmiş siparişleri olduğu için hesabı pasife alındı; artık giriş yapamaz." });
                 }
 
                 db.AppUsers.Remove(staff);
@@ -310,6 +320,65 @@ namespace RestaurantApp.Web.Controllers
             catch (Exception ex)
             {
                 return Json(new { success = false, message = "Finansal veriler hesaplanırken hata: " + ex.Message }, JsonRequestBehavior.AllowGet);
+            }
+        }
+
+        // Kanal bazında ciro: brüt (sipariş değeri), platform komisyonu (sipariş anındaki oranla) ve net.
+        // period: "today" (varsayılan), "week" (son 7 gün), "month" (son 30 gün). Salon siparişleri "Masa" satırında.
+        [HttpGet]
+        [JwtAuthorize(Roles = "Admin")]
+        public JsonResult GetChannelReport(string period)
+        {
+            try
+            {
+                int companyId = CurrentCompanyId;
+                DateTime today = DateTime.Today;
+                DateTime since = period == "month" ? today.AddDays(-29) : (period == "week" ? today.AddDays(-6) : today);
+
+                var orders = db.AppOrders
+                    .Where(o => o.CompanyId == companyId && o.CreatedDate >= since && o.Status != "İptal")
+                    .ToList();
+
+                var rows = orders
+                    .GroupBy(o => o.OrderType == "PaketServis" ? (o.OrderChannel ?? DeliveryOptions.ChannelPhone) : "Masa")
+                    .Select(g =>
+                    {
+                        decimal gross = g.Sum(o => OrderAmounts.Value(o));
+                        decimal commission = g.Sum(o => DeliveryOptions.CommissionAmount(o));
+                        return new
+                        {
+                            channel = g.Key,
+                            label = g.Key == "Masa" ? "Salon (Masa)" : DeliveryOptions.ChannelLabel(g.Key),
+                            isPlatform = DeliveryOptions.IsPlatform(g.Key),
+                            orderCount = g.Count(),
+                            gross = gross,
+                            commission = commission,
+                            net = gross - commission,
+                            averageRate = gross > 0 ? Math.Round(commission / gross * 100, 1) : 0
+                        };
+                    })
+                    .OrderByDescending(r => r.gross)
+                    .ToList();
+
+                return Json(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        rows = rows,
+                        totals = new
+                        {
+                            orderCount = rows.Sum(r => r.orderCount),
+                            gross = rows.Sum(r => r.gross),
+                            commission = rows.Sum(r => r.commission),
+                            net = rows.Sum(r => r.net)
+                        }
+                    }
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Kanal raporu hesaplanırken hata: " + ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
 

@@ -16,7 +16,90 @@ $(document).ready(function () {
     console.log("Financial Reports JS Yüklendi.");
     initEmptyCharts();
     loadFinancialData();
+    loadChannelReport();
 });
+
+// ===================================================
+// SATIŞ KANALLARI & PLATFORM KOMİSYONU
+// ===================================================
+var currentChannelPeriod = "today";
+
+function changeChannelPeriod(period, btn) {
+    $("#channelPeriodGroup .btn-time-filter").removeClass("active");
+    $(btn).addClass("active");
+    currentChannelPeriod = period;
+    loadChannelReport();
+}
+
+function loadChannelReport() {
+    $.ajax({
+        url: "/Admin/GetChannelReport",
+        type: "GET",
+        data: { period: currentChannelPeriod },
+        cache: false,
+        success: function (res) {
+            if (!res || !res.success) {
+                $("#channelReportBody").html(`<tr><td colspan="6" class="text-center text-danger py-4">${(res && res.message) || "Kanal raporu yüklenemedi."}</td></tr>`);
+                return;
+            }
+            renderChannelReport(res.data);
+        }
+    });
+}
+
+function channelMeta(row) {
+    if (row.channel === "Masa") {
+        return { html: '<span class="channel-pill" style="--channel-color:#0f766e"><i class="fa-solid fa-chair"></i>Salon (Masa)</span>', color: "#0f766e" };
+    }
+    var meta = DeliveryChannels.get(row.channel);
+    return { html: DeliveryChannels.badge(row.channel), color: meta.color };
+}
+
+function renderChannelReport(d) {
+    $("#channelTotalGross").text(formatMoney(d.totals.gross));
+    $("#channelTotalCommission").text("- " + formatMoney(d.totals.commission));
+    $("#channelTotalNet").text(formatMoney(d.totals.net));
+
+    if (!d.rows.length) {
+        $("#channelReportBody").html('<tr><td colspan="6" class="text-center text-muted py-4">Bu aralıkta sipariş yok.</td></tr>');
+        return;
+    }
+
+    var total = d.totals.gross || 1;
+    var html = d.rows.map(function (r) {
+        var meta = channelMeta(r);
+        var share = r.gross / total * 100;
+        var commissionHtml = r.isPlatform
+            ? `<span class="text-danger fw-semibold">- ${formatMoney(r.commission)}</span><div class="small text-muted">ort. %${r.averageRate}</div>`
+            : '<span class="text-muted">—</span>';
+        return `
+            <tr>
+                <td>${meta.html}</td>
+                <td class="text-end">${r.orderCount}</td>
+                <td class="text-end fw-semibold">${formatMoney(r.gross)}</td>
+                <td class="text-end">${commissionHtml}</td>
+                <td class="text-end fw-bold text-success">${formatMoney(r.net)}</td>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="channel-share-bar flex-grow-1"><div style="width:${Math.max(2, share)}%; background:${meta.color}"></div></div>
+                        <span class="small text-muted" style="min-width: 42px;">%${share.toFixed(1)}</span>
+                    </div>
+                </td>
+            </tr>`;
+    }).join("");
+
+    html += `
+        <tr class="channel-total-row">
+            <td class="fw-bold">Toplam</td>
+            <td class="text-end fw-bold">${d.totals.orderCount}</td>
+            <td class="text-end fw-bold">${formatMoney(d.totals.gross)}</td>
+            <td class="text-end fw-bold text-danger">- ${formatMoney(d.totals.commission)}</td>
+            <td class="text-end fw-bold text-success">${formatMoney(d.totals.net)}</td>
+            <td></td>
+        </tr>`;
+
+    $("#channelReportBody").html(html);
+}
 
 function initEmptyCharts() {
     // 1. Ciro Grafiği

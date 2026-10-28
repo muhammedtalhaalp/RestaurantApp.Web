@@ -263,6 +263,78 @@
             .notification-item:hover {
                 background-color: #f8f9fa !important;
             }
+
+        /* MOBİL / TABLET: kenar menü ekran dışına çekilir, üst bardaki menü düğmesiyle açılır */
+        .btn-mobile-menu {
+            display: none;
+            margin-right: auto;
+            width: 40px;
+            height: 40px;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #fff;
+            color: var(--primary-purple);
+            font-size: 1.1rem;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-backdrop {
+            display: none;
+        }
+
+        @@media (max-width: 991.98px) {
+            #sidebar,
+            #sidebar.collapsed {
+                width: var(--sidebar-width);
+                transform: translateX(calc(-100% - 24px));
+            }
+
+            body.sidebar-open #sidebar {
+                transform: none;
+            }
+
+            body.sidebar-open .sidebar-backdrop {
+                display: block;
+                position: fixed;
+                inset: 0;
+                background: rgba(15, 23, 42, 0.45);
+                z-index: 999;
+            }
+
+            /* Masaüstündeki daralt/genişlet düğmesi telefonda gerekmez */
+            .btn-toggle-sidebar {
+                display: none !important;
+            }
+
+            #content,
+            #content.expanded {
+                margin-left: 0;
+            }
+
+            .top-navbar {
+                padding: 10px 16px;
+                gap: 14px;
+                position: sticky;
+                top: 0;
+                z-index: 900;
+            }
+
+            .btn-mobile-menu {
+                display: inline-flex;
+            }
+
+            #lblFullName {
+                max-width: 130px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            main.p-4 {
+                padding: 16px !important;
+            }
+        }
     </style>
 
     @RenderSection("styles", required: false)
@@ -335,6 +407,12 @@
                             </div>
                         </li>
                     }
+                    else if (userRole == "Kurye")
+                    {
+                        <li class="@(currentController == "Courier" ? "active" : "")">
+                            <a href="/Courier/Index"><i class="fa-solid fa-motorcycle me-2"></i><span class="link-text">Teslimatlarım</span></a>
+                        </li>
+                    }
                     else if (userRole.Contains("Mutfak"))
                     {
                         <li class="@(currentController == "Kitchen" && currentAction == "Index" ? "active" : "")">
@@ -379,8 +457,19 @@
             </div>
         </nav>
 
+        <!-- Mobil/tablet: menü açıkken arka planı karartır, tıklanınca menüyü kapatır -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
         <div id="content">
             <header class="top-navbar">
+                <!-- Yalnızca dar ekranlarda görünür (bkz. @@media max-width: 991.98px) -->
+                <button type="button" class="btn-mobile-menu" id="btnMobileMenu" aria-label="Menüyü aç">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+
+                @* Hazır sipariş bildirimleri garson/kasiyer/admin içindir; kurye ekranında gösterilmez *@
+                @if (userRole != "Kurye")
+                {
                 <div class="dropdown me-2" id="notificationDropdownContainer">
                     <a class="position-relative text-muted text-decoration-none dropdown-toggle cursor-pointer" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 1.25rem;">
                         <i class="fa-regular fa-bell"></i>
@@ -396,6 +485,7 @@
                         </ul>
                     </div>
                 </div>
+                }
 
                 <div class="dropdown" id="profileDropdownContainer">
                     <div class="user-profile dropdown-toggle" id="userProfileDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
@@ -448,7 +538,8 @@
             var serverRole = "@userRole";
             var localRole = (localStorage.getItem("Role") || "").trim();
 
-            if (serverRole.includes('Mutfak') || localRole.includes('Mutfak')) {
+            // Mutfak ve kurye bu bildirimleri kullanmaz (kuryede zil hiç gösterilmez)
+            if (serverRole.includes('Mutfak') || localRole.includes('Mutfak') || serverRole === 'Kurye') {
                 return;
             }
 
@@ -504,6 +595,14 @@
         $(document).ready(function () {
             fetchLayoutNotifications();
             setInterval(fetchLayoutNotifications, 8000);
+
+            // Mobil/tablet: kenar menüyü aç/kapat (bkz. .btn-mobile-menu)
+            $('#btnMobileMenu').on('click', function () {
+                $('body').toggleClass('sidebar-open');
+            });
+            $('#sidebarBackdrop').on('click', function () {
+                $('body').removeClass('sidebar-open');
+            });
 
             $('#sidebarToggle').on('click', function () {
                 $('#sidebar').toggleClass('collapsed');
