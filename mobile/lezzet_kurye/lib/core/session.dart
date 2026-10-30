@@ -20,13 +20,17 @@ class UserProfile {
   final String? companyName;
 }
 
-/// Uygulama genelindeki oturum: sunucu adresi, token ve giriş yapan kurye.
+/// Uygulama genelindeki oturum: sunucu adresi, token ve giriş yapan personel (kurye ya da garson).
 /// Token ve sunucu adresi telefonun şifreli deposunda saklanır.
 class AppSession {
   AppSession._();
   static final AppSession instance = AppSession._();
 
   static const courierRole = 'Kurye';
+  static const waiterRole = 'Garson';
+
+  /// Mobil uygulamayı kullanabilen roller; giriş sonrası açılan ekran role göre seçilir (bkz. main.dart).
+  static const mobileRoles = {courierRole, waiterRole};
 
   /// Geliştirme: telefon USB ile bağlıyken `adb reverse tcp:50693 tcp:50693` komutu, telefondaki
   /// localhost:50693'ü bilgisayardaki IIS Express'e (Visual Studio) yönlendirir.
@@ -34,19 +38,28 @@ class AppSession {
 
   static const _tokenKey = 'jwt_token';
   static const _nameKey = 'full_name';
+  static const _roleKey = 'role';
   static const _baseUrlKey = 'base_url';
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   final ApiClient api = ApiClient(baseUrl: defaultBaseUrl);
 
   String fullName = '';
+  String? role;
 
-  bool get isLoggedIn => api.token != null;
+  bool get isLoggedIn => api.token != null && role != null;
+  bool get isWaiter => role == waiterRole;
 
   Future<void> init() async {
     api.baseUrl = await _storage.read(key: _baseUrlKey) ?? defaultBaseUrl;
     api.token = await _storage.read(key: _tokenKey);
     fullName = await _storage.read(key: _nameKey) ?? '';
+    role = await _storage.read(key: _roleKey);
+    // Eski sürümde (yalnızca kurye) rol saklanmıyordu: kayıtlı oturum kurye oturumudur
+    if (api.token != null && role == null) {
+      role = courierRole;
+      await _storage.write(key: _roleKey, value: role);
+    }
   }
 
   Future<void> setBaseUrl(String url) async {
@@ -58,15 +71,17 @@ class AppSession {
     api.clearSession();
     final res = await api.post('/Auth/ApiLogin', {'Username': email.trim(), 'Password': password});
 
-    if (res['role'] != courierRole) {
+    if (!mobileRoles.contains(res['role'])) {
       api.clearSession();
-      throw ApiException('Bu uygulama yalnızca kurye hesapları içindir. Diğer roller web panelini kullanır.');
+      throw ApiException('Bu uygulama garson ve kurye hesapları içindir. Diğer roller web panelini kullanır.');
     }
 
     api.token = res['token'] as String;
     fullName = res['fullName'] as String? ?? '';
+    role = res['role'] as String;
     await _storage.write(key: _tokenKey, value: api.token);
     await _storage.write(key: _nameKey, value: fullName);
+    await _storage.write(key: _roleKey, value: role);
   }
 
   Future<void> logout() async {
@@ -74,8 +89,10 @@ class AppSession {
     await PushService.instance.unregisterDevice();
     api.clearSession();
     fullName = '';
+    role = null;
     await _storage.delete(key: _tokenKey);
     await _storage.delete(key: _nameKey);
+    await _storage.delete(key: _roleKey);
   }
 
   Future<UserProfile> fetchProfile() async {

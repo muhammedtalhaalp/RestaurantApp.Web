@@ -1,5 +1,5 @@
 name: lezzet_kurye
-description: "LezzetPOS kurye uygulaması: atanan paket siparişleri, teslimat ve tahsilat."
+description: "LezzetPOS personel uygulaması: garson (masalar, sipariş) ve kurye (teslimat) ekranları."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

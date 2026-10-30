@@ -105,13 +105,22 @@ The real project lives in `RestaurantApp.Web/`.
 - Delivery orders are excluded from the waiter/admin "Sipariş Takip" lists (`GetPendingDeliveryOrders`), and `ApproveOrderDelivery` rejects them. Don't push them through the table/"Servis Edildi" flow.
 - The POS opens the delivery modal directly with `/Order/POS?paket=1`.
 
-### Mobile courier app (`mobile/lezzet_kurye/`, Flutter)
-- An Android app for the `Kurye` role. It is a separate client of the same server and is not part of the .NET build. Its screens match the web courier page: login, "Teslimatlarım", the collect-payment sheet, and profile (name/e-mail, password change by e-mail code, logout).
+### Mobile staff app (`mobile/lezzet_kurye/`, Flutter)
+- One Android app, labeled "LezzetPOS", for the `Garson` and `Kurye` roles. Other roles are refused at login. It is a separate client of the same server and is not part of the .NET build.
+- After login, `screens/home_for_role.dart` picks the home screen by role. The role is stored with the token; older courier-only installs default to `Kurye`.
+- **Courier screens** match the web courier page: "Teslimatlarım" and the collect-payment sheet.
+- **Waiter screens** live in `screens/waiter/`.
+  - Masalar: section chips and table cards, from `/Order/GetTables`.
+  - Table detail: items with kitchen status (`/Admin/GetActiveOrderByTableId`, which also returns each item's `orderId`), plus "servis ettim" (`/Order/ApproveOrderDelivery`).
+  - Menu and cart: `/Category/GetCategories` and `/Order/GetProducts`. "Mutfağa Gönder" posts **JSON** to `/Order/CreateOrder` (`OrderType: "Masa"`), so the order reaches the kitchen exactly as from the web POS.
+  - Hazır Siparişler: `/Admin/GetPendingDeliveryOrders` and `/Admin/GetOrderDetails`.
+  - The waiter does **not** use the table QR. The QR stays the customer-facing web menu.
+- Both roles share the profile screen: name/e-mail, password change by e-mail code, logout.
 - It talks to the server through `lib/core/api_client.dart`:
   - Every request carries the JWT as `Authorization: Bearer` plus the header `X-Client-App: lezzet-kurye`, so the server answers with 401/403 JSON instead of redirects.
-  - POST bodies are form-encoded, as the MVC actions expect.
+  - POST bodies are form-encoded, as the MVC actions expect. `postJson` is used only where the action binds nested data (`CreateOrder`).
   - It keeps the `ASP.NET_SessionId` cookie because the password-change OTP lives in Session.
-  - It uses only existing endpoints: `/Auth/ApiLogin`, `/Auth/GetUserProfile`/`UpdateUserProfile`/OTP actions, `/Courier/*` and `/Device/*`. Don't add mobile-only copies of business rules; change `CourierController`/`DeliveryWorkflow` instead.
+  - It uses only the same endpoints as the web pages (listed above plus `/Auth/*`, `/Courier/*` and `/Device/*`). Don't add mobile-only copies of business rules; change the shared controller action or `DeliveryWorkflow` instead.
 - Development connection:
   - The phone reaches Visual Studio's IIS Express over USB with `adb reverse tcp:50693 tcp:50693`; the app's default server is `http://localhost:50693`.
   - The address can be changed on the login screen.
@@ -134,7 +143,8 @@ The real project lives in `RestaurantApp.Web/`.
   - `Assigned` and `Unassigned`, sent from `DeliveryController.AssignCourier`.
   - `Ready`, sent from the `KitchenController` ready actions when a delivery order becomes fully ready.
   - `Cancelled`, sent from `DeliveryController.CancelOrder`.
-- Android channel id is `deliveries` on both sides. Test a send without a phone through FCM HTTP v1 with `validate_only: true`: a fake FID returns 404 UNREGISTERED, which means the server credentials are fine.
+- `Helpers/WaiterNotifications.ItemsReady` runs when the kitchen marks items of a dine-in (`Masa`) order ready. It notifies **every active `Garson` of the company** with "<masa>: sipariş hazır", like the web bell.
+- Android channel ids are `deliveries` (courier) and `tables` (waiter), passed as `NotifyUser(..., channelId)`. Test a send without a phone through FCM HTTP v1 with `validate_only: true`: a fake FID returns 404 UNREGISTERED, which means the server credentials are fine.
 
 ### Hygiene camera (`tools/hygiene-camera/`)
 - `hygiene_camera.py` is a standalone Python program (OpenCV + Roboflow hosted detection API). It runs on the PC the kitchen camera is attached to. It is not part of the .NET build.

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/api_client.dart';
 import '../core/session.dart';
 import '../core/theme.dart';
-import 'deliveries_screen.dart';
+import 'home_for_role.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key, this.message});
@@ -43,7 +43,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       await _session.login(_email.text, _password.text);
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const DeliveriesScreen()));
+      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => homeForRole()));
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } finally {
@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const Text('Giriş Yap', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
                     const SizedBox(height: 4),
-                    const Text('Kurye hesabınızla giriş yapın.', style: TextStyle(color: AppColors.muted)),
+                    const Text('Garson ya da kurye hesabınızla giriş yapın.', style: TextStyle(color: AppColors.muted)),
                     const SizedBox(height: 20),
                     if (_error != null) ...[_errorBox(_error!), const SizedBox(height: 14)],
                     TextFormField(
@@ -178,12 +178,12 @@ class _LoginScreenState extends State<LoginScreen> {
             width: 72,
             height: 72,
             decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
-            child: const Icon(Icons.two_wheeler, color: Colors.white, size: 38),
+            child: const Icon(Icons.restaurant_menu, color: Colors.white, size: 38),
           ),
           const SizedBox(height: 14),
           const Text('LezzetPOS', style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
           const SizedBox(height: 2),
-          Text('Kurye Uygulaması', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 15)),
+          Text('Personel Uygulaması', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 15)),
         ],
       ),
     );

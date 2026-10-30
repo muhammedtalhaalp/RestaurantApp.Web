@@ -147,6 +147,10 @@ namespace RestaurantApp.Web.Controllers
                 if (isAllOrderReady && !wasReady && order.OrderType == "PaketServis")
                     CourierNotifications.Ready(order);
 
+                // Masa siparişi: hazırlanan ürünler garsonların telefonuna bildirilir
+                if (processedIds.Any())
+                    WaiterNotifications.ItemsReady(db, order, readyProductNames);
+
                 return Json(new
                 {
                     success = true,
@@ -193,6 +197,9 @@ namespace RestaurantApp.Web.Controllers
 
                 if (!wasReady && order.OrderType == "PaketServis")
                     CourierNotifications.Ready(order);
+
+                if (detailIds.Any())
+                    WaiterNotifications.ItemsReady(db, order, readyProductNames);
 
                 return Json(new
                 {

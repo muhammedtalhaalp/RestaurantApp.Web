@@ -27,8 +27,9 @@ namespace RestaurantApp.Web.Helpers
     // - Gönderim isteği bekletmez: arka plan işi olarak kuyruğa alınır. Geçersiz olmuş telefon kayıtları silinir.
     public static class PushNotifier
     {
-        // Flutter uygulamasında aynı kimlikle oluşturulan Android bildirim kanalı (önemli, sesli)
+        // Flutter uygulamasında aynı kimliklerle oluşturulan Android bildirim kanalları (önemli, sesli)
         public const string DeliveryChannelId = "deliveries";
+        public const string TableChannelId = "tables";
 
         private const string DefaultKeyPath = "~/App_Data/firebase/service-account.json";
         private const string MessagingScope = "https://www.googleapis.com/auth/firebase.messaging";
@@ -55,15 +56,16 @@ namespace RestaurantApp.Web.Helpers
         public static bool IsConfigured => LoadAccount() != null;
 
         // Kullanıcının kayıtlı bütün telefonlarına bildirim gönderir (istek beklemez)
-        public static void NotifyUser(int userId, string title, string body, IDictionary<string, string> data = null)
+        public static void NotifyUser(int userId, string title, string body, IDictionary<string, string> data = null,
+            string channelId = DeliveryChannelId)
         {
             if (!IsConfigured) return;
 
             var payloadData = data != null ? new Dictionary<string, string>(data) : new Dictionary<string, string>();
-            HostingEnvironment.QueueBackgroundWorkItem(ct => SendToUserAsync(userId, title, body, payloadData));
+            HostingEnvironment.QueueBackgroundWorkItem(ct => SendToUserAsync(userId, title, body, payloadData, channelId));
         }
 
-        private static async Task SendToUserAsync(int userId, string title, string body, Dictionary<string, string> data)
+        private static async Task SendToUserAsync(int userId, string title, string body, Dictionary<string, string> data, string channelId)
         {
             try
             {
@@ -76,7 +78,7 @@ namespace RestaurantApp.Web.Helpers
                 var invalid = new List<string>();
                 foreach (var token in tokens)
                 {
-                    if (await SendAsync(token, title, body, data) == SendResult.InvalidToken)
+                    if (await SendAsync(token, title, body, data, channelId) == SendResult.InvalidToken)
                         invalid.Add(token);
                 }
 
@@ -95,7 +97,7 @@ namespace RestaurantApp.Web.Helpers
             }
         }
 
-        private static async Task<SendResult> SendAsync(string token, string title, string body, Dictionary<string, string> data)
+        private static async Task<SendResult> SendAsync(string token, string title, string body, Dictionary<string, string> data, string channelId)
         {
             // Hedef, uygulamanın FirebaseMessaging.register() ile aldığı Firebase Installation ID'dir (FID).
             // Klasik "token" hedefi kullanımdan kalktı; yeni projelerde telefon artık token alamıyor.
@@ -109,7 +111,7 @@ namespace RestaurantApp.Web.Helpers
                     android = new
                     {
                         priority = "high",
-                        notification = new { channel_id = DeliveryChannelId, sound = "default" }
+                        notification = new { channel_id = channelId, sound = "default" }
                     }
                 }
             };

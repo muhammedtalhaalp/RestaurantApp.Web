@@ -215,7 +215,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text(profile.email, style: const TextStyle(color: AppColors.muted, fontSize: 13)),
                   const SizedBox(height: 6),
                   Wrap(spacing: 6, runSpacing: 4, children: [
-                    _chip(Icons.two_wheeler, profile.role),
+                    _chip(profile.role == AppSession.waiterRole ? Icons.room_service : Icons.two_wheeler, profile.role),
                     if (profile.companyName?.isNotEmpty == true) _chip(Icons.storefront, profile.companyName!),
                   ]),
                 ],

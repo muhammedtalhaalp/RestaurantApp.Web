@@ -1248,6 +1248,7 @@ namespace RestaurantApp.Web.Controllers
                     .Select(d => new
                     {
                         orderDetailId = d.OrderDetailId,
+                        orderId = d.OrderId,
                         productId = d.ProductId,
                         productName = d.AppProducts != null ? d.AppProducts.ProductName : "Ürün",
                         quantity = d.Quantity,

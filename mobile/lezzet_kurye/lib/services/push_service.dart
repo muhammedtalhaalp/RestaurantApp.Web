@@ -10,8 +10,8 @@ import '../core/session.dart';
 
 /// Firebase bildirimleri.
 ///
-/// - Sunucu (Helpers/PushNotifier) bildirimleri "deliveries" kanalına gönderir: kurye atandı, sipariş hazır,
-///   teslimat başka kuryeye verildi, iptal edildi.
+/// - Sunucu (Helpers/PushNotifier) iki Android kanalına gönderir:
+///   "deliveries" (kurye: atandı, hazır, sizden alındı, iptal) ve "tables" (garson: masa siparişi hazır).
 /// - Uygulama kapalı / arka plandayken bildirimi Android kendisi gösterir. Uygulama açıkken Android göstermez;
 ///   o durumda bildirim burada yerel olarak gösterilir ve [messages] akışıyla ekrana haber verilir.
 /// - Telefonun bildirim kimliği girişte sunucuya kaydedilir, çıkışta silinir.
@@ -23,12 +23,20 @@ class PushService {
   PushService._();
   static final PushService instance = PushService._();
 
-  static const _channel = AndroidNotificationChannel(
-    'deliveries',
-    'Teslimatlar',
-    description: 'Yeni atanan, hazır olan ve iptal edilen teslimatlar',
-    importance: Importance.high,
-  );
+  static const _channels = [
+    AndroidNotificationChannel(
+      'deliveries',
+      'Teslimatlar',
+      description: 'Yeni atanan, hazır olan ve iptal edilen teslimatlar',
+      importance: Importance.high,
+    ),
+    AndroidNotificationChannel(
+      'tables',
+      'Masa siparişleri',
+      description: 'Mutfakta hazırlanıp servise hazır olan masa siparişleri',
+      importance: Importance.high,
+    ),
+  ];
 
   final _local = FlutterLocalNotificationsPlugin();
   final _events = StreamController<RemoteMessage>.broadcast();
@@ -47,9 +55,10 @@ class PushService {
       await _local.initialize(
         settings: const InitializationSettings(android: AndroidInitializationSettings('@mipmap/ic_launcher')),
       );
-      await _local
-          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(_channel);
+      final android = _local.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      for (final channel in _channels) {
+        await android?.createNotificationChannel(channel);
+      }
 
       FirebaseMessaging.onMessage.listen(_showWhileOpen);
       FirebaseMessaging.onMessageOpenedApp.listen(_events.add);
@@ -115,15 +124,19 @@ class PushService {
   void _showWhileOpen(RemoteMessage message) {
     final notification = message.notification;
     if (notification != null) {
+      final channel = _channels.firstWhere(
+        (c) => c.id == notification.android?.channelId,
+        orElse: () => _channels.first,
+      );
       _local.show(
         id: DateTime.now().millisecondsSinceEpoch.remainder(1 << 30),
         title: notification.title,
         body: notification.body,
         notificationDetails: NotificationDetails(
           android: AndroidNotificationDetails(
-            _channel.id,
-            _channel.name,
-            channelDescription: _channel.description,
+            channel.id,
+            channel.name,
+            channelDescription: channel.description,
             importance: Importance.high,
             priority: Priority.high,
             icon: '@mipmap/ic_launcher',

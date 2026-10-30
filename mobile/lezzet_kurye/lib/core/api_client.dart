@@ -22,7 +22,8 @@ class UnauthorizedException extends ApiException {
 ///
 /// - Token her istekte `Authorization: Bearer` başlığıyla gider.
 /// - `X-Client-App` başlığı sayesinde sunucu yetkisiz isteklere sayfa yönlendirmesi yerine 401/403 JSON döner.
-/// - POST gövdesi form olarak gönderilir (MVC action parametreleri form alanlarından okunur).
+/// - POST gövdesi form olarak gönderilir (MVC action parametreleri form alanlarından okunur); iç içe veri
+///   bekleyen action'lar (ör. CreateOrder'ın ürün listesi) için [postJson] kullanılır.
 /// - Şifre değiştirme doğrulama kodu sunucu oturumunda (Session) tutulduğu için oturum çerezi saklanır.
 class ApiClient {
   ApiClient({required this.baseUrl});
@@ -46,6 +47,14 @@ class ApiClient {
 
   Future<Map<String, dynamic>> post(String path, [Map<String, String>? form]) {
     return _send(() => _http.post(_uri(path), headers: _headers(), body: form ?? const {}));
+  }
+
+  Future<Map<String, dynamic>> postJson(String path, Map<String, Object?> body) {
+    return _send(() => _http.post(
+          _uri(path),
+          headers: {..._headers(), 'Content-Type': 'application/json; charset=utf-8'},
+          body: jsonEncode(body),
+        ));
   }
 
   Uri _uri(String path) {

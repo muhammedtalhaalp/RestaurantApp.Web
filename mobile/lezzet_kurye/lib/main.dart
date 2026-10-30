@@ -3,7 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/session.dart';
 import 'core/theme.dart';
-import 'screens/deliveries_screen.dart';
+import 'screens/home_for_role.dart';
 import 'screens/login_screen.dart';
 import 'services/push_service.dart';
 
@@ -20,7 +20,7 @@ class LezzetKuryeApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'LezzetPOS Kurye',
+      title: 'LezzetPOS Personel',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
       locale: const Locale('tr', 'TR'),
@@ -30,8 +30,8 @@ class LezzetKuryeApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      // Kayıtlı token varsa doğrudan teslimatlar açılır; token geçersizse sunucu 401 döner ve giriş ekranına dönülür
-      home: AppSession.instance.isLoggedIn ? const DeliveriesScreen() : const LoginScreen(),
+      // Kayıtlı oturum varsa role göre ana ekran açılır; token geçersizse sunucu 401 döner ve giriş ekranına dönülür
+      home: AppSession.instance.isLoggedIn ? homeForRole() : const LoginScreen(),
     );
   }
 }
