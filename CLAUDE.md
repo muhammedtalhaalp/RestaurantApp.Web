@@ -30,6 +30,9 @@ The real project lives in `RestaurantApp.Web/`.
   - Every query against those tables must filter by company. When looking a record up by id, include the company in the same lookup (e.g. `p.ProductId == id && p.CompanyId == CurrentCompanyId`), so another restaurant's ids come back as "not found".
   - `AppOrderDetails` has no `CompanyId`. Reach it through a company-checked order.
   - The public QR menu (`MenuController`) finds the company from `?tableId=` or `?companyId=` in the URL.
+    - `GetMenuData` returns everything in one call: restaurant and table name, active categories, products, and `popularProductIds` (the best sellers of the last 30 days, topped up with the newest products).
+    - Descriptions go out only as `ProductDescription.Text`. Recipes are internal kitchen data and must never reach this public endpoint.
+    - The page (`Views/Menu/Index.cshtml` + `qr-menu.js`) is phone-first. Search and the category scroll-spy run client-side.
 - Status values are Turkish string literals compared directly in code:
   - Order statuses: `Hazırlanıyor`, `Hazır`, `Servis Edildi`, `Teslim Edildi`, `Yolda` (delivery only), `Tamamlandı`, `İptal`.
   - Table statuses: `Bos`, `Dolu`.
@@ -42,7 +45,7 @@ The real project lives in `RestaurantApp.Web/`.
   - `AppOrderDetails.PaidQuantity` records how many units of a line have been paid by item-based payment. Paid lines are no longer deleted. A line with `PaidQuantity > 0` cannot be returned or reduced.
   - `AppOrderDetails.CreatedDate` is when the item was added. The kitchen waiting time is measured from it. `AppOrders.CreatedDate` is when the order was first opened and must not be reset when items are appended.
   - `CreateOrder` takes unit prices from the database (`AppProducts.Price`). It ignores any price sent by the client.
-  - **Recipes are stored as JSON inside `AppProducts.Description`**, as `{hasRecipe, productDesc, cookTime, station, ingredients, instructions, chefTip}`; see `KitchenController.SaveRecipe`. Any code that shows a product description must handle both plain text and this JSON.
+  - **Recipes are stored as JSON inside `AppProducts.Description`**, as `{hasRecipe, productDesc, cookTime, station, ingredients, instructions, chefTip}`; see `KitchenController.SaveRecipe`. Any code that shows a product description must handle both plain text and this JSON. On the server use `Helpers/ProductDescription`: `Text` returns the readable text, `HasRecipe` tells whether a recipe exists, and `WithText` changes only `productDesc` and keeps the recipe. `UpdateProduct` and `SaveRecipe` use it. Never assign a form value to `Description` directly.
   - A table is meant to have one open order. "Open" means status is not `Tamamlandı` and not `İptal`, and `CreateOrder` appends items to the oldest open order. Existing data does contain tables with several open orders, so table-level code must sum and loop over all of them rather than taking `FirstOrDefault`.
 - Schema changes are hand-written, idempotent SQL scripts in `Database/` (numbered, e.g. `001_...sql`), run against `.\SQLEXPRESS` with `sqlcmd -S .\SQLEXPRESS -E -I -i <file>`.
   - **Always pass `-I`** (QUOTED_IDENTIFIER ON). `AppOrders` has a filtered index (`IX_AppOrders_CourierId`), so without `-I` both its creation and any later ad-hoc `sqlcmd` UPDATE or DELETE on `AppOrders`/`AppUsers` fail. EF connections already have the setting on.
@@ -84,7 +87,7 @@ The real project lives in `RestaurantApp.Web/`.
 - The page JS talks to controller actions returning `JsonResult` through `$.ajax` with hard-coded URLs (for example `/Kitchen/GetActiveOrders`). Responses are usually `{ success, message, data }`-style objects.
 - **The server culture is tr-TR**, where the decimal separator is a comma, while JS sends `125.5`. `Helpers/InvariantDecimalModelBinder`, registered for `decimal` and `decimal?` in `Global.asax.cs`, binds form and query values with InvariantCulture. Don't remove it, and don't parse money strings with the current culture.
 - The project uses the old-style `.csproj`, so new files (views, JS, CSS, C#) must be added to `RestaurantApp.Web.csproj` as `Content`/`Compile` items, or they won't deploy or compile.
-- **New `.cshtml` files must be saved as UTF-8 *with BOM*.** Without a BOM, Razor reads the file with the Windows Turkish code page, and every Turkish character in the view's own text shows up garbled (e.g. "ÅŸ" instead of "ş"). All existing views start with `EF BB BF`. Check with `head -c3 file | od -An -tx1`.
+- **New `.cshtml` files must be saved as UTF-8 *with BOM*.** Without a BOM, Razor reads the file with the Windows Turkish code page, and every Turkish character in the view's own text shows up garbled (e.g. "ÅŸ" instead of "ş"). All existing views start with `EF BB BF`. Check with `head -c3 file | od -An -tx1`. There must be **exactly one** BOM. The Write tool keeps an existing BOM when it overwrites a file, so don't prepend another. A doubled BOM is output as a text character, which pushes `<meta>` into `<body>` and leaves an empty line at the top of the page.
 
 ### Delivery orders (Paket Servis)
 - A delivery order is an `AppOrders` row with `OrderType = "PaketServis"`.
