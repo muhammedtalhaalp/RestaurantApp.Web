@@ -1036,24 +1036,26 @@ namespace RestaurantApp.Web.Controllers
         [JwtAuthorize(Roles = "Admin")]
         public JsonResult GetProductById(int productId)
         {
-            var product = db.AppProducts
-                .Where(p => p.ProductId == productId && p.CompanyId == CurrentCompanyId)
-                .Select(p => new
-                {
-                    p.ProductId,
-                    p.ProductName,
-                    p.Price,
-                    p.CategoryId,
-                    p.Description,
-                    p.ImageUrl,
-                    p.IsAvailable,
-                    p.CompanyId
-                }).FirstOrDefault();
+            var p = db.AppProducts.FirstOrDefault(x => x.ProductId == productId && x.CompanyId == CurrentCompanyId);
 
-            if (product == null)
+            if (p == null)
             {
                 return Json(new { success = false, message = "Ürün bulunamadı." }, JsonRequestBehavior.AllowGet);
             }
+
+            // Reçeteli üründe Description reçete JSON'u tutar: formda yalnızca açıklama metni düzenlenir
+            var product = new
+            {
+                p.ProductId,
+                p.ProductName,
+                p.Price,
+                p.CategoryId,
+                Description = ProductDescription.Text(p.Description),
+                HasRecipe = ProductDescription.HasRecipe(p.Description),
+                p.ImageUrl,
+                p.IsAvailable,
+                p.CompanyId
+            };
 
             return Json(new { success = true, data = product }, JsonRequestBehavior.AllowGet);
         }
@@ -1118,7 +1120,8 @@ namespace RestaurantApp.Web.Controllers
                 product.ProductName = updatedProduct.ProductName;
                 product.Price = updatedProduct.Price;
                 product.CategoryId = updatedProduct.CategoryId;
-                product.Description = updatedProduct.Description;
+                // Reçete varsa korunur, yalnızca açıklama metni değişir (bkz. Helpers/ProductDescription)
+                product.Description = ProductDescription.WithText(product.Description, updatedProduct.Description);
 
                 if (!string.IsNullOrEmpty(updatedProduct.ImageUrl))
                 {

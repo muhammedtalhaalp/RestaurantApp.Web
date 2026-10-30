@@ -418,6 +418,7 @@ function openEditModal(productId) {
             $('#editDdlCategories').val(p.CategoryId);
             $('#editPrice').val(p.Price);
             $('#editDescription').val(p.Description);
+            $('#editRecipeHint').toggleClass('d-none', !p.HasRecipe);
             $('#editExistingImageUrl').val(p.ImageUrl);
 
             $('#editImgPreview').attr('src', p.ImageUrl || '/Content/images/default-food.png');

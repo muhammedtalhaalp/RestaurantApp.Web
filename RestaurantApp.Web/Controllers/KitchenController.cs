@@ -378,24 +378,7 @@ namespace RestaurantApp.Web.Controllers
                     return Json(new { success = false, message = "Ürün bulunamadı." });
 
                 // Varsa mevcut sade menü açıklamasını koru
-                string currentCleanDesc = "";
-                if (!string.IsNullOrWhiteSpace(product.Description))
-                {
-                    string trimmed = product.Description.Trim();
-                    if (trimmed.StartsWith("{") && trimmed.EndsWith("}"))
-                    {
-                        try
-                        {
-                            dynamic existingObj = Newtonsoft.Json.JsonConvert.DeserializeObject(trimmed);
-                            currentCleanDesc = existingObj.productDesc ?? "";
-                        }
-                        catch { }
-                    }
-                    else
-                    {
-                        currentCleanDesc = trimmed;
-                    }
-                }
+                string currentCleanDesc = ProductDescription.Text(product.Description);
 
                 string serializedRecipe = Newtonsoft.Json.JsonConvert.SerializeObject(new
                 {

@@ -195,6 +195,7 @@
     <Compile Include="Helpers\PushNotifier.cs" />
     <Compile Include="Helpers\CourierNotifications.cs" />
     <Compile Include="Helpers\WaiterNotifications.cs" />
+    <Compile Include="Helpers\ProductDescription.cs" />
     <Compile Include="Helpers\InvariantDecimalModelBinder.cs" />
     <Compile Include="Helpers\OrderAmounts.cs" />
     <Compile Include="Helpers\PasswordHasher.cs" />
