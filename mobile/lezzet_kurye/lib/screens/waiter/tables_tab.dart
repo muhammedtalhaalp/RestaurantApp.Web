@@ -55,7 +55,7 @@ class _TablesTabState extends State<TablesTab> {
         padding: const EdgeInsets.all(16),
         children: [
           Row(children: [
-            Expanded(child: _countTile('Dolu', occupied, AppColors.brand, Icons.people)),
+            Expanded(child: _countTile('Dolu', occupied, AppColors.accent, Icons.people)),
             const SizedBox(width: 8),
             Expanded(child: _countTile('Boş', tables.length - occupied, AppColors.ready, Icons.event_seat)),
           ]),
@@ -72,7 +72,7 @@ class _TablesTabState extends State<TablesTab> {
                       label: Text(section),
                       selected: _section == section,
                       onSelected: (_) => setState(() => _section = section),
-                      selectedColor: AppColors.brand,
+                      selectedColor: AppColors.brandBright,
                       labelStyle: TextStyle(
                         color: _section == section ? Colors.white : AppColors.text,
                         fontWeight: FontWeight.w600,
@@ -134,13 +134,13 @@ class _TableCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final occupied = table.isOccupied;
-    final color = occupied ? AppColors.brand : AppColors.ready;
+    final color = occupied ? AppColors.accent : AppColors.ready;
 
     return Material(
-      color: occupied ? AppColors.brandSoft : Colors.white,
+      color: occupied ? AppColors.tint(AppColors.accent, 0.10) : AppColors.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: occupied ? AppColors.brand.withValues(alpha: 0.35) : AppColors.border, width: 1.4),
+        side: BorderSide(color: occupied ? AppColors.accent.withValues(alpha: 0.35) : AppColors.border, width: 1.4),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
@@ -176,7 +176,7 @@ class _TableCard extends StatelessWidget {
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerLeft,
                             child: Text(formatMoney(table.remainingAmount),
-                                style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.brand)),
+                                style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.accent)),
                           )
                         : Text(table.section, style: const TextStyle(color: AppColors.muted, fontSize: 12)),
                   ),

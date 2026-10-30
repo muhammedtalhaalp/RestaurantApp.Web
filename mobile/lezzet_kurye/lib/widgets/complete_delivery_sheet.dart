@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../core/format.dart';
 import '../core/theme.dart';
 import '../models/courier_models.dart';
+import 'gradient_button.dart';
 
 /// "Teslim Ettim" onayı. Kapıda ödemeli siparişte tahsilat şekli (Nakit / Kart) seçilir.
 class CompleteDeliveryResult {
@@ -17,8 +18,6 @@ Future<CompleteDeliveryResult?> showCompleteDeliverySheet(BuildContext context, 
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    backgroundColor: Colors.white,
-    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
     builder: (_) => _CompleteDeliverySheet(order: order),
   );
 }
@@ -59,11 +58,11 @@ class _CompleteDeliverySheetState extends State<_CompleteDeliverySheet> {
                 Container(
                   margin: const EdgeInsets.only(top: 10),
                   padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(10)),
+                  decoration: BoxDecoration(color: const Color(0x1FF5A524), borderRadius: BorderRadius.circular(10)),
                   child: Text(
                     'Para üstü: ${formatMoney(order.changeFor! - order.dueAmount)}',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF9A3412)),
+                    style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.kitchen),
                   ),
                 ),
               const SizedBox(height: 18),
@@ -79,18 +78,18 @@ class _CompleteDeliverySheetState extends State<_CompleteDeliverySheet> {
             ] else
               Container(
                 padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(color: const Color(0xFFF0FDF4), borderRadius: BorderRadius.circular(12)),
+                decoration: BoxDecoration(color: const Color(0x1F2FD67B), borderRadius: BorderRadius.circular(12)),
                 child: Text(
                   'Bu siparişin ödemesi alınmış (${order.paymentPlanLabel}). Müşteriden para almayın.',
-                  style: const TextStyle(color: Color(0xFF15803D), fontWeight: FontWeight.w600),
+                  style: const TextStyle(color: AppColors.ready, fontWeight: FontWeight.w600),
                 ),
               ),
             const SizedBox(height: 20),
-            FilledButton.icon(
-              style: FilledButton.styleFrom(backgroundColor: AppColors.ready),
+            GradientButton(
+              colors: const [Color(0xFF34E089), Color(0xFF13A456)],
               onPressed: () => Navigator.pop(context, CompleteDeliveryResult(collect ? _method : null)),
-              icon: const Icon(Icons.check_circle),
-              label: Text(collect ? '$_method ile Tahsil Ettim, Teslim Et' : 'Teslim Ettim'),
+              icon: Icons.check_circle,
+              label: collect ? '$_method ile Tahsil Ettim, Teslim Et' : 'Teslim Ettim',
             ),
             const SizedBox(height: 6),
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Vazgeç')),
@@ -109,16 +108,16 @@ class _CompleteDeliverySheetState extends State<_CompleteDeliverySheet> {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: selected ? AppColors.brandSoft : Colors.white,
+          color: selected ? AppColors.tint(AppColors.accent, 0.12) : AppColors.surfaceHigh,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: selected ? AppColors.brand : AppColors.border, width: 2),
+          border: Border.all(color: selected ? AppColors.accent : AppColors.border, width: 2),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 28, color: selected ? AppColors.brand : const Color(0xFF94A3B8)),
+            Icon(icon, size: 28, color: selected ? AppColors.accent : AppColors.subtle),
             const SizedBox(height: 6),
             Text(method,
-                style: TextStyle(fontWeight: FontWeight.w600, color: selected ? AppColors.brand : AppColors.text)),
+                style: TextStyle(fontWeight: FontWeight.w600, color: selected ? AppColors.accent : AppColors.text)),
           ],
         ),
       ),

@@ -97,7 +97,7 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> with WidgetsBinding
         ? 'Yeni teslimat atandı: #${orderIds.first}'
         : '${orderIds.length} yeni teslimat atandı';
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(text), backgroundColor: AppColors.brand, duration: const Duration(seconds: 5)),
+      SnackBar(content: Text(text), backgroundColor: AppColors.brandBright, duration: const Duration(seconds: 5)),
     );
   }
 
@@ -144,7 +144,9 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> with WidgetsBinding
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppBackground(
+      child: Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         titleSpacing: 16,
         title: Column(
@@ -152,7 +154,7 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> with WidgetsBinding
           children: [
             const Text('Teslimatlarım', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 19)),
             if (_session.fullName.isNotEmpty)
-              Text(_session.fullName, style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8))),
+              Text(_session.fullName, style: TextStyle(fontSize: 13, color: AppColors.muted)),
           ],
         ),
         actions: [
@@ -164,10 +166,10 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> with WidgetsBinding
               onTap: _openProfile,
               child: CircleAvatar(
                 radius: 18,
-                backgroundColor: Colors.white,
+                backgroundColor: AppColors.brandBright,
                 child: Text(
                   initials(_session.fullName),
-                  style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700, fontSize: 13),
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13),
                 ),
               ),
             ),
@@ -175,6 +177,7 @@ class _DeliveriesScreenState extends State<DeliveriesScreen> with WidgetsBinding
         ],
       ),
       body: _body(),
+    ),
     );
   }
 
@@ -229,7 +232,7 @@ class _SummaryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: _KpiTile(icon: Icons.inventory_2, color: AppColors.brand, label: 'Aktif', value: '${data.active.length}')),
+        Expanded(child: _KpiTile(icon: Icons.inventory_2, color: AppColors.accent, label: 'Aktif', value: '${data.active.length}')),
         const SizedBox(width: 8),
         Expanded(
           child: _KpiTile(
@@ -292,14 +295,14 @@ class _SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: AppColors.brand, size: 20),
+        Icon(icon, color: AppColors.accent, size: 20),
         const SizedBox(width: 8),
         Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.text)),
         if (count != null && count! > 0) ...[
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(color: AppColors.brand, borderRadius: BorderRadius.circular(999)),
+            decoration: BoxDecoration(color: AppColors.brandBright, borderRadius: BorderRadius.circular(999)),
             child: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
           ),
         ],
@@ -318,11 +321,11 @@ class _EmptyActive extends StatelessWidget {
         padding: EdgeInsets.symmetric(vertical: 32, horizontal: 16),
         child: Column(
           children: [
-            Icon(Icons.local_cafe_outlined, size: 40, color: Color(0xFF94A3B8)),
+            Icon(Icons.local_cafe_outlined, size: 40, color: AppColors.subtle),
             SizedBox(height: 10),
             Text('Şu an size atanmış teslimat yok.', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.muted)),
             SizedBox(height: 2),
-            Text('Yeni sipariş atanınca burada görünecek.', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
+            Text('Yeni sipariş atanınca burada görünecek.', style: TextStyle(color: AppColors.subtle, fontSize: 13)),
           ],
         ),
       ),
@@ -382,12 +385,12 @@ class _ConnectionWarning extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(color: const Color(0xFFFFFBEB), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: const Color(0x1FF5A524), borderRadius: BorderRadius.circular(12)),
       child: Row(
         children: [
-          const Icon(Icons.wifi_off, color: Color(0xFF92400E), size: 18),
+          const Icon(Icons.wifi_off, color: AppColors.kitchen, size: 18),
           const SizedBox(width: 8),
-          Expanded(child: Text(message, style: const TextStyle(color: Color(0xFF92400E), fontSize: 13))),
+          Expanded(child: Text(message, style: const TextStyle(color: AppColors.kitchen, fontSize: 13))),
         ],
       ),
     );
@@ -409,7 +412,7 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off, size: 56, color: Color(0xFF94A3B8)),
+            const Icon(Icons.cloud_off, size: 56, color: AppColors.subtle),
             const SizedBox(height: 14),
             Text(message, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15)),
             const SizedBox(height: 6),

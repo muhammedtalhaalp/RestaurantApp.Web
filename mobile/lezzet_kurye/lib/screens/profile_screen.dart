@@ -182,8 +182,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onPressed: _confirmLogout,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.danger,
-                    side: const BorderSide(color: Color(0xFFFECACA)),
-                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: Color(0x59FF6B6B)),
+                    backgroundColor: AppColors.surface,
                   ),
                   icon: const Icon(Icons.logout),
                   label: const Text('Güvenli Çıkış'),
@@ -202,7 +202,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             CircleAvatar(
               radius: 28,
-              backgroundColor: AppColors.brand,
+              backgroundColor: AppColors.brandBright,
               child: Text(initials(profile.fullName),
                   style: const TextStyle(color: Colors.white, fontSize: 19, fontWeight: FontWeight.w700)),
             ),
@@ -230,11 +230,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _chip(IconData icon, String text) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: AppColors.brandSoft, borderRadius: BorderRadius.circular(999)),
+      decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(999)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 13, color: AppColors.brand),
+        Icon(icon, size: 13, color: AppColors.accent),
         const SizedBox(width: 4),
-        Text(text, style: const TextStyle(fontSize: 12, color: AppColors.brand, fontWeight: FontWeight.w600)),
+        Text(text, style: const TextStyle(fontSize: 12, color: AppColors.accent, fontWeight: FontWeight.w600)),
       ]),
     );
   }
@@ -247,7 +247,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(children: [
-              Icon(icon, color: AppColors.brand, size: 20),
+              Icon(icon, color: AppColors.accent, size: 20),
               const SizedBox(width: 8),
               Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
             ]),

@@ -1,8 +1,11 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../core/api_client.dart';
 import '../core/session.dart';
 import '../core/theme.dart';
+import '../widgets/gradient_button.dart';
 import 'home_for_role.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -75,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: const Text('Varsayılan'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(minimumSize: const Size(90, 42)),
+            style: FilledButton.styleFrom(minimumSize: const Size(90, 44)),
             onPressed: () => Navigator.pop(context, controller.text),
             child: const Text('Kaydet'),
           ),
@@ -93,66 +96,51 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Column(
+      body: Stack(
         children: [
-          _header(context),
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text('Giriş Yap', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
-                    const SizedBox(height: 4),
-                    const Text('Garson ya da kurye hesabınızla giriş yapın.', style: TextStyle(color: AppColors.muted)),
-                    const SizedBox(height: 20),
-                    if (_error != null) ...[_errorBox(_error!), const SizedBox(height: 14)],
-                    TextFormField(
-                      controller: _email,
-                      keyboardType: TextInputType.emailAddress,
-                      autocorrect: false,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(labelText: 'E-posta', prefixIcon: Icon(Icons.mail_outline)),
-                      validator: (v) => (v == null || v.trim().isEmpty) ? 'E-posta adresinizi girin.' : null,
-                    ),
-                    const SizedBox(height: 14),
-                    TextFormField(
-                      controller: _password,
-                      obscureText: _obscure,
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _login(),
-                      decoration: InputDecoration(
-                        labelText: 'Şifre',
-                        prefixIcon: const Icon(Icons.lock_outline),
-                        suffixIcon: IconButton(
-                          tooltip: _obscure ? 'Şifreyi göster' : 'Şifreyi gizle',
-                          icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                          onPressed: () => setState(() => _obscure = !_obscure),
+          const Positioned.fill(child: _GlowBackground()),
+          SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                      child: _FadeSlideIn(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 420),
+                          child: Column(
+                            children: [
+                              const _Logo(),
+                              const SizedBox(height: 20),
+                              const Text(
+                                'LezzetPOS',
+                                style: TextStyle(fontSize: 32, fontWeight: FontWeight.w800, letterSpacing: -0.5),
+                              ),
+                              const SizedBox(height: 4),
+                              const Text(
+                                'Personel Uygulaması',
+                                style: TextStyle(color: AppColors.muted, fontSize: 15, letterSpacing: 0.4),
+                              ),
+                              const SizedBox(height: 32),
+                              _glassCard(),
+                              const SizedBox(height: 22),
+                              const _RoleHints(),
+                            ],
+                          ),
                         ),
                       ),
-                      validator: (v) => (v == null || v.isEmpty) ? 'Şifrenizi girin.' : null,
                     ),
-                    const SizedBox(height: 22),
-                    FilledButton(
-                      onPressed: _loading ? null : _login,
-                      child: _loading
-                          ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
-                          : const Text('Giriş Yap'),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          ),
-          SafeArea(
-            top: false,
-            child: TextButton.icon(
-              onPressed: _editServerAddress,
-              style: TextButton.styleFrom(foregroundColor: AppColors.muted),
-              icon: const Icon(Icons.dns_outlined, size: 18),
-              label: Text('Sunucu: ${_session.api.baseUrl}', style: const TextStyle(fontSize: 12)),
+                TextButton.icon(
+                  onPressed: _editServerAddress,
+                  style: TextButton.styleFrom(foregroundColor: AppColors.subtle),
+                  icon: const Icon(Icons.dns_outlined, size: 16),
+                  label: Text('Sunucu: ${_session.api.baseUrl}', style: const TextStyle(fontSize: 12)),
+                ),
+                const SizedBox(height: 4),
+              ],
             ),
           ),
         ],
@@ -160,31 +148,71 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _header(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.fromLTRB(24, MediaQuery.paddingOf(context).top + 36, 24, 32),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.brand, AppColors.brandDark],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), shape: BoxShape.circle),
-            child: const Icon(Icons.restaurant_menu, color: Colors.white, size: 38),
+  /// Cam efektli giriş kartı: arka plandaki ışığı bulanık gösterir.
+  Widget _glassCard() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(22, 26, 22, 22),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
           ),
-          const SizedBox(height: 14),
-          const Text('LezzetPOS', style: TextStyle(color: Colors.white, fontSize: 26, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 2),
-          Text('Personel Uygulaması', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 15)),
-        ],
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('Hoş geldiniz', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                const Text('Devam etmek için hesabınızla giriş yapın.', style: TextStyle(color: AppColors.muted)),
+                const SizedBox(height: 22),
+                AnimatedSize(
+                  duration: const Duration(milliseconds: 200),
+                  child: _error == null
+                      ? const SizedBox(width: double.infinity)
+                      : Padding(padding: const EdgeInsets.only(bottom: 16), child: _errorBox(_error!)),
+                ),
+                TextFormField(
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  autocorrect: false,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(labelText: 'E-posta', prefixIcon: Icon(Icons.alternate_email)),
+                  validator: (v) => (v == null || v.trim().isEmpty) ? 'E-posta adresinizi girin.' : null,
+                ),
+                const SizedBox(height: 14),
+                TextFormField(
+                  controller: _password,
+                  obscureText: _obscure,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _login(),
+                  decoration: InputDecoration(
+                    labelText: 'Şifre',
+                    prefixIcon: const Icon(Icons.lock_outline_rounded),
+                    suffixIcon: IconButton(
+                      tooltip: _obscure ? 'Şifreyi göster' : 'Şifreyi gizle',
+                      icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                      onPressed: () => setState(() => _obscure = !_obscure),
+                    ),
+                  ),
+                  validator: (v) => (v == null || v.isEmpty) ? 'Şifrenizi girin.' : null,
+                ),
+                const SizedBox(height: 24),
+                GradientButton(
+                  onPressed: _loading ? null : _login,
+                  loading: _loading,
+                  label: 'Giriş Yap',
+                  icon: Icons.arrow_forward_rounded,
+                  trailingIcon: true,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -193,18 +221,116 @@ class _LoginScreenState extends State<LoginScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFECACA)),
+        color: AppColors.tint(AppColors.danger, 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.tint(AppColors.danger, 0.35)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline, color: AppColors.danger, size: 20),
-          const SizedBox(width: 8),
-          Expanded(child: Text(message, style: const TextStyle(color: Color(0xFF991B1B)))),
+          const Icon(Icons.error_outline_rounded, color: AppColors.danger, size: 20),
+          const SizedBox(width: 10),
+          Expanded(child: Text(message, style: const TextStyle(color: AppColors.text, height: 1.35))),
         ],
       ),
+    );
+  }
+}
+
+/// Logo: marka geçişli daire ve etrafında parlayan halka.
+class _Logo extends StatelessWidget {
+  const _Logo();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 96,
+      height: 96,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const SweepGradient(colors: [AppColors.accent, AppColors.brandBright, AppColors.accent]),
+        boxShadow: [BoxShadow(color: AppColors.tint(AppColors.brandBright, 0.6), blurRadius: 40, spreadRadius: 2)],
+      ),
+      child: Container(
+        decoration: const BoxDecoration(shape: BoxShape.circle, gradient: AppColors.brandGradient),
+        child: const Icon(Icons.restaurant_menu_rounded, color: Colors.white, size: 42),
+      ),
+    );
+  }
+}
+
+/// Uygulamayı kimlerin kullandığını gösteren küçük rozetler.
+class _RoleHints extends StatelessWidget {
+  const _RoleHints();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget hint(IconData icon, String text) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, size: 15, color: AppColors.accent),
+            const SizedBox(width: 6),
+            Text(text, style: const TextStyle(color: AppColors.muted, fontSize: 13, fontWeight: FontWeight.w600)),
+          ]),
+        );
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: [hint(Icons.room_service_outlined, 'Garson'), hint(Icons.two_wheeler, 'Kurye')],
+    );
+  }
+}
+
+/// Arka plan: koyu zemin üzerinde iki yumuşak mor ışık.
+class _GlowBackground extends StatelessWidget {
+  const _GlowBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    Widget glow(Color color, double size) => Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
+          ),
+        );
+
+    return ColoredBox(
+      color: AppColors.background,
+      child: Stack(children: [
+        Positioned(top: -140, left: -120, child: glow(const Color(0xAA7B2D7E), 420)),
+        Positioned(bottom: -160, right: -140, child: glow(const Color(0x664A154B), 460)),
+      ]),
+    );
+  }
+}
+
+/// Açılışta içeriğin hafifçe yukarı kayarak belirmesi.
+class _FadeSlideIn extends StatelessWidget {
+  const _FadeSlideIn({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 550),
+      curve: Curves.easeOutCubic,
+      builder: (_, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(offset: Offset(0, 24 * (1 - t)), child: child),
+      ),
+      child: child,
     );
   }
 }

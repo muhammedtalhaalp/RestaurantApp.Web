@@ -5,6 +5,7 @@ import '../../core/theme.dart';
 import '../../models/waiter_models.dart';
 import '../../services/waiter_service.dart';
 import 'waiter_widgets.dart';
+import '../../widgets/gradient_button.dart';
 
 /// Mutfaktaki ve servise hazır masa siparişleri. Web karşılığı: "Sipariş Takip" (waiterOrderTracking.js).
 class ReadyOrdersTab extends StatelessWidget {
@@ -83,8 +84,6 @@ class _OrderTile extends StatelessWidget {
             context: context,
             isScrollControlled: true,
             showDragHandle: true,
-            backgroundColor: Colors.white,
-            shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
             builder: (_) => _OrderSheet(order: order),
           );
           if (served == true) await onChanged();
@@ -184,13 +183,12 @@ class _OrderSheetState extends State<_OrderSheet> {
                 ),
               ),
               const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: readyCount == 0 || _serving ? null : _serve,
-                style: FilledButton.styleFrom(backgroundColor: AppColors.ready),
-                icon: _serving
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.room_service),
-                label: Text(readyCount == 0 ? 'Mutfakta hazırlanıyor' : 'Hazır $readyCount ürünü servis ettim'),
+              GradientButton(
+                onPressed: readyCount == 0 ? null : _serve,
+                loading: _serving,
+                colors: const [Color(0xFF34E089), Color(0xFF13A456)],
+                icon: readyCount == 0 ? Icons.soup_kitchen : Icons.room_service,
+                label: readyCount == 0 ? 'Mutfakta hazırlanıyor' : 'Hazır $readyCount ürünü servis ettim',
               ),
             ],
           ],

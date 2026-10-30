@@ -95,7 +95,9 @@ class _WaiterHomeScreenState extends State<WaiterHomeScreen> with WidgetsBinding
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return AppBackground(
+      child: Scaffold(
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         titleSpacing: 16,
         title: Column(
@@ -104,7 +106,7 @@ class _WaiterHomeScreenState extends State<WaiterHomeScreen> with WidgetsBinding
             Text(_tab == 0 ? 'Masalar' : 'Hazır Siparişler',
                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 19)),
             if (_session.fullName.isNotEmpty)
-              Text(_session.fullName, style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8))),
+              Text(_session.fullName, style: TextStyle(fontSize: 13, color: AppColors.muted)),
           ],
         ),
         actions: [
@@ -116,9 +118,9 @@ class _WaiterHomeScreenState extends State<WaiterHomeScreen> with WidgetsBinding
               onTap: _openProfile,
               child: CircleAvatar(
                 radius: 18,
-                backgroundColor: Colors.white,
+                backgroundColor: AppColors.brandBright,
                 child: Text(initials(_session.fullName),
-                    style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700, fontSize: 13)),
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
               ),
             ),
           ),
@@ -134,11 +136,10 @@ class _WaiterHomeScreenState extends State<WaiterHomeScreen> with WidgetsBinding
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
-        indicatorColor: AppColors.brandSoft,
         destinations: [
           const NavigationDestination(
             icon: Icon(Icons.table_restaurant_outlined),
-            selectedIcon: Icon(Icons.table_restaurant, color: AppColors.brand),
+            selectedIcon: Icon(Icons.table_restaurant, color: AppColors.accent),
             label: 'Masalar',
           ),
           NavigationDestination(
@@ -152,12 +153,13 @@ class _WaiterHomeScreenState extends State<WaiterHomeScreen> with WidgetsBinding
               isLabelVisible: _readyCount > 0,
               label: Text('$_readyCount'),
               backgroundColor: AppColors.ready,
-              child: const Icon(Icons.room_service, color: AppColors.brand),
+              child: const Icon(Icons.room_service, color: AppColors.accent),
             ),
             label: 'Hazır Siparişler',
           ),
         ],
       ),
+    ),
     );
   }
 }

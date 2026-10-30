@@ -10,6 +10,7 @@ import '../../services/push_service.dart';
 import '../../services/waiter_service.dart';
 import 'menu_screen.dart';
 import 'waiter_widgets.dart';
+import '../../widgets/gradient_button.dart';
 
 /// Masanın açık siparişi: ürünler ve mutfak durumları, hazırları servis etme, yeni sipariş ekleme.
 class TableDetailScreen extends StatefulWidget {
@@ -95,7 +96,7 @@ class _TableDetailScreenState extends State<TableDetailScreen> {
       appBar: AppBar(
         title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text(widget.table.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-          Text(widget.table.section, style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8))),
+          Text(widget.table.section, style: TextStyle(fontSize: 13, color: AppColors.muted)),
         ]),
         actions: [IconButton(tooltip: 'Yenile', onPressed: _load, icon: const Icon(Icons.refresh))],
       ),
@@ -127,13 +128,12 @@ class _TableDetailScreenState extends State<TableDetailScreen> {
                     _summaryCard(order),
                     if (readyCount > 0) ...[
                       const SizedBox(height: 12),
-                      FilledButton.icon(
-                        onPressed: _serving ? null : _serveReady,
-                        style: FilledButton.styleFrom(backgroundColor: AppColors.ready),
-                        icon: _serving
-                            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(Icons.room_service),
-                        label: Text('Hazır $readyCount ürünü servis ettim'),
+                      GradientButton(
+                        onPressed: _serveReady,
+                        loading: _serving,
+                        colors: const [Color(0xFF34E089), Color(0xFF13A456)],
+                        icon: Icons.room_service,
+                        label: 'Hazır $readyCount ürünü servis ettim',
                       ),
                     ],
                     const SizedBox(height: 16),
@@ -156,10 +156,10 @@ class _TableDetailScreenState extends State<TableDetailScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         child: SizedBox(
           width: double.infinity,
-          child: FilledButton.icon(
+          child: GradientButton(
             onPressed: _addOrder,
-            icon: const Icon(Icons.add_shopping_cart),
-            label: Text(order != null && order.items.isNotEmpty ? 'Sipariş Ekle' : 'Sipariş Al'),
+            icon: Icons.add_shopping_cart,
+            label: order != null && order.items.isNotEmpty ? 'Sipariş Ekle' : 'Sipariş Al',
           ),
         ),
       ),
@@ -176,7 +176,7 @@ class _TableDetailScreenState extends State<TableDetailScreen> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('Kalan Tutar', style: TextStyle(color: AppColors.muted, fontSize: 13)),
               Text(formatMoney(order.remainingTotal),
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.brand)),
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.accent)),
             ]),
           ),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [

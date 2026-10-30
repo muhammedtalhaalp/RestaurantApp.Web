@@ -10,16 +10,16 @@ class ChannelInfo {
   final String? logo;
 
   static const _channels = {
-    'Telefon': ChannelInfo('Telefon', Icons.phone, Color(0xFF4A154B)),
-    'GelAl': ChannelInfo('Gel-Al', Icons.shopping_bag, Color(0xFF475569)),
-    'Yemeksepeti': ChannelInfo('Yemeksepeti', Icons.restaurant, Color(0xFFEA004B), 'assets/channels/yemeksepeti.png'),
-    'Getir': ChannelInfo('Getir', Icons.two_wheeler, Color(0xFF5D3EBC), 'assets/channels/getir.png'),
+    'Telefon': ChannelInfo('Telefon', Icons.phone, Color(0xFFD9A6E3)),
+    'GelAl': ChannelInfo('Gel-Al', Icons.shopping_bag, Color(0xFFA9B4C4)),
+    'Yemeksepeti': ChannelInfo('Yemeksepeti', Icons.restaurant, Color(0xFFFF4D7E), 'assets/channels/yemeksepeti.png'),
+    'Getir': ChannelInfo('Getir', Icons.two_wheeler, Color(0xFFA08BFF), 'assets/channels/getir.png'),
     'Trendyol': ChannelInfo('Trendyol Yemek', Icons.storefront, Color(0xFFF27A1A), 'assets/channels/trendyol.png'),
-    'Diger': ChannelInfo('Diğer', Icons.more_horiz, Color(0xFF0E7490)),
+    'Diger': ChannelInfo('Diğer', Icons.more_horiz, Color(0xFF3CC8DE)),
   };
 
   static ChannelInfo of(String? key) =>
-      _channels[key] ?? const ChannelInfo('Paket Servis', Icons.two_wheeler, Color(0xFF4A154B));
+      _channels[key] ?? const ChannelInfo('Paket Servis', Icons.two_wheeler, Color(0xFFD9A6E3));
 }
 
 class ChannelBadge extends StatelessWidget {
@@ -37,9 +37,9 @@ class ChannelBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Color.alphaBlend(info.color.withValues(alpha: 0.11), Colors.white),
+        color: info.color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Color.alphaBlend(info.color.withValues(alpha: 0.28), Colors.white)),
+        border: Border.all(color: info.color.withValues(alpha: 0.35)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

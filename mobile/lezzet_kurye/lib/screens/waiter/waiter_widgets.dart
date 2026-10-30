@@ -61,12 +61,12 @@ class EmptyCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
         child: Column(children: [
-          Icon(icon, size: 40, color: const Color(0xFF94A3B8)),
+          Icon(icon, size: 40, color: AppColors.subtle),
           const SizedBox(height: 10),
           Text(title, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.muted)),
           if (subtitle != null) ...[
             const SizedBox(height: 2),
-            Text(subtitle!, textAlign: TextAlign.center, style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 13)),
+            Text(subtitle!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.subtle, fontSize: 13)),
           ],
           if (action != null) ...[const SizedBox(height: 14), action!],
         ]),

@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import '../../models/waiter_models.dart';
 import '../../services/waiter_service.dart';
 import 'waiter_widgets.dart';
+import '../../widgets/gradient_button.dart';
 
 /// Menüden sipariş alma: kategori / arama, sepet, not ve "acil". "Mutfağa Gönder" siparişi masanın açık
 /// siparişine ekler ve mutfak ekranına düşürür. Başarılıysa sunucunun mesajıyla geri döner.
@@ -81,8 +82,6 @@ class _MenuScreenState extends State<MenuScreen> {
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(22))),
       builder: (_) => _CartSheet(
         table: widget.table,
         cart: _cart,
@@ -101,7 +100,7 @@ class _MenuScreenState extends State<MenuScreen> {
       appBar: AppBar(
         title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('Sipariş Al', style: TextStyle(fontWeight: FontWeight.w700)),
-          Text(widget.table.name, style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8))),
+          Text(widget.table.name, style: TextStyle(fontSize: 13, color: AppColors.muted)),
         ]),
       ),
       body: categories == null
@@ -181,7 +180,7 @@ class _MenuScreenState extends State<MenuScreen> {
         label: Text(label),
         selected: selected,
         showCheckmark: false,
-        selectedColor: AppColors.brand,
+        selectedColor: AppColors.brandBright,
         labelStyle: TextStyle(color: selected ? Colors.white : AppColors.text, fontWeight: FontWeight.w600),
         onSelected: (_) => setState(() {
           _categoryId = categoryId;
@@ -227,14 +226,14 @@ class _ProductTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final imageUrl = product.imageUrl;
     final placeholder = Container(
-      color: AppColors.brandSoft,
-      child: const Icon(Icons.restaurant, color: AppColors.brand),
+      color: AppColors.surfaceHigh,
+      child: const Icon(Icons.restaurant, color: AppColors.accent),
     );
 
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: quantity > 0 ? AppColors.brand : AppColors.border, width: quantity > 0 ? 1.6 : 1),
+        side: BorderSide(color: quantity > 0 ? AppColors.accent : AppColors.border, width: quantity > 0 ? 1.6 : 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(10),
@@ -260,7 +259,7 @@ class _ProductTile extends StatelessWidget {
               const SizedBox(height: 2),
               product.isAvailable
                   ? Text(formatMoney(product.price),
-                      style: const TextStyle(color: AppColors.brand, fontWeight: FontWeight.w700))
+                      style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700))
                   : const Text('Tükendi', style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.w600)),
             ]),
           ),
@@ -268,7 +267,7 @@ class _ProductTile extends StatelessWidget {
             quantity == 0
                 ? IconButton.filled(
                     onPressed: onAdd,
-                    style: IconButton.styleFrom(backgroundColor: AppColors.brand),
+                    style: IconButton.styleFrom(backgroundColor: AppColors.brandBright, foregroundColor: Colors.white),
                     icon: const Icon(Icons.add),
                   )
                 : QuantityStepper(quantity: quantity, onAdd: onAdd, onRemove: onRemove),
@@ -288,18 +287,18 @@ class QuantityStepper extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(color: AppColors.brandSoft, borderRadius: BorderRadius.circular(999)),
+      decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(999)),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         IconButton(
           visualDensity: VisualDensity.compact,
           onPressed: onRemove,
-          icon: Icon(quantity == 1 ? Icons.delete_outline : Icons.remove, color: AppColors.brand),
+          icon: Icon(quantity == 1 ? Icons.delete_outline : Icons.remove, color: AppColors.accent),
         ),
         Text('$quantity', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
         IconButton(
           visualDensity: VisualDensity.compact,
           onPressed: onAdd,
-          icon: const Icon(Icons.add, color: AppColors.brand),
+          icon: const Icon(Icons.add, color: AppColors.accent),
         ),
       ]),
     );
@@ -419,12 +418,11 @@ class _CartSheetState extends State<_CartSheet> {
                 Text(formatMoney(total), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
               ]),
               const SizedBox(height: 14),
-              FilledButton.icon(
-                onPressed: _sending ? null : _send,
-                icon: _sending
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Icon(Icons.soup_kitchen),
-                label: const Text('Mutfağa Gönder'),
+              GradientButton(
+                onPressed: _send,
+                loading: _sending,
+                icon: Icons.soup_kitchen,
+                label: 'Mutfağa Gönder',
               ),
             ],
           ),

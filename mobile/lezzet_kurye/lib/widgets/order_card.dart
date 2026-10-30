@@ -5,6 +5,7 @@ import '../core/format.dart';
 import '../core/theme.dart';
 import '../models/courier_models.dart';
 import 'channel_badge.dart';
+import 'gradient_button.dart';
 
 /// Tek bir teslimatın kartı. Web karşılığı: courier.js renderOrderCard.
 class OrderCard extends StatefulWidget {
@@ -41,7 +42,7 @@ class _OrderCardState extends State<OrderCard> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
         side: widget.isNew
-            ? const BorderSide(color: AppColors.brand, width: 2.5)
+            ? const BorderSide(color: AppColors.accent, width: 2)
             : const BorderSide(color: AppColors.border),
       ),
       child: Column(
@@ -90,13 +91,13 @@ class _OrderCardState extends State<OrderCard> {
   Widget _addressBox() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(12)),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Icon(Icons.location_on, color: AppColors.danger, size: 18),
           const SizedBox(width: 6),
-          Expanded(child: Text(order.address ?? 'Adres yok', style: const TextStyle(fontSize: 14, color: Color(0xFF334155)))),
+          Expanded(child: Text(order.address ?? 'Adres yok', style: const TextStyle(fontSize: 14, color: AppColors.text))),
         ],
       ),
     );
@@ -114,8 +115,8 @@ class _OrderCardState extends State<OrderCard> {
           child: _ContactButton(
             icon: Icons.phone,
             label: phoneDigits.isEmpty ? 'Telefon yok' : 'Ara',
-            color: const Color(0xFF15803D),
-            background: const Color(0xFFF0FDF4),
+            color: AppColors.ready,
+            background: const Color(0x1F2FD67B),
             onTap: phoneDigits.isEmpty ? null : () => _open(context, Uri(scheme: 'tel', path: phoneDigits)),
           ),
         ),
@@ -124,8 +125,8 @@ class _OrderCardState extends State<OrderCard> {
           child: _ContactButton(
             icon: Icons.directions,
             label: destination == null ? 'Konum yok' : 'Yol Tarifi',
-            color: const Color(0xFF1D4ED8),
-            background: const Color(0xFFEFF6FF),
+            color: AppColors.onTheWay,
+            background: const Color(0x1F4C9BFF),
             onTap: destination == null
                 ? null
                 : () => _open(
@@ -150,16 +151,16 @@ class _OrderCardState extends State<OrderCard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFBEB),
+        color: const Color(0x1FF5A524),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFFCD34D)),
+        border: Border.all(color: const Color(0x59F5A524)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.sticky_note_2_outlined, size: 16, color: Color(0xFF92400E)),
+          const Icon(Icons.sticky_note_2_outlined, size: 16, color: AppColors.kitchen),
           const SizedBox(width: 6),
-          Expanded(child: Text(order.note!, style: const TextStyle(fontSize: 13, color: Color(0xFF92400E)))),
+          Expanded(child: Text(order.note!, style: const TextStyle(fontSize: 13, color: AppColors.kitchen))),
         ],
       ),
     );
@@ -171,7 +172,7 @@ class _OrderCardState extends State<OrderCard> {
       children: [
         TextButton.icon(
           onPressed: () => setState(() => _showItems = !_showItems),
-          style: TextButton.styleFrom(padding: EdgeInsets.zero, foregroundColor: const Color(0xFF475569)),
+          style: TextButton.styleFrom(padding: EdgeInsets.zero, foregroundColor: AppColors.muted),
           icon: Icon(_showItems ? Icons.expand_less : Icons.expand_more, size: 20),
           label: Text('${order.itemCount} ürün', style: const TextStyle(fontWeight: FontWeight.w600)),
         ),
@@ -187,30 +188,25 @@ class _OrderCardState extends State<OrderCard> {
   }
 
   Widget _mainAction() {
-    if (widget.isBusy) {
-      return const FilledButton(
-        onPressed: null,
-        child: SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5)),
-      );
-    }
-
     return switch (order.stage) {
-      DeliveryStage.kitchen => FilledButton.icon(
+      DeliveryStage.kitchen => const GradientButton(
           onPressed: null,
-          icon: const Icon(Icons.hourglass_top),
-          label: const Text('Mutfağın hazırlamasını bekleyin'),
+          icon: Icons.hourglass_top,
+          label: 'Mutfağın hazırlamasını bekleyin',
         ),
-      DeliveryStage.ready => FilledButton.icon(
+      DeliveryStage.ready => GradientButton(
           onPressed: widget.onOutForDelivery,
-          style: FilledButton.styleFrom(backgroundColor: AppColors.onTheWay),
-          icon: const Icon(Icons.two_wheeler),
-          label: const Text('Siparişi Aldım, Yola Çıktım'),
+          loading: widget.isBusy,
+          colors: const [Color(0xFF6AB0FF), Color(0xFF2563EB)],
+          icon: Icons.two_wheeler,
+          label: 'Siparişi Aldım, Yola Çıktım',
         ),
-      DeliveryStage.onTheWay => FilledButton.icon(
+      DeliveryStage.onTheWay => GradientButton(
           onPressed: widget.onComplete,
-          style: FilledButton.styleFrom(backgroundColor: AppColors.ready),
-          icon: const Icon(Icons.check_circle),
-          label: const Text('Teslim Ettim'),
+          loading: widget.isBusy,
+          colors: const [Color(0xFF34E089), Color(0xFF13A456)],
+          icon: Icons.check_circle,
+          label: 'Teslim Ettim',
         ),
     };
   }
@@ -274,7 +270,7 @@ class _ContactButton extends StatelessWidget {
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
         foregroundColor: color,
-        backgroundColor: enabled ? background : Colors.white,
+        backgroundColor: enabled ? background : AppColors.surfaceHigh,
         side: BorderSide(color: enabled ? color.withValues(alpha: 0.3) : AppColors.border),
       ),
       icon: Icon(icon, size: 18),
@@ -292,27 +288,27 @@ class _PaymentBox extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!order.hasPaymentToCollect) {
       return _box(
-        background: const Color(0xFFF0FDF4),
-        border: const Color(0xFFBBF7D0),
-        color: const Color(0xFF15803D),
+        background: const Color(0x1F2FD67B),
+        border: const Color(0x592FD67B),
+        color: AppColors.ready,
         children: [
           const Row(children: [
-            Icon(Icons.check_circle, size: 17, color: Color(0xFF15803D)),
+            Icon(Icons.check_circle, size: 17, color: AppColors.ready),
             SizedBox(width: 6),
-            Text('Ödendi · Tahsilat yok', style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF15803D))),
+            Text('Ödendi · Tahsilat yok', style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.ready)),
           ]),
           const SizedBox(height: 2),
           Text('${order.paymentPlanLabel} · ${formatMoney(order.orderValue)}',
-              style: const TextStyle(fontSize: 13, color: Color(0xFF15803D))),
+              style: const TextStyle(fontSize: 13, color: AppColors.ready)),
         ],
       );
     }
 
-    const color = Color(0xFF9A3412);
+    const color = AppColors.kitchen;
     final changeFor = order.changeFor;
     return _box(
-      background: const Color(0xFFFFF7ED),
-      border: const Color(0xFFFED7AA),
+      background: const Color(0x1FF5A524),
+      border: const Color(0x59F5A524),
       color: color,
       children: [
         Row(children: [
