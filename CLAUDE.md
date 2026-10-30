@@ -69,6 +69,13 @@ The real project lives in `RestaurantApp.Web/`.
 ### Front-end
 - Each page is a Razor view plus its own JS/CSS pair: `Library/scripts/<page>.js` and `Library/styles/<page>.css`. The views load these through `@section styles` / `@section scripts` with a `?v=@DateTime.Now.Ticks` cache-buster, not through `BundleConfig`.
 - **New pages must use `_Layout.cshtml`** and follow the existing look: an `h4` title with a purple icon plus a muted subtitle, white rounded cards, and the brand color `#4a154b`. Users expect the same sidebar, profile menu and logout on every role's screen.
+- **Design system: `Library/styles/lezzet-ui.css`** (light theme, font Plus Jakarta Sans).
+  - `_Layout` loads it **after** the page's `@section styles`, so Bootstrap components (card, btn, form, table, modal, badge, dropdown, nav) and the shared purple classes (`btn-purple`, `btn-purple-main`, `btn-brand`, `btn-outline-purple`/`-brand`, `text-purple-main`, `text-brand`, `card-clean`) look the same on every page. SweetAlert2 and jQuery UI are themed there too.
+  - Use its `--lz-*` tokens instead of new hard-coded colors. Page CSS should only hold page-specific pieces, styled with more specific selectors.
+  - The sidebar is a dark purple gradient, and the top bar is a floating frosted-glass strip.
+- `Views/Auth/Login.cshtml` uses the dark, premium style of the mobile app.
+  - The sign-in/sign-up switch moves `.forms`, `.card-hero-inner` and `.active-bar` by `top` in JS. Keep the 520px panel heights and the 200%/33.33% sizes.
+- In `.cshtml` files, CSS at-rules must be written `@@media` / `@@keyframes`, or Razor treats them as code.
 - `_Layout.cshtml` is responsive.
   - Below 992px the sidebar slides off-canvas and is opened with the top-bar `#btnMobileMenu` (the `body.sidebar-open` class, with a backdrop).
   - The desktop collapse button is hidden there.

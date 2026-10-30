@@ -7,7 +7,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet" />
@@ -19,15 +19,15 @@
         :root {
             --sidebar-width: 250px;
             --sidebar-collapsed-width: 75px;
-            --sidebar-bg: #1e232a;
-            --sidebar-active-bg: #2b313a;
+            --sidebar-bg: linear-gradient(180deg, #3a1040 0%, #2a0b2c 55%, #1d0820 100%);
+            --sidebar-active-bg: rgba(255, 255, 255, 0.12);
             --primary-purple: #4a154b;
             --primary-purple-hover: #381039;
             --bg-light: #eef2f6;
         }
 
         body {
-            font-family: 'Poppins', sans-serif;
+            font-family: 'Plus Jakarta Sans', 'Segoe UI', system-ui, sans-serif;
             background-color: var(--bg-light);
             overflow-x: hidden;
             margin: 0;
@@ -55,8 +55,8 @@
             bottom: 16px;
             height: calc(100vh - 32px);
             border-radius: 28px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            box-shadow: 0 24px 50px rgba(42, 11, 44, 0.28);
             padding: 10px 8px;
             overflow-y: auto;
             overflow-x: hidden;
@@ -87,9 +87,10 @@
             }
 
                 #sidebar .brand-logo i {
-                    color: var(--primary-purple);
-                    font-size: 1.4rem;
-                    background: #ffffff;
+                    color: #fff;
+                    font-size: 1.2rem;
+                    background: linear-gradient(135deg, #b06ab3, #7b2d7e);
+                    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
                     width: 36px;
                     height: 36px;
                     border-radius: 12px;
@@ -119,7 +120,7 @@
                     align-items: center;
                     gap: 14px;
                     padding: 12px 18px;
-                    color: #9aa5b1;
+                    color: rgba(255, 255, 255, 0.66);
                     text-decoration: none;
                     font-size: 0.95rem;
                     font-weight: 500;
@@ -132,6 +133,12 @@
                         background: var(--sidebar-active-bg);
                     }
 
+                    /* Aktif sayfa: solda lavanta çizgi */
+                    .sidebar-menu li.active > a {
+                        box-shadow: inset 3px 0 0 #d9a6e3;
+                        font-weight: 600;
+                    }
+
         .submenu-list {
             list-style: none;
             padding-left: 28px;
@@ -141,7 +148,7 @@
             .submenu-list li a {
                 padding: 8px 14px;
                 font-size: 0.88rem;
-                color: #9aa5b1;
+                color: rgba(255, 255, 255, 0.6);
                 border-radius: 10px;
             }
 
@@ -162,9 +169,9 @@
         }
 
         .btn-toggle-sidebar {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.06);
             border: none;
-            color: #9aa5b1;
+            color: rgba(255, 255, 255, 0.6);
             width: 100%;
             text-align: center;
             padding: 8px;
@@ -212,14 +219,23 @@
                 margin-left: calc(var(--sidebar-collapsed-width) + 32px);
             }
 
+        /* Üst bar: içeriğin üstünde yüzen buzlu cam şerit */
         .top-navbar {
-            background: #fff;
-            padding: 14px 28px;
+            background: rgba(255, 255, 255, 0.78);
+            -webkit-backdrop-filter: blur(14px);
+            backdrop-filter: blur(14px);
+            padding: 12px 22px;
+            margin: 16px 24px 0;
             display: flex;
             justify-content: flex-end;
             align-items: center;
             gap: 20px;
-            border-bottom: 1px solid #edf2f7;
+            border: 1px solid #ebe6ef;
+            border-radius: 20px;
+            box-shadow: 0 1px 2px rgba(29, 21, 37, 0.04), 0 8px 24px rgba(29, 21, 37, 0.05);
+            position: sticky;
+            top: 16px;
+            z-index: 900;
         }
 
         .user-profile {
@@ -227,14 +243,15 @@
             align-items: center;
             gap: 10px;
             font-weight: 600;
-            color: #2d3748;
+            color: #1d1525;
         }
 
         .user-avatar {
-            width: 36px;
-            height: 36px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
-            background: var(--primary-purple);
+            background: linear-gradient(135deg, #7b2d7e, #4a154b);
+            box-shadow: 0 4px 12px rgba(74, 21, 75, 0.25);
             color: #fff;
             display: flex;
             align-items: center;
@@ -270,10 +287,10 @@
             margin-right: auto;
             width: 40px;
             height: 40px;
-            border: 1px solid #e2e8f0;
+            border: 1px solid #ebe6ef;
             border-radius: 12px;
             background: #fff;
-            color: var(--primary-purple);
+            color: #7b2d7e;
             font-size: 1.1rem;
             align-items: center;
             justify-content: center;
@@ -313,11 +330,10 @@
             }
 
             .top-navbar {
-                padding: 10px 16px;
+                padding: 10px 14px;
+                margin: 10px 12px 0;
                 gap: 14px;
-                position: sticky;
-                top: 0;
-                z-index: 900;
+                top: 10px;
             }
 
             .btn-mobile-menu {
@@ -338,6 +354,9 @@
     </style>
 
     @RenderSection("styles", required: false)
+
+    <!-- Ortak tasarım sistemi: sayfa stillerinden sonra yüklenir (bkz. dosyanın başındaki açıklama) -->
+    <link href="~/Library/styles/lezzet-ui.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
 </head>
 <body>
     <div class="wrapper">
@@ -492,7 +511,7 @@
                         <div class="user-avatar">
                             <i class="fa-solid fa-user"></i>
                         </div>
-                        <span id="lblFullName">Kullanıcı</span>
+                        <span id="lblFullName">@(Session["FullName"] as string ?? "Kullanıcı")</span>
                         <i class="fa-solid fa-chevron-down ms-1 text-muted" id="profileArrowIcon" style="font-size: 0.75rem; transition: transform 0.2s;"></i>
                     </div>
 

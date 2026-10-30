@@ -305,6 +305,7 @@
     <Content Include="Library\styles\kitchen.css" />
     <Content Include="Library\styles\login.css" />
     <Content Include="Library\styles\my-site.css" />
+    <Content Include="Library\styles\lezzet-ui.css" />
     <Content Include="Library\styles\order-tracking.css" />
     <Content Include="Library\styles\pos.css" />
     <Content Include="Library\styles\profile-settings.css" />

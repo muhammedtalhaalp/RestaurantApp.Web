@@ -128,7 +128,7 @@
     border-radius: 16px;
     position: relative;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border: 2px solid #e2e8f0;
+    border: 1px solid #ebe6ef;
     background: #ffffff;
     overflow: hidden;
     cursor: pointer;
@@ -140,13 +140,23 @@
     }
 
     .table-card.table-empty {
-        background-color: #f8fafc;
-        border-color: #cbd5e1;
+        background-color: #ffffff;
+        border-color: #ebe6ef;
         color: #334155;
+        box-shadow: 0 1px 2px rgba(29, 21, 37, 0.04), 0 2px 8px rgba(29, 21, 37, 0.04);
     }
 
         .table-card.table-empty .table-card-number {
-            color: #1e293b;
+            color: #1d1525;
+        }
+
+        /* Durum ve tutar yazıları aşağıda dolu (kırmızı) kart için beyaz; boş kartta okunur gri */
+        .table-card.table-empty .table-card-status-text {
+            color: #6b6475 !important;
+        }
+
+        .table-card.table-empty .table-card-price {
+            color: #a79fb0 !important;
         }
 
     .table-card.table-occupied {

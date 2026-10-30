@@ -1,4 +1,17 @@
-﻿
+﻿// Ürün açıklaması düz metin ya da tarif JSON'u olabilir ({hasRecipe, productDesc, ...}; bkz. KitchenController.SaveRecipe).
+// Listede yalnızca okunabilir açıklama gösterilir; HTML olarak basıldığı için kaçışlanır.
+function productDescriptionText(description) {
+    let text = description || '';
+    if (text.trim().startsWith('{')) {
+        try {
+            let parsed = JSON.parse(text);
+            if (parsed && typeof parsed === 'object') text = parsed.productDesc || '';
+        } catch (e) { /* düz metin */ }
+    }
+    return $('<div>').text(text).html();
+}
+
+
 const STATE_SAVE_KEY = 'lezzetpos_menu_filters';
 let rawProductsList = [];
 let rawCategoriesList = [];
@@ -226,7 +239,7 @@ function renderProductsTable() {
         let matchesSearch = true;
         if (searchText) {
             let pName = (p.ProductName || '').toLowerCase();
-            let pDesc = (p.Description || '').toLowerCase();
+            let pDesc = productDescriptionText(p.Description).toLowerCase();
             matchesSearch = pName.includes(searchText) || pDesc.includes(searchText);
         }
 
@@ -304,7 +317,7 @@ function renderProductsTable() {
                 </td>
                 <td style="max-width: 280px;">
                     <strong class="text-dark d-block mb-1">${p.ProductName || ''}</strong>
-                    <small class="text-muted text-truncate-2" style="font-size: 0.8rem;" title="${p.Description || ''}">${p.Description || ''}</small>
+                    <small class="text-muted text-truncate-2" style="font-size: 0.8rem;" title="${productDescriptionText(p.Description)}">${productDescriptionText(p.Description)}</small>
                 </td>
                 <td>${categoryBadge}</td>
                 <td class="fw-bold text-dark">${priceVal} ₺</td>
