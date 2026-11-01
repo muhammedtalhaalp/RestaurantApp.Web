@@ -168,6 +168,7 @@
     <Compile Include="Controllers\DeliveryController.cs" />
     <Compile Include="Controllers\CourierController.cs" />
     <Compile Include="Controllers\DeviceController.cs" />
+    <Compile Include="Controllers\FloorPlanController.cs" />
     <Compile Include="Controllers\ErrorController.cs" />
     <Compile Include="Controllers\KitchenController.cs" />
     <Compile Include="Controllers\MenuController.cs" />
@@ -182,6 +183,12 @@
       <DependentUpon>Model1.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\ChannelSettings.cs">
+      <DependentUpon>Model1.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Data\FloorPlanSections.cs">
+      <DependentUpon>Model1.tt</DependentUpon>
+    </Compile>
+    <Compile Include="Data\FloorPlanElements.cs">
       <DependentUpon>Model1.tt</DependentUpon>
     </Compile>
     <Compile Include="Data\UserDevices.cs">
@@ -307,6 +314,11 @@
     <Content Include="Library\styles\login.css" />
     <Content Include="Library\styles\my-site.css" />
     <Content Include="Library\styles\lezzet-ui.css" />
+    <Content Include="Library\scripts\floor-plan-view.js" />
+    <Content Include="Library\styles\floor-plan.css" />
+    <Content Include="Library\scripts\qr-menu-admin.js" />
+    <Content Include="Library\styles\qr-menu-admin.css" />
+    <Content Include="Views\Admin\QrMenu.cshtml" />
     <Content Include="Library\styles\order-tracking.css" />
     <Content Include="Library\styles\pos.css" />
     <Content Include="Library\styles\profile-settings.css" />

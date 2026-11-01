@@ -403,12 +403,13 @@
                         <li class="@(currentController == "Kitchen" && currentAction == "Recipes" ? "active" : "")">
                             <a href="/Kitchen/Recipes"><i class="fa-solid fa-book-open"></i><span class="link-text">Ürün Reçeteleri</span></a>
                         </li>
-                        <li class="@(currentController == "Admin" && currentAction == "TableManagement" ? "active" : "")">
-                            <a class="d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#tableSubMenu" role="button" aria-expanded="@(currentAction == "TableManagement" ? "true" : "false")">
+                        bool isTableMenu = currentController == "Admin" && (currentAction == "TableManagement" || currentAction == "FloorPlanManagement");
+                        <li class="@(isTableMenu ? "active" : "")">
+                            <a class="d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#tableSubMenu" role="button" aria-expanded="@(isTableMenu ? "true" : "false")">
                                 <span><i class="fa-solid fa-chair me-2"></i><span class="link-text">Masa Yönetimi</span></span>
                                 <i class="fa-solid fa-chevron-down small submenu-arrow"></i>
                             </a>
-                            <div class="collapse @(currentAction == "TableManagement" ? "show" : "")" id="tableSubMenu">
+                            <div class="collapse @(isTableMenu ? "show" : "")" id="tableSubMenu">
                                 <ul class="submenu-list">
                                     <li>
                                         <a href="/Admin/TableManagement"><span class="link-text">Masa Listesi</span></a>
@@ -417,13 +418,16 @@
                                         <a href="/Admin/TableManagement?modal=addtable"><span class="link-text">Masa Ekle</span></a>
                                     </li>
                                     <li>
-                                        <a href="/Admin/TableManagement?modal=qr"><span class="link-text">QR Menü</span></a>
+                                        <a href="/Admin/TableManagement?modal=sections"><span class="link-text">Alanları Yönet</span></a>
                                     </li>
                                     <li>
-                                        <a href="/Admin/TableManagement?modal=sections"><span class="link-text">Alanları Yönet</span></a>
+                                        <a href="/Admin/FloorPlanManagement"><span class="link-text">Kroki Yönetimi</span></a>
                                     </li>
                                 </ul>
                             </div>
+                        </li>
+                        <li class="@(currentController == "Admin" && currentAction == "QrMenu" ? "active" : "")">
+                            <a href="/Admin/QrMenu"><i class="fa-solid fa-qrcode"></i><span class="link-text">QR Menü</span></a>
                         </li>
                     }
                     else if (userRole == "Kurye")

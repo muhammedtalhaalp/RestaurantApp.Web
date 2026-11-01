@@ -1,0 +1,108 @@
+/* QR MENÜ (yönetim sayfası) — müşteri menüsünün stili ayrıdır: qr-menu.css */
+
+.panel-title {
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #1d1525;
+    margin-bottom: 6px;
+}
+
+    .panel-title i { color: #7b2d7e; }
+
+.count-pill {
+    margin-left: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 1px 9px;
+    border-radius: 999px;
+    background: #f5eef6;
+    color: #7b2d7e;
+}
+
+/* Genel menü QR */
+.qr-frame {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    padding: 12px;
+    border-radius: 20px;
+    background: #fff;
+    border: 1px solid #ebe6ef;
+    box-shadow: 0 10px 30px rgba(74, 21, 75, 0.12);
+}
+
+    .qr-frame img { width: 100%; height: 100%; }
+
+.qr-loading {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: #b06ab3;
+    font-size: 1.6rem;
+}
+
+.url-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    max-width: 380px;
+    margin: 0 auto;
+    padding: 4px 4px 4px 12px;
+    border-radius: 12px;
+    background: #faf8fb;
+    border: 1px solid #ebe6ef;
+}
+
+.url-text {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.8rem;
+    color: #6b6475;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: left;
+}
+
+/* Bilgi satırları */
+.info-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+    .info-row p { margin: 2px 0 0; font-size: 0.86rem; color: #6b6475; }
+
+.info-icon {
+    flex: 0 0 36px;
+    height: 36px;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    background: #f5eef6;
+    color: #7b2d7e;
+}
+
+/* Masa QR kartları */
+.table-qr-card {
+    border: 1px solid #ebe6ef;
+    border-radius: 16px;
+    background: #fff;
+    padding: 12px;
+    text-align: center;
+    height: 100%;
+    transition: box-shadow .2s, transform .2s;
+}
+
+    .table-qr-card:hover { box-shadow: 0 12px 28px rgba(74, 21, 75, 0.12); transform: translateY(-2px); }
+    .table-qr-card img { width: 100%; max-width: 150px; aspect-ratio: 1; margin: 6px auto 10px; display: block; }
+
+.tq-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.tq-name { font-weight: 800; color: #1d1525; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tq-section { font-size: 0.72rem; font-weight: 600; color: #7b2d7e; background: #f5eef6; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.tq-actions { display: flex; justify-content: center; gap: 4px; }
+
+#qrSectionTabs .nav-link:not(.active) { background: #fff; border: 1px solid #ebe6ef; }

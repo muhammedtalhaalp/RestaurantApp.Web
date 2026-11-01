@@ -519,8 +519,8 @@ namespace RestaurantApp.Web.Controllers
         [JwtAuthorize(Roles = "Admin")]
         public ActionResult FloorPlanManagement()
         {
-            var tables = db.AppTables.Where(t => t.IsActive && t.CompanyId == CurrentCompanyId).ToList();
-            return View(tables);
+            // Kroki verisi sayfadan /FloorPlan/GetFloorPlan ile alınır
+            return View();
         }
 
         [HttpGet]
@@ -725,43 +725,61 @@ namespace RestaurantApp.Web.Controllers
             }
         }
 
+        // QR MENÜ: müşterinin telefonla okuttuğu menü bağlantıları (Views/Admin/QrMenu.cshtml)
         [HttpGet]
         [JwtAuthorize(Roles = "Admin")]
-        public JsonResult GenerateQrCodeUrl(int? tableId)
+        public ActionResult QrMenu()
+        {
+            return View();
+        }
+
+        // Genel menü QR'ı (?companyId=) ve her masanın QR'ı (?tableId=, menüde masa adı görünür).
+        // QR görseli bağlantıdan dış servisle üretilir; bağlantıda yalnızca restoran/masa numarası vardır.
+        [HttpGet]
+        [JwtAuthorize(Roles = "Admin")]
+        public JsonResult GetQrCodes()
         {
             try
             {
                 int companyId = CurrentCompanyId;
-                string requestScheme = Request.Url.Scheme;
-                string requestHost = Request.Url.Authority;
+                string baseUrl = $"{Request.Url.Scheme}://{Request.Url.Authority}/Menu/Index";
+                Func<string, string> qrImage = url => $"https://quickchart.io/qr?text={Url.Encode(url)}&size=300&margin=1";
 
-                string targetMenuUrl = "";
+                string companyName = db.Companies.Where(c => c.Id == companyId).Select(c => c.Name).FirstOrDefault();
+                string generalUrl = $"{baseUrl}?companyId={companyId}";
 
-                // Menü sayfası restoranı masadan (tableId) veya masasız QR'da doğrudan companyId'den bulur
-                if (tableId.HasValue && tableId.Value > 0)
-                {
-                    bool isOwnTable = db.AppTables.Any(t => t.TableId == tableId.Value && t.CompanyId == companyId);
-                    if (!isOwnTable)
+                var tables = db.AppTables
+                    .Where(t => t.CompanyId == companyId && t.IsActive)
+                    .OrderBy(t => t.Section).ThenBy(t => t.TableId)
+                    .ToList()
+                    .Select(t =>
                     {
-                        return Json(new { success = false, message = "Masa bulunamadı." }, JsonRequestBehavior.AllowGet);
-                    }
-                    targetMenuUrl = $"{requestScheme}://{requestHost}/Menu/Index?tableId={tableId.Value}";
-                }
-                else
+                        string url = $"{baseUrl}?tableId={t.TableId}";
+                        return new
+                        {
+                            tableId = t.TableId,
+                            tableNumber = t.TableNumber,
+                            section = string.IsNullOrWhiteSpace(t.Section) ? "Salon" : t.Section,
+                            menuUrl = url,
+                            qrImageUrl = qrImage(url)
+                        };
+                    })
+                    .ToList();
+
+                return Json(new
                 {
-                    targetMenuUrl = $"{requestScheme}://{requestHost}/Menu/Index?companyId={companyId}";
-                }
-
-                string qrImageUrl = $"https://quickchart.io/qr?text={Url.Encode(targetMenuUrl)}&size=300&margin=1";
-
-                var company = db.Companies.FirstOrDefault(c => c.Id == companyId);
-                string companyName = company != null && !string.IsNullOrEmpty(company.Name) ? company.Name : "Restoran";
-
-                return Json(new { success = true, qrImageUrl = qrImageUrl, targetUrl = targetMenuUrl, companyName = companyName }, JsonRequestBehavior.AllowGet);
+                    success = true,
+                    data = new
+                    {
+                        companyName = string.IsNullOrWhiteSpace(companyName) ? "Restoran" : companyName,
+                        general = new { menuUrl = generalUrl, qrImageUrl = qrImage(generalUrl) },
+                        tables = tables
+                    }
+                }, JsonRequestBehavior.AllowGet);
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "QR Kod oluşturulurken hata: " + ex.Message }, JsonRequestBehavior.AllowGet);
+                return Json(new { success = false, message = "QR kodları hazırlanırken hata: " + ex.Message }, JsonRequestBehavior.AllowGet);
             }
         }
 

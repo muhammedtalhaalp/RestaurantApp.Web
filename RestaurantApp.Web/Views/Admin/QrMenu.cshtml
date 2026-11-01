@@ -1,0 +1,88 @@
+﻿@{
+    ViewBag.Title = "QR Menü";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section styles {
+    <link href="~/Library/styles/qr-menu-admin.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+}
+
+<div class="qr-admin">
+    <!-- ÜST BAŞLIK -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h4 class="fw-bold text-dark mb-0">
+                <i class="fa-solid fa-qrcode me-2 text-brand"></i>QR Menü
+            </h4>
+            <p class="text-muted small mb-0">Müşterilerinizin telefonla okutup dijital menüyü açtığı QR kodları. İndirip yazdırarak masalara koyabilirsiniz.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-purple btn-sm px-3" id="btnPreviewMenu" href="#" target="_blank" rel="noopener">
+                <i class="fa-solid fa-arrow-up-right-from-square me-1"></i>Menüyü Önizle
+            </a>
+            <button type="button" class="btn btn-purple btn-sm px-3" id="btnPrintAll">
+                <i class="fa-solid fa-print me-1"></i>Tüm Masaları Yazdır
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-3">
+        <!-- GENEL MENÜ QR -->
+        <div class="col-lg-5">
+            <div class="card p-4 h-100 text-center general-card">
+                <div class="panel-title justify-content-center"><i class="fa-solid fa-store me-2"></i>Restoran Menüsü</div>
+                <p class="text-muted small mb-3">Kapı, vitrin, broşür veya kasa için. Masa bilgisi içermez.</p>
+                <div class="qr-frame mx-auto mb-3">
+                    <div class="qr-loading" id="generalQrLoading"><i class="fa-solid fa-spinner fa-spin"></i></div>
+                    <img id="generalQr" src="" alt="Restoran menüsü QR kodu" class="d-none" />
+                </div>
+                <div class="url-row mb-3">
+                    <span class="url-text" id="generalUrl">—</span>
+                    <button type="button" class="btn btn-light btn-sm" id="btnCopyGeneral" title="Bağlantıyı kopyala"><i class="fa-regular fa-copy"></i></button>
+                </div>
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="button" class="btn btn-outline-purple btn-sm px-3" id="btnDownloadGeneral"><i class="fa-solid fa-download me-1"></i>İndir</button>
+                    <button type="button" class="btn btn-outline-purple btn-sm px-3" id="btnPrintGeneral"><i class="fa-solid fa-print me-1"></i>Yazdır</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- BİLGİ -->
+        <div class="col-lg-7">
+            <div class="card p-4 h-100">
+                <div class="panel-title"><i class="fa-solid fa-circle-info me-2"></i>Hangi QR'ı nerede kullanmalıyım?</div>
+                <div class="info-row">
+                    <span class="info-icon"><i class="fa-solid fa-store"></i></span>
+                    <div><b>Restoran menüsü</b><p>Herkes için aynı menü. Girişte, vitrinde veya paket servis broşürlerinde kullanın.</p></div>
+                </div>
+                <div class="info-row">
+                    <span class="info-icon"><i class="fa-solid fa-chair"></i></span>
+                    <div><b>Masa QR'ları</b><p>Her masanın kendi kodu vardır; müşteri okuttuğunda menüde hangi masada oturduğu görünür. Masanın üstüne koyun.</p></div>
+                </div>
+                <div class="info-row">
+                    <span class="info-icon"><i class="fa-solid fa-print"></i></span>
+                    <div><b>Yazdırma</b><p>“Tüm Masaları Yazdır” her masa için etiket hazırlar. En az 4×4 cm basmanız okutmayı kolaylaştırır.</p></div>
+                </div>
+                <div class="info-row mb-0">
+                    <span class="info-icon"><i class="fa-solid fa-rotate"></i></span>
+                    <div><b>Menü güncel kalır</b><p>QR kodları değişmez; ürün, fiyat veya stok güncellediğinizde müşteri menüyü her açışında son hâlini görür.</p></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MASA QR'LARI -->
+    <div class="card p-3 p-md-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div class="panel-title mb-0"><i class="fa-solid fa-chair me-2"></i>Masa QR Kodları <span class="count-pill" id="tableCount">0</span></div>
+            <ul class="nav nav-pills gap-2" id="qrSectionTabs"></ul>
+        </div>
+        <div class="row g-3" id="tableQrGrid">
+            <div class="col-12 text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-2"></i>Yükleniyor…</div>
+        </div>
+    </div>
+</div>
+
+@section scripts {
+    <script src="~/Library/scripts/qr-menu-admin.js?v=@DateTime.Now.Ticks"></script>
+}

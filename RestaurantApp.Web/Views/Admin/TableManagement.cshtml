@@ -16,9 +16,9 @@
             <p class="text-muted small m-0">Restoran alanlarına göre masalarınızı yönetin, canlı sipariş ve zaman takiplerini izleyin.</p>
         </div>
         <div class="d-flex gap-2">
-            <button class="btn btn-outline-purple fw-bold rounded-3 shadow-sm" id="btnShowGeneralQr">
-                <i class="fa-solid fa-qrcode me-2"></i>QR Menü
-            </button>
+            <a class="btn btn-outline-purple fw-bold rounded-3 shadow-sm" href="/Admin/FloorPlanManagement">
+                <i class="fa-solid fa-map-location-dot me-2"></i>Kroki
+            </a>
             <button class="btn btn-outline-purple fw-bold rounded-3 shadow-sm" id="btnOpenManageSectionsModal" data-bs-toggle="modal" data-bs-target="#manageSectionsModal">
                 <i class="fa-solid fa-layer-group me-2"></i>Alan Yönet
             </button>
@@ -97,28 +97,6 @@
             </div>
             <div class="modal-footer border-0 pt-0">
                 <button type="button" class="btn btn-light rounded-3 fw-bold px-4" data-bs-dismiss="modal">Kapat</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- QR KOD MODALI -->
-<div class="modal fade" id="qrCodeModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content border-0 shadow rounded-4 text-center">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold w-100 text-center"><i class="fa-solid fa-qrcode me-2" style="color: #4a154b;"></i>QR Menü</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body py-4">
-                <p class="text-muted small mb-3" id="qrModalSubTitle">Müşterilerinizin okutabileceği QR kod.</p>
-                <div class="p-3 bg-light rounded-4 d-inline-block border mb-3 shadow-sm">
-                    <img id="imgQrCode" src="" alt="QR Kod" style="width: 200px; height: 200px;" class="img-fluid" />
-                </div>
-                <div class="small text-truncate text-muted px-2 mb-3" id="txtQrTargetUrl"></div>
-                <a id="btnDownloadQr" href="" download="Restoran_Menu_QR.png" target="_blank" class="btn btn-theme-primary w-100 rounded-3 fw-bold">
-                    <i class="fa-solid fa-download me-2"></i>QR Kodu İndir
-                </a>
             </div>
         </div>
     </div>

@@ -5,6 +5,7 @@
 
 @section styles {
     <link href="~/Library/styles/pos.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+    <link href="~/Library/styles/floor-plan.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
 }
 
 <div class="row g-0 h-100">
@@ -199,35 +200,24 @@
 <div class="modal fade" id="posTableMapModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg rounded-4">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold"><i class="fa-solid fa-chair me-2" style="color: #4a154b;"></i>Masa Seçimi</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-header border-0 pb-0 gap-2">
+                <h5 class="modal-title fw-bold me-auto"><i class="fa-solid fa-chair me-2" style="color: #4a154b;"></i>Masa Seçimi</h5>
+                <!-- Görünüm: masa kartları ya da restoran krokisi (seçim tarayıcıda hatırlanır) -->
+                <div class="btn-group btn-group-sm" role="group" aria-label="Masa görünümü">
+                    <button type="button" class="btn btn-outline-purple active" id="btnPosViewCards"><i class="fa-solid fa-grip me-1"></i>Kartlar</button>
+                    <button type="button" class="btn btn-outline-purple" id="btnPosViewPlan"><i class="fa-solid fa-map-location-dot me-1"></i>Kroki</button>
+                </div>
+                <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-3">
-                <ul class="nav nav-pills nav-fill gap-2 mb-3" id="posSectionTabs">
-                    <li class="nav-item">
-                        <button class="nav-link active fw-bold py-2 rounded-3" data-section="Hepsi">Tümü</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link fw-bold py-2 rounded-3" data-section="Salon">Salon</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link fw-bold py-2 rounded-3" data-section="Bahçe">Bahçe</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link fw-bold py-2 rounded-3" data-section="Balkon">Balkon</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link fw-bold py-2 rounded-3" data-section="Teras">Teras</button>
-                    </li>
-                    <li class="nav-item">
-                        <button class="nav-link fw-bold py-2 rounded-3" data-section="Üst Kat">Üst Kat</button>
-                    </li>
-                </ul>
+                <!-- Alan sekmeleri restoranın masalarından üretilir (pos.js renderPosSectionTabs) -->
+                <ul class="nav nav-pills nav-fill gap-2 mb-3" id="posSectionTabs"></ul>
 
                 <div class="row g-3" id="posTableCardGrid" style="max-height: 480px; overflow-y: auto;">
                     <!-- JS Çizecek -->
                 </div>
+
+                <div id="posFloorPlan" class="d-none"></div>
             </div>
         </div>
     </div>
@@ -339,6 +329,7 @@
 
 @section scripts {
     <script src="~/Library/scripts/delivery-channels.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/Library/scripts/floor-plan-view.js?v=@DateTime.Now.Ticks"></script>
     <script src="~/Library/scripts/pos.js?v=@DateTime.Now.Ticks"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB4PzsQaSlz70n5upY-1Ha30lrk_makrQo&libraries=places&callback=initGoogleMap" async defer></script>
 }

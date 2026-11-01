@@ -148,12 +148,12 @@ $(document).ready(function () {
     });
 
     $(document).on("click", "#posSectionTabs .nav-link", function () {
-        $("#posSectionTabs .nav-link").removeClass("active");
-        $(this).addClass("active");
-
-        var selectedSection = $(this).data("section");
-        renderPosTableCards(selectedSection);
+        posTableSection = $(this).data("section");
+        renderPosTableSelection();
     });
+
+    $("#btnPosViewCards").on("click", function () { setPosTableView("cards"); });
+    $("#btnPosViewPlan").on("click", function () { setPosTableView("plan"); });
 
     $("#btn-submit-order").on("click", function () {
         if (cart.length === 0) {
@@ -187,9 +187,7 @@ function selectInitialOrderType(type) {
 
     if (type === "Masa") {
         $("#orderType").val("Masa");
-        renderPosTableCards("Hepsi");
-        var tableModal = new bootstrap.Modal(document.getElementById('posTableMapModal'));
-        tableModal.show();
+        openPosTableSelection();
     } else if (type === "PaketServis") {
         $("#orderType").val("PaketServis");
         $("#tableId").val("");
@@ -728,28 +726,7 @@ function renderPosTableCards(sectionFilter) {
         var $card = $(cardHtml);
 
         $card.find(".pos-table-card").on("click", function () {
-            var selectedId = $(this).data("id");
-            var selectedName = $(this).data("name");
-            var status = $(this).data("status");
-
-            $("#tableId").val(selectedId);
-
-            var modalElem = document.getElementById('posTableMapModal');
-            var modalInstance = bootstrap.Modal.getInstance(modalElem);
-            if (modalInstance) modalInstance.hide();
-
-            confirmTargetSession(selectedName);
-
-            if (status === "Dolu") {
-                loadTableActiveOrder(selectedId);
-            } else {
-                cart = [];
-                existingCart = [];
-                $("#txtOrderGeneralNote").val("");
-                $("#chkIsPriorityOrder").prop("checked", false);
-                renderExistingOrders();
-                renderCart();
-            }
+            selectPosTable($(this).data("id"), $(this).data("name"), $(this).data("status"));
         });
 
         $grid.append($card);
@@ -1175,5 +1152,122 @@ function deleteQuickNote(index) {
             showConfirmButton: false,
             timer: 1000
         });
+    }
+}
+
+// ---------- MASA SEÇİMİ: KARTLAR | KROKİ ----------
+// Kroki görünümü yalnızca Admin'in Kroki Yönetimi'nde çizip YAYINLADIĞI alanları gösterir
+// (FloorPlanController.GetPublishedPlan). Yayınlanmış kroki yoksa uyarı verilir, kartlar kullanılır.
+var posTableView = readPosTableView();
+var posTableSection = "Hepsi";
+var posFloorPlanData = null;
+
+function readPosTableView() {
+    try { return localStorage.getItem("posTableView") === "plan" ? "plan" : "cards"; } catch (e) { return "cards"; }
+}
+
+function openPosTableSelection() {
+    posTableSection = posTableView === "plan" ? null : "Hepsi";
+    renderPosTableSelection();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('posTableMapModal')).show();
+}
+
+function setPosTableView(mode) {
+    posTableView = mode;
+    try { localStorage.setItem("posTableView", mode); } catch (e) { }
+    if (mode === "plan" && posTableSection === "Hepsi") posTableSection = null;
+    if (mode === "cards" && !posTableSection) posTableSection = "Hepsi";
+    renderPosTableSelection();
+}
+
+function renderPosTableSelection() {
+    $("#btnPosViewCards").toggleClass("active", posTableView === "cards");
+    $("#btnPosViewPlan").toggleClass("active", posTableView === "plan");
+    $("#posTableCardGrid").toggleClass("d-none", posTableView === "plan");
+    $("#posFloorPlan").toggleClass("d-none", posTableView !== "plan");
+
+    if (posTableView === "cards") {
+        renderPosSectionTabs(posSectionsFromTables(), true);
+        renderPosTableCards(posTableSection || "Hepsi");
+        return;
+    }
+
+    // Kroki her açılışta yeniden alınır: masaların dolu/boş durumu güncel olsun
+    $("#posFloorPlan").html('<div class="text-center text-muted py-5"><i class="fa-solid fa-spinner fa-spin me-2"></i>Kroki yükleniyor…</div>');
+    $.get("/FloorPlan/GetPublishedPlan", function (res) {
+        if (!res || !res.success) {
+            $("#posFloorPlan").html('<div class="text-center text-danger py-5">Kroki yüklenemedi.</div>');
+            return;
+        }
+        posFloorPlanData = res.data;
+        var sections = posFloorPlanData.sections;
+
+        // Hiç yayınlanmış kroki yok: krokiden seçim yapılamaz
+        if (!sections.length) {
+            $("#posSectionTabs").empty();
+            $("#posFloorPlan").html(`
+                <div class="plan-missing">
+                    <i class="fa-solid fa-map-location-dot"></i>
+                    <h6>Restoranın krokisi henüz tamamlanmadı</h6>
+                    <p>Krokiden masa seçebilmek için yöneticinin <b>Kroki Yönetimi</b>'nde her kat/alan için binanın şeklini çizip
+                       masaları yerleştirmesi ve krokiyi <b>yayınlaması</b> gerekir. O zamana kadar masaları kartlardan seçebilirsiniz.</p>
+                    <button type="button" class="btn btn-purple btn-sm" onclick="setPosTableView('cards')"><i class="fa-solid fa-grip me-1"></i>Kartlarla Seç</button>
+                </div>`);
+            return;
+        }
+
+        if (!posTableSection || sections.indexOf(posTableSection) === -1) posTableSection = sections[0];
+        renderPosSectionTabs(sections, false);
+        var missing = posFloorPlanData.unpublishedSections || [];
+        var notice = missing.length
+            ? `<div class="alert alert-warning py-2 small mb-2"><i class="fa-solid fa-triangle-exclamation me-1"></i>Krokisi tamamlanmamış alan: <b>${missing.map(function (s) { return $("<div>").text(s).html(); }).join(", ")}</b>. Bu alanlardaki masaları kartlardan seçin.</div>`
+            : "";
+        $("#posFloorPlan").html(notice + '<div id="posFloorPlanCanvas"></div>');
+        FloorPlan.render("#posFloorPlanCanvas", posFloorPlanData, posTableSection, {
+            showStatus: true,
+            onTableClick: function (t) {
+                selectPosTable(t.tableId, t.tableNumber, t.isOccupied ? "Dolu" : "Bos");
+            }
+        });
+    });
+}
+
+function posSectionsFromTables() {
+    var sections = [];
+    $.each(posTablesData || [], function (i, t) {
+        var s = t.section || "Salon";
+        if (!sections.some(function (x) { return x.toLowerCase() === s.toLowerCase(); })) sections.push(s);
+    });
+    return sections;
+}
+
+function renderPosSectionTabs(sections, includeAll) {
+    var active = posTableSection || (includeAll ? "Hepsi" : sections[0]);
+    var items = (includeAll ? ["Hepsi"] : []).concat(sections);
+    var html = items.map(function (s) {
+        var label = s === "Hepsi" ? "Tümü" : s;
+        return `<li class="nav-item"><button class="nav-link fw-bold py-2 rounded-3 ${s === active ? "active" : ""}" data-section="${$("<div>").text(s).html()}">${$("<div>").text(label).html()}</button></li>`;
+    }).join("");
+    $("#posSectionTabs").html(html);
+}
+
+// Kart ya da krokiden seçilen masa siparişe bağlanır; dolu masada mevcut adisyon yüklenir
+function selectPosTable(selectedId, selectedName, status) {
+    $("#tableId").val(selectedId);
+
+    var modalInstance = bootstrap.Modal.getInstance(document.getElementById('posTableMapModal'));
+    if (modalInstance) modalInstance.hide();
+
+    confirmTargetSession(selectedName);
+
+    if (status === "Dolu") {
+        loadTableActiveOrder(selectedId);
+    } else {
+        cart = [];
+        existingCart = [];
+        $("#txtOrderGeneralNote").val("");
+        $("#chkIsPriorityOrder").prop("checked", false);
+        renderExistingOrders();
+        renderCart();
     }
 }

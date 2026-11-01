@@ -22,7 +22,7 @@ The real project lives in `RestaurantApp.Web/`.
 ## Architecture
 
 ### Data layer (database-first)
-- `Data/Model1.edmx` is the source of truth. `Model1.Context.cs`, `Model1.cs` and the entity classes (`AppUsers`, `AppOrders`, `AppOrderDetails`, `AppProducts`, `AppCategories`, `AppTables`, `Companies`, `HygieneViolations`, `ChannelSettings`, `UserDevices`) are **T4-generated**. Don't hand-edit them: change the DB, then use "Update Model from Database" in the EDMX designer.
+- `Data/Model1.edmx` is the source of truth. `Model1.Context.cs`, `Model1.cs` and the entity classes (`AppUsers`, `AppOrders`, `AppOrderDetails`, `AppProducts`, `AppCategories`, `AppTables`, `Companies`, `HygieneViolations`, `ChannelSettings`, `UserDevices`, `FloorPlanElements`) are **T4-generated**. Don't hand-edit them: change the DB, then use "Update Model from Database" in the EDMX designer.
 - Controllers create the context directly (`private RestaurantAppDBEntities db = new RestaurantAppDBEntities();`). There is no repository or service layer, and the business logic lives in the controller actions.
 - **Multi-tenant by `CompanyId`.** `AppUsers`, `AppProducts`, `AppCategories`, `AppTables`, `AppOrders` and `HygieneViolations` all carry a `CompanyId`.
   - The current company comes **only** from the JWT `CompanyId` claim (`JwtHelper.CompanyIdClaim`). Never read it from a request parameter, and never fall back to "first admin" or `1`.
@@ -33,6 +33,10 @@ The real project lives in `RestaurantApp.Web/`.
     - `GetMenuData` returns everything in one call: restaurant and table name, active categories, products, and `popularProductIds` (the best sellers of the last 30 days, topped up with the newest products).
     - Descriptions go out only as `ProductDescription.Text`. Recipes are internal kitchen data and must never reach this public endpoint.
     - The page (`Views/Menu/Index.cshtml` + `qr-menu.js`) is phone-first. Search and the category scroll-spy run client-side.
+    - QR codes are managed on their own Admin page, `/Admin/QrMenu` (`qr-menu-admin.js`/`.css`), which has its own sidebar entry and is no longer part of Masa Yönetimi.
+      - `AdminController.GetQrCodes` returns the general menu link (`?companyId=`) and one link per table (`?tableId=`, so the menu shows the table name). QR images come from an external QR service.
+      - The page can download, copy, preview and print labels for one table or for all tables.
+      - The old `/Admin/TableManagement?modal=qr` link redirects there.
 - Status values are Turkish string literals compared directly in code:
   - Order statuses: `Hazırlanıyor`, `Hazır`, `Servis Edildi`, `Teslim Edildi`, `Yolda` (delivery only), `Tamamlandı`, `İptal`.
   - Table statuses: `Bos`, `Dolu`.
@@ -88,6 +92,30 @@ The real project lives in `RestaurantApp.Web/`.
 - **The server culture is tr-TR**, where the decimal separator is a comma, while JS sends `125.5`. `Helpers/InvariantDecimalModelBinder`, registered for `decimal` and `decimal?` in `Global.asax.cs`, binds form and query values with InvariantCulture. Don't remove it, and don't parse money strings with the current culture.
 - The project uses the old-style `.csproj`, so new files (views, JS, CSS, C#) must be added to `RestaurantApp.Web.csproj` as `Content`/`Compile` items, or they won't deploy or compile.
 - **New `.cshtml` files must be saved as UTF-8 *with BOM*.** Without a BOM, Razor reads the file with the Windows Turkish code page, and every Turkish character in the view's own text shows up garbled (e.g. "ÅŸ" instead of "ş"). All existing views start with `EF BB BF`. Check with `head -c3 file | od -An -tx1`. There must be **exactly one** BOM. The Write tool keeps an existing BOM when it overwrites a file, so don't prepend another. A doubled BOM is output as a text character, which pushes `<meta>` into `<body>` and leaves an empty line at the top of the page.
+
+### Floor plan (Kroki)
+- Each area or floor (Salon, Alt Kat, 1. Kat Balkon…) has its own plan on a **logical 1200x700 canvas**.
+  - Tables keep their place in `AppTables.PosX/PosY/Width/Height/Shape` (`Square`/`Circle`).
+  - Architectural items live in `FloorPlanElements` (`Database/009`), per company and section, with `Rotation`.
+  - `zemin` (floor / room) draws the building's real outline. An L-shaped shop is two `zemin` pieces, and everything outside them is shown hatched as "outside the building".
+  - The other items are kolon, mutfak, kasa, fırın, bar, wc, depo, merdiven, kapı, pencere, duvar, bitki and yazı.
+- **Draft and publish.** The admin's edits autosave as a *draft*.
+  - `FloorPlanSections` (`Database/010`) holds each area's sort order and publish state. "Yayınla" (`PublishSection`) validates the area and copies its current layout into `PublishedJson`. Validation rules:
+    - the area is not empty;
+    - no two tables overlap;
+    - if `zemin` exists, every table lies inside it (rotated rects handled for 90°/270°).
+  - **Table pickers only use `GetPublishedPlan`.** It takes positions from the snapshot and table names and occupancy live, and it skips deleted tables.
+  - Edits after publishing set `UpdatedDate`. `hasChanges` is true when the area was edited after publishing, or when its set of tables no longer matches the snapshot. These changes don't reach the POS until the area is published again.
+  - If nothing is published, the POS "Kroki" view says the plan isn't finished and points to the cards.
+- `FloorPlanController` authorization: the class allows Admin, Garson and Kasiyer (used by `GetPublishedPlan`). Every editing action, including `GetFloorPlan` (the draft), carries `[JwtAuthorize(Roles = "Admin")]`.
+  - Class and action filters are **both** applied, so put the broadest roles on the class and restrict per action. Never do it the other way round.
+  - The server validates element types (keep `ElementTypes` in sync with `FloorPlan.TYPES` in JS) and clamps everything inside the canvas.
+- `Library/scripts/floor-plan-view.js` (+ `floor-plan.css`) is the **shared renderer**. It draws one section, scales it to the container width and always puts `zemin` underneath. It is used by:
+  - the editor `/Admin/FloorPlanManagement` (`floor-plan-management.js`): own pointer-based drag and resize, a grid snap of 10, autosave, an inspector, publish bar and status dots, and "Masaları otomatik diz";
+  - the POS table picker: the "Kartlar | Kroki" toggle, remembered in `localStorage.posTableView`. Clicking a table calls `selectPosTable`, shared with the cards.
+- The editor is linked from the sidebar (Masa Yönetimi → Kroki Yönetimi) and from the "Kroki" button on Masa Yönetimi.
+- New tables start at the same default spot. `FloorPlan.stackedTableCount` warns about this in the editor, and publishing refuses overlapping tables.
+- Areas created on Masa Yönetimi ("Alan Yönet") are still only a `localStorage` list. The plan's sections come from `FloorPlanSections`, the tables and the elements.
 
 ### Delivery orders (Paket Servis)
 - A delivery order is an `AppOrders` row with `OrderType = "PaketServis"`.

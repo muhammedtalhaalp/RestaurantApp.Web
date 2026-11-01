@@ -1,43 +1,68 @@
-﻿@model IEnumerable<RestaurantApp.Web.Data.AppTables>
-@{
+﻿@{
     ViewBag.Title = "Kroki Yönetimi";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
 @section styles {
-    <link href="~/Library/styles/floor-plan-management.css" rel="stylesheet" />
+    <link href="~/Library/styles/floor-plan.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+    <link href="~/Library/styles/floor-plan-management.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
 }
 
-<div class="container-fluid py-3">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="floor-editor">
+    <!-- ÜST BAŞLIK -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
-            <h3 class="fw-bold m-0"><i class="fa-solid fa-map-location-dot me-2" style="color: #4a154b;"></i>Kroki Yönetimi</h3>
-            <p class="text-muted small m-0">Restoran mimari çizimini sürükleyip boyutlandırarak tasarlayın.</p>
+            <h4 class="fw-bold text-dark mb-0">
+                <i class="fa-solid fa-map-location-dot me-2 text-brand"></i>Kroki Yönetimi
+            </h4>
+            <p class="text-muted small mb-0">Her kat / alan için binanın şeklini çizin, masaları ve diğer öğeleri yerleştirin; bitince yayınlayın. Kasada yalnızca yayınlanan kroki kullanılır.</p>
         </div>
-        <div>
-            <a href="/Admin/TableManagement" class="btn btn-outline-secondary fw-bold rounded-3 shadow-sm">
-                <i class="fa-solid fa-arrow-left me-2"></i>Masa Yönetimine Dön
+        <div class="d-flex align-items-center gap-2">
+            <span class="save-status" id="saveStatus"><i class="fa-solid fa-circle-check me-1"></i>Kaydedildi</span>
+            <a href="/Admin/TableManagement" class="btn btn-outline-secondary btn-sm px-3">
+                <i class="fa-solid fa-arrow-left me-1"></i>Masa Yönetimi
             </a>
         </div>
     </div>
 
-    <!-- KROKİ / MİMARİ YERLEŞİM ALANI -->
-    <div id="floorPlanContainer" class="card border-0 shadow-sm p-3 rounded-4 mb-4">
-        <div class="floor-plan-container" id="floorPlanCanvas">
-            <!-- Sabit/Sürüklenebilir Mimari Unsurlar -->
-            <div class="architect-element elem-kitchen" id="elem-kitchen"><i class="fa-solid fa-utensils me-2"></i>Mutfak</div>
-            <div class="architect-element elem-pos" id="elem-pos"><i class="fa-solid fa-cash-register me-2"></i>Kasa</div>
-            <div class="architect-element elem-door-inner" id="elem-door-inner"><i class="fa-solid fa-door-open me-1"></i>İç Kapı</div>
-            <div class="architect-element elem-door-outer" id="elem-door-outer"><i class="fa-solid fa-door-open me-1"></i>Dış Kapı</div>
+    <!-- ALANLAR -->
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <ul class="nav nav-pills gap-2" id="sectionTabs"></ul>
+        <button type="button" class="btn btn-outline-brand btn-sm" id="btnAddSection">
+            <i class="fa-solid fa-plus me-1"></i>Yeni Alan / Kat
+        </button>
+    </div>
 
-            <div class="floor-divider"></div>
+    <!-- ÖĞE PALETİ: krokiye daha çok yer kalsın diye üstte yatay şerit -->
+    <div class="card p-3 mb-3">
+        <div class="d-flex flex-wrap align-items-baseline gap-2 mb-2">
+            <div class="panel-title mb-0"><i class="fa-solid fa-shapes me-2"></i>Öğe Ekle</div>
+            <span class="text-muted small">Tıklayın; öğe krokinin ortasına eklenir.</span>
+        </div>
+        <div class="palette" id="palette"></div>
+    </div>
 
-            <div class="section-label label-indoor">İÇERİ</div>
-            <div class="section-label label-outdoor">DIŞARI</div>
+    <div class="row g-3">
+        <!-- KROKİ -->
+        <div class="col-xl-9 col-lg-8">
+            <div class="card p-3">
+                <div id="publishBar" class="publish-bar mb-3"></div>
+                <div id="floorCanvas"></div>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 small text-muted">
+                    <span><i class="fa-solid fa-hand-pointer me-1"></i>Sürükleyerek taşıyın · sağ alt köşeden boyutlandırın · <kbd>Del</kbd> ile silin · ok tuşlarıyla kaydırın</span>
+                    <span class="legend"><span class="dot empty"></span>Boş masa <span class="dot occupied ms-2"></span>Dolu masa</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ÖZELLİKLER -->
+        <div class="col-xl-3 col-lg-4">
+            <div class="card p-3 h-100" id="inspector"></div>
         </div>
     </div>
 </div>
 
 @section scripts {
-    <script src="~/Library/scripts/floor-plan-management.js"></script>
+    <script src="~/Library/scripts/floor-plan-view.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/Library/scripts/floor-plan-management.js?v=@DateTime.Now.Ticks"></script>
 }

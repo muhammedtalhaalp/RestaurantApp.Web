@@ -1,0 +1,179 @@
+/* ORTAK KROKİ GÖRÜNÜMÜ (floor-plan-view.js): Kroki Yönetimi ve masa seçim ekranları */
+
+.fp-viewport {
+    position: relative;
+    width: 100%;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid #e3dbe7;
+    background-color: #fbf9fc;
+    background-image:
+        linear-gradient(rgba(74, 21, 75, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74, 21, 75, 0.05) 1px, transparent 1px);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.fp-stage {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transform-origin: 0 0;
+}
+
+/* Izgara, ölçeklenen tuvalle birlikte büyür */
+.fp-viewport { background-size: 2.5% 4.2857%; }
+
+.fp-item {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    text-align: center;
+    user-select: none;
+    -webkit-user-select: none;
+    font-family: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+    line-height: 1.15;
+    overflow: hidden;
+}
+
+/* Zemin çizilmiş alanda zeminin dışı "bina dışı" olarak taralı görünür */
+.fp-viewport.has-floor {
+    background-color: #eeeaf1;
+    background-image: repeating-linear-gradient(45deg, rgba(74, 21, 75, 0.06) 0 2px, transparent 2px 14px);
+    background-size: auto;
+}
+
+/* ---------- Mimari öğeler ---------- */
+.fp-el {
+    border-radius: 12px;
+    border: 2px solid;
+    font-weight: 700;
+    font-size: 15px;
+    color: #3d3346;
+    z-index: 1;
+}
+
+    .fp-el i { font-size: 20px; opacity: .85; }
+    .fp-el span { padding: 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+.fp-el-zemin {
+    z-index: 0;
+    border-radius: 4px;
+    border: 3px solid #4a3f52;
+    background-color: #fffdf9;
+    background-image:
+        linear-gradient(rgba(74, 21, 75, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74, 21, 75, 0.05) 1px, transparent 1px);
+    background-size: 30px 30px;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.fp-floor-label {
+    margin: 8px 10px;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: #8b7f93;
+}
+
+.fp-el-kolon { background: #4a3f52; border-color: #4a3f52; border-radius: 4px; }
+
+.fp-el-mutfak { background: #fff1e6; border-color: #f2a65a; color: #9a4a12; }
+.fp-el-kasa { background: #f3e9f5; border-color: #b06ab3; color: #5d1f5f; }
+.fp-el-firin { background: #fde8e8; border-color: #f07272; color: #a42222; }
+.fp-el-bar { background: #e8f1ff; border-color: #6aa1f5; color: #1d4ed8; }
+.fp-el-wc { background: #e6f8fb; border-color: #4cc3d9; color: #0e7490; }
+.fp-el-depo { background: #eef0f4; border-color: #a3abb9; color: #475569; }
+.fp-el-merdiven {
+    border-color: #a3abb9; color: #475569;
+    background: repeating-linear-gradient(0deg, #f1f3f6 0 12px, #dfe3ea 12px 14px);
+}
+.fp-el-kapi { background: #f5e8dc; border-color: #a9774f; color: #7a4a26; border-radius: 6px; font-size: 12px; flex-direction: row; gap: 5px; }
+    .fp-el-kapi i { font-size: 13px; }
+.fp-el-pencere {
+    border-radius: 4px; border-color: #7fb6e6;
+    background: linear-gradient(180deg, #d9ecfb 0 40%, #ffffff 40% 60%, #d9ecfb 60%);
+}
+.fp-el-duvar { background: #3d3346; border-color: #3d3346; border-radius: 3px; }
+.fp-el-bitki { background: #e7f7ec; border-color: #5cc489; color: #15803d; border-radius: 50%; }
+    .fp-el-bitki span { display: none; }
+.fp-el-yazi { border-color: transparent; background: transparent; color: #4a154b; font-size: 18px; font-weight: 800; letter-spacing: .02em; }
+    .fp-viewport.is-editable .fp-el-yazi { border: 1px dashed #d9c6dc; }
+
+/* ---------- Masalar ---------- */
+.fp-table {
+    z-index: 2;
+    border-radius: 14px;
+    border: 2px solid;
+    font-weight: 800;
+    font-size: 15px;
+    box-shadow: 0 4px 12px rgba(29, 21, 37, 0.08);
+    transition: transform .12s ease, box-shadow .12s ease;
+}
+
+    .fp-table.is-circle { border-radius: 50%; }
+    .fp-table.is-empty { background: #ecfdf3; border-color: #34c27a; color: #116a3d; }
+    .fp-table.is-occupied { background: #fdecec; border-color: #ef5a5a; color: #a31d1d; }
+    .fp-table.is-priority { box-shadow: 0 0 0 3px rgba(245, 158, 11, .45), 0 4px 12px rgba(29, 21, 37, 0.08); }
+
+.fp-t-name { padding: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.fp-t-amount { font-size: 12px; font-weight: 700; opacity: .9; }
+.fp-t-status { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; opacity: .8; }
+.fp-t-fire { position: absolute; top: 4px; right: 6px; font-size: 12px; color: #f59e0b; }
+
+/* Seçim ekranlarında masaya tıklanır */
+.fp-viewport:not(.is-editable) .fp-table { cursor: pointer; }
+    .fp-viewport:not(.is-editable) .fp-table:hover { transform: translateY(-3px); box-shadow: 0 10px 22px rgba(29, 21, 37, 0.16); }
+
+/* ---------- Düzenleme modu ---------- */
+.fp-viewport.is-editable .fp-item { cursor: move; touch-action: none; }
+.fp-item.is-selected { outline: 3px solid #b06ab3; outline-offset: 3px; z-index: 5; overflow: visible; }
+
+.fp-handle {
+    position: absolute;
+    right: -9px;
+    bottom: -9px;
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    background: #7b2d7e;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
+    cursor: nwse-resize;
+    touch-action: none;
+}
+
+/* ---------- Kasada: yayınlanmış kroki yok ---------- */
+.plan-missing {
+    text-align: center;
+    padding: 40px 24px;
+    border-radius: 18px;
+    border: 1px dashed #d9c6dc;
+    background: #faf7fb;
+    color: #6b6475;
+}
+
+    .plan-missing > i { font-size: 44px; color: #c9a8cf; margin-bottom: 12px; }
+    .plan-missing h6 { font-weight: 800; color: #1d1525; }
+    .plan-missing p { max-width: 520px; margin: 0 auto 14px; font-size: 0.9rem; }
+
+/* ---------- Boş alan ---------- */
+.fp-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    color: #a79fb0;
+    font-size: 22px;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+    .fp-empty i { font-size: 54px; opacity: .6; }

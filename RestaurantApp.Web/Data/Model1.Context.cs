@@ -35,5 +35,7 @@ namespace RestaurantApp.Web.Data
         public virtual DbSet<HygieneViolations> HygieneViolations { get; set; }
         public virtual DbSet<ChannelSettings> ChannelSettings { get; set; }
         public virtual DbSet<UserDevices> UserDevices { get; set; }
+        public virtual DbSet<FloorPlanElements> FloorPlanElements { get; set; }
+        public virtual DbSet<FloorPlanSections> FloorPlanSections { get; set; }
     }
 }

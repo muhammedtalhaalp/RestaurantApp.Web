@@ -49,10 +49,6 @@
         updateAdminPayTargetDisplay();
     });
 
-    $("#btnShowGeneralQr").on("click", function () {
-        openQrModal(null);
-    });
-
     $(document).on("click", "#sectionTabs .nav-link", function () {
         $("#sectionTabs .nav-link").removeClass("active");
         $(this).addClass("active");
@@ -70,7 +66,8 @@
         var modalParam = urlParams.get('modal');
 
         if (modalParam === 'qr') {
-            openQrModal(null);
+            // QR Menü kendi sayfasına taşındı; eski bağlantılar oraya gider
+            window.location.replace("/Admin/QrMenu");
         } else if (modalParam === 'sections') {
             renderSectionManageList();
             bootstrap.Modal.getOrCreateInstance(document.getElementById('manageSectionsModal')).show();
@@ -653,38 +650,4 @@
             }
         });
     });
-
-    function openQrModal(tableId, title) {
-        Swal.fire({
-            title: 'QR Kod Hazırlanıyor...',
-            allowOutsideClick: false,
-            didOpen: () => { Swal.showLoading(); }
-        });
-
-        $.ajax({
-            url: "/Admin/GenerateQrCodeUrl",
-            type: "GET",
-            data: { tableId: tableId },
-            success: function (res) {
-                Swal.close();
-                if (res && res.success) {
-                    $("#imgQrCode").attr("src", res.qrImageUrl);
-                    $("#btnDownloadQr").attr("href", res.qrImageUrl);
-                    $("#txtQrTargetUrl").text(res.targetUrl);
-
-                    var dynamicTitle = title || (res.companyName ? `${res.companyName} Menü QR Kodu` : "Menü QR Kodu");
-                    $("#qrModalSubTitle").text(dynamicTitle);
-
-                    var modalEl = document.getElementById('qrCodeModal');
-                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
-                } else {
-                    Swal.fire("Hata", res ? res.message : "QR Kod oluşturulamadı.", "error");
-                }
-            },
-            error: function () {
-                Swal.close();
-                Swal.fire("Hata", "QR Kod oluşturulurken sunucu hatası oluştu.", "error");
-            }
-        });
-    }
 });

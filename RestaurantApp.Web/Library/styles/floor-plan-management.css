@@ -1,182 +1,156 @@
-﻿/* Kroki Tuval Alanı */
-.floor-plan-container {
-    background-color: #f4f0ea;
-    background-image: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px);
-    background-size: 20px 20px;
-    border: 3px solid #2d3748;
-    border-radius: 16px;
-    position: relative;
-    min-height: 550px;
-    overflow: hidden;
-    box-shadow: inset 0 0 15px rgba(0,0,0,0.08);
+﻿/* KROKİ YÖNETİMİ: palet, alan sekmeleri ve özellikler paneli (kroki çizimi: floor-plan.css) */
+
+.panel-title {
+    font-weight: 700;
+    font-size: 0.98rem;
+    color: #1d1525;
+    margin-bottom: 8px;
 }
 
-/* İçeri ve Dışarı Alan Ayırıcı Çizgisi */
-.floor-divider {
-    position: absolute;
-    top: 50%;
-    left: 0;
+    .panel-title i { color: #7b2d7e; }
+
+/* Öğe paleti */
+.palette {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
+    gap: 6px;
+}
+
+.palette-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     width: 100%;
-    border-top: 3px dashed #718096;
-    z-index: 1;
+    padding: 7px 9px;
+    border: 1px solid #ebe6ef;
+    border-radius: 12px;
+    background: #fff;
+    font-weight: 600;
+    font-size: 0.86rem;
+    color: #1d1525;
+    text-align: left;
+    transition: border-color .15s, background .15s, transform .1s;
 }
 
-/* Mimari Yapılar (Mutfak, Kasa, Kapılar) */
-.architect-element {
-    position: absolute;
-    background: #e2e8f0;
-    border: 2px solid #4a5568;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 0.85rem;
-    color: #2d3748;
-    z-index: 2;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-    cursor: move;
-    user-select: none;
-    transition: box-shadow 0.2s, border-color 0.2s;
-}
+    .palette-item:hover { border-color: #d9c6dc; background: #faf7fb; }
+    .palette-item:active { transform: scale(.98); }
 
-    .architect-element:hover {
-        box-shadow: 0 6px 14px rgba(0,0,0,0.2);
-        border-color: #4a154b;
+    .palette-item .swatch {
+        position: static;
+        flex: 0 0 30px;
+        height: 24px;
+        border-radius: 7px;
+        border: 2px solid;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
     }
 
-.elem-kitchen {
-    top: 15px;
-    left: 15px;
-    width: 130px;
-    height: 100px;
-    background: #feebc8;
-    border-color: #dd6b20;
-    color: #7b341e;
+        .palette-item .swatch.fp-el-duvar,
+        .palette-item .swatch.fp-el-pencere,
+        .palette-item .swatch.fp-el-kapi { height: 12px; }
+
+/* Alan sekmeleri */
+#sectionTabs .nav-link {
+    border: 1px solid #ebe6ef;
+    padding: 6px 14px;
 }
 
-.elem-pos {
-    top: 190px;
-    left: 15px;
-    width: 90px;
-    height: 50px;
-    background: #e9d8fd;
-    border-color: #805ad5;
-    color: #44123f;
+    #sectionTabs .nav-link:not(.active) { background: #fff; }
+
+.tab-count {
+    display: inline-block;
+    min-width: 20px;
+    padding: 0 6px;
+    margin-left: 4px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    background: rgba(74, 21, 75, 0.08);
 }
 
-.elem-door-inner {
-    top: 235px;
-    left: 45%;
-    width: 100px;
-    height: 26px;
-    background: #cbd5e0;
-    border-color: #4a5568;
-    font-size: 0.75rem;
-}
+#sectionTabs .nav-link.active .tab-count { background: rgba(255, 255, 255, 0.25); }
 
-.elem-door-outer {
-    bottom: 10px;
-    left: 45%;
-    width: 100px;
-    height: 26px;
-    background: #cbd5e0;
-    border-color: #4a5568;
-    font-size: 0.75rem;
-}
-
-/* Alan Etiketleri */
-.section-label {
-    position: absolute;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    color: rgba(0,0,0,0.15);
-    font-size: 1.8rem;
-    pointer-events: none;
-    z-index: 1;
-}
-
-.label-indoor {
-    top: 20px;
-    right: 25px;
-}
-
-.label-outdoor {
-    bottom: 20px;
-    right: 25px;
-}
-
-/* Kroki Üzerindeki Masalar */
-.draggable-table {
-    position: absolute;
-    width: 75px;
-    height: 75px;
-    background: #ffffff;
-    border: 2px solid #4a154b;
-    color: #2d3748;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    cursor: move;
-    z-index: 10;
-    font-weight: 700;
+/* Kaydetme durumu */
+.save-status {
     font-size: 0.8rem;
-    box-shadow: 0 6px 12px rgba(0,0,0,0.12);
-    user-select: none;
+    font-weight: 600;
+    color: #15803d;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    padding: 5px 10px;
+    border-radius: 999px;
 }
 
-    .draggable-table:hover {
-        box-shadow: 0 8px 16px rgba(0,0,0,0.18);
-    }
+    .save-status.is-saving { color: #6b6475; background: #f6f4f8; border-color: #ebe6ef; }
+    .save-status.is-error { color: #b91c1c; background: #fef2f2; border-color: #fecaca; }
 
-    .draggable-table.square {
-        border-radius: 12px;
-    }
-
-    .draggable-table.circle {
-        border-radius: 50%;
-    }
-
-    .draggable-table .table-icon {
-        font-size: 1.1rem;
-        color: #4a154b;
-        margin-bottom: 2px;
-    }
-
-    .draggable-table .status-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        position: absolute;
-        top: 6px;
-        right: 6px;
-    }
-
-.status-dot.bos {
-    background-color: #38a169;
-}
-
-.status-dot.dolu {
-    background-color: #e53e3e;
-}
-
-/* Masa Boyutlandırma Tutamakları */
-.ui-resizable-handle {
-    background-color: #4a154b;
+/* Taslak / yayın durumu */
+.state-dot {
+    display: inline-block;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
-    width: 8px !important;
-    height: 8px !important;
-    opacity: 0;
-    transition: opacity 0.2s;
+    margin-right: 6px;
+    vertical-align: 1px;
 }
 
-.draggable-table:hover .ui-resizable-handle {
-    opacity: 0.8;
+    .state-dot.is-draft { background: #a79fb0; }
+    .state-dot.is-live { background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, .2); }
+    .state-dot.is-changed { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245, 158, 11, .2); }
+
+.publish-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: #faf8fb;
+    border: 1px solid #ebe6ef;
+    font-size: 0.88rem;
 }
 
-.ui-resizable-se {
-    right: 2px !important;
-    bottom: 2px !important;
+    .publish-bar .pb-text { flex: 1; min-width: 240px; }
+
+/* Üst üste binen masalar uyarısı */
+.overlap-warning {
+    font-size: 0.82rem;
+    color: #92400e;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 12px;
+    padding: 9px 12px;
 }
+
+/* Özellikler paneli */
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid #f1edf4;
+    font-size: 0.9rem;
+}
+
+.tip {
+    font-size: 0.82rem;
+    color: #6b6475;
+    background: #f6f4f8;
+    border-radius: 12px;
+    padding: 10px 12px;
+}
+
+.rotation-value {
+    align-self: center;
+    font-weight: 700;
+    color: #7b2d7e;
+    min-width: 40px;
+    text-align: right;
+}
+
+/* Lejant */
+.legend { display: inline-flex; align-items: center; gap: 4px; }
+.legend .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; border: 2px solid; }
+.legend .dot.empty { background: #ecfdf3; border-color: #34c27a; }
+.legend .dot.occupied { background: #fdecec; border-color: #ef5a5a; }
