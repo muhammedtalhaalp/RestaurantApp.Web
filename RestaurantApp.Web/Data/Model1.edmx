@@ -94,6 +94,8 @@
           <Property Name="Width" Type="int" />
           <Property Name="Height" Type="int" />
           <Property Name="CompanyId" Type="int" Nullable="false" />
+          <Property Name="CameraStatus" Type="nvarchar" MaxLength="20" />
+          <Property Name="CameraStatusDate" Type="datetime" />
         </EntityType>
         <EntityType Name="AppUsers">
           <Key>
@@ -455,6 +457,8 @@
           <Property Name="Width" Type="Int32" />
           <Property Name="Height" Type="Int32" />
           <Property Name="CompanyId" Type="Int32" Nullable="false" />
+          <Property Name="CameraStatus" Type="String" MaxLength="20" FixedLength="false" Unicode="true" />
+          <Property Name="CameraStatusDate" Type="DateTime" Precision="3" />
         </EntityType>
         <EntityType Name="AppUsers">
           <Key>
@@ -728,6 +732,8 @@
           <EntitySetMapping Name="AppTables">
             <EntityTypeMapping TypeName="RestaurantAppDBModel.AppTables">
               <MappingFragment StoreEntitySet="AppTables">
+                <ScalarProperty Name="CameraStatusDate" ColumnName="CameraStatusDate" />
+                <ScalarProperty Name="CameraStatus" ColumnName="CameraStatus" />
                 <ScalarProperty Name="Height" ColumnName="Height" />
                 <ScalarProperty Name="CompanyId" ColumnName="CompanyId" />
                 <ScalarProperty Name="Width" ColumnName="Width" />

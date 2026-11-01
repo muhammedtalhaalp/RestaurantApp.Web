@@ -1161,6 +1161,19 @@ function deleteQuickNote(index) {
 var posTableView = readPosTableView();
 var posTableSection = "Hepsi";
 var posFloorPlanData = null;
+var posPlanTimer = null;
+
+// Kroki açıkken masa durumları (sipariş + masa doluluk kamerası) birkaç saniyede bir yenilenir
+$(function () {
+    $("#posTableMapModal")
+        .on("shown.bs.modal", function () {
+            clearInterval(posPlanTimer);
+            posPlanTimer = setInterval(function () {
+                if (posTableView === "plan") renderPosTableSelection(true);
+            }, 5000);
+        })
+        .on("hidden.bs.modal", function () { clearInterval(posPlanTimer); });
+});
 
 function readPosTableView() {
     try { return localStorage.getItem("posTableView") === "plan" ? "plan" : "cards"; } catch (e) { return "cards"; }
@@ -1180,7 +1193,8 @@ function setPosTableView(mode) {
     renderPosTableSelection();
 }
 
-function renderPosTableSelection() {
+// silent: arka plan yenilemesi; "yükleniyor" gösterilmez, sekme korunur
+function renderPosTableSelection(silent) {
     $("#btnPosViewCards").toggleClass("active", posTableView === "cards");
     $("#btnPosViewPlan").toggleClass("active", posTableView === "plan");
     $("#posTableCardGrid").toggleClass("d-none", posTableView === "plan");
@@ -1193,9 +1207,11 @@ function renderPosTableSelection() {
     }
 
     // Kroki her açılışta yeniden alınır: masaların dolu/boş durumu güncel olsun
-    $("#posFloorPlan").html('<div class="text-center text-muted py-5"><i class="fa-solid fa-spinner fa-spin me-2"></i>Kroki yükleniyor…</div>');
+    if (!silent) $("#posFloorPlan").html('<div class="text-center text-muted py-5"><i class="fa-solid fa-spinner fa-spin me-2"></i>Kroki yükleniyor…</div>');
     $.get("/FloorPlan/GetPublishedPlan", function (res) {
+        if (silent && posTableView !== "plan") return;
         if (!res || !res.success) {
+            if (silent) return;
             $("#posFloorPlan").html('<div class="text-center text-danger py-5">Kroki yüklenemedi.</div>');
             return;
         }
@@ -1222,7 +1238,7 @@ function renderPosTableSelection() {
         var notice = missing.length
             ? `<div class="alert alert-warning py-2 small mb-2"><i class="fa-solid fa-triangle-exclamation me-1"></i>Krokisi tamamlanmamış alan: <b>${missing.map(function (s) { return $("<div>").text(s).html(); }).join(", ")}</b>. Bu alanlardaki masaları kartlardan seçin.</div>`
             : "";
-        $("#posFloorPlan").html(notice + '<div id="posFloorPlanCanvas"></div>');
+        $("#posFloorPlan").html(notice + posCameraAlertsHtml(posFloorPlanData.tables) + '<div id="posFloorPlanCanvas"></div>');
         FloorPlan.render("#posFloorPlanCanvas", posFloorPlanData, posTableSection, {
             showStatus: true,
             onTableClick: function (t) {
@@ -1231,6 +1247,23 @@ function renderPosTableSelection() {
         });
     });
 }
+
+// Masa doluluk kamerasının sistemle çeliştiği masalar (tüm alanlar); tıklanınca o masanın alanı açılır
+function posCameraAlertsHtml(tables) {
+    var alerts = (tables || []).map(function (t) { return { table: t, text: FloorPlan.cameraAlert(t) }; })
+        .filter(function (a) { return a.text; });
+    if (!alerts.length) return "";
+    return '<div class="camera-alerts">' + alerts.map(function (a) {
+        return `<span class="camera-alert-chip" data-section="${FloorPlan.escapeHtml(a.table.section)}">
+                    <i class="fa-solid fa-video"></i><b>${FloorPlan.escapeHtml(a.table.tableNumber)}</b>${FloorPlan.escapeHtml(a.text)}
+                </span>`;
+    }).join("") + "</div>";
+}
+
+$(document).on("click", ".camera-alert-chip", function () {
+    posTableSection = $(this).data("section");
+    renderPosTableSelection(true);
+});
 
 function posSectionsFromTables() {
     var sections = [];

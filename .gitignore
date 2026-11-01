@@ -374,3 +374,7 @@ RestaurantApp.Web/App_Data/firebase/
 tools/hygiene-camera/config.json
 tools/hygiene-camera/__pycache__/
 tools/hygiene-camera/.venv/
+tools/table-camera/config.json
+tools/table-camera/__pycache__/
+tools/table-camera/.venv/
+tools/table-camera/*.pt

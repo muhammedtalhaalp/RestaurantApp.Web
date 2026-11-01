@@ -198,6 +198,28 @@ The real project lives in `RestaurantApp.Web/`.
   - The camera program sends one merged report per trigger (e.g. `"Bone takılmamış, Önlük giyilmemiş"`). When any violation passes `detections_required`, every violation seen at least `detections_to_include` times in the same window is added to that report. Per-class thresholds can be set with `roboflow.class_confidence`.
   - The recommended model is `chef-dataset/1` (classes `without_apron`, `without_cap`). The README has a benchmark on the user's own webcam photos. CCTV-trained models such as `kitchenhygiene/2` could not see aprons at close range.
 
+### Table occupancy camera (`tools/table-camera/`)
+- `table_camera.py` is a standalone Python program (OpenCV + Ultralytics YOLOv8n, pretrained on COCO, which runs locally). It is not part of the .NET build. It is the TÜBİTAK 2209-A pre-study.
+- How it works:
+  - `--calibrate`: the admin draws each table's area on the camera image and matches it to a table from `/TableCamera/GetTables`. The areas are saved as relative coordinates in `config.json`, which is gitignored.
+  - For each frame it decides a raw state per area:
+    - `Dolu`: a person overlaps the area;
+    - `Toplanacak`: no person, but a cup, bowl or food is inside;
+    - `Bos`: neither.
+  - A state is confirmed only after it has stayed the same for `hold_seconds`.
+  - Changes are posted to `/TableCamera/ReportStatus` immediately (JSON `{tables:[{TableId,Status}]}`). Unchanged states are re-sent every `heartbeat_seconds`.
+- **Frames are never saved or sent**; only table id and state leave the PC.
+- Server side:
+  - `TableCameraController` (Admin, Kasiyer, Garson, Mutfak) stores the state in `AppTables.CameraStatus` / `CameraStatusDate` (`Database/011`). It is company-checked, and unknown states are skipped.
+  - It pushes `onTableCameraStatus` to the company group when something changes.
+  - `Helpers/TableCameraStatus.Current` ignores data older than 2 minutes (camera off).
+- **The camera state is advisory only.** It never changes orders or `AppTables.Status`.
+  - The floor-plan JSON carries `cameraStatus`. `FloorPlan.cameraAlert(t)` compares it with `isOccupied`:
+    - "seated but no order";
+    - "looks empty but the bill is open";
+    - "needs clearing".
+  - The POS Kroki view shows a badge on each table, a pulsing ring on conflicts and an alert strip, and it refreshes every 5 s while open.
+
 ### Helpers
 - `CacheHelper` is a `MemoryCache` wrapper. Cached keys such as `Company_Products_{companyId}` and `AllCategories` must be invalidated with `CacheHelper.Remove(...)` after any write to products or categories. Existing write actions already do this.
 - `EmailHelper` sends mail over Gmail SMTP (OTP codes for password reset and profile changes; the OTP is held in Session).

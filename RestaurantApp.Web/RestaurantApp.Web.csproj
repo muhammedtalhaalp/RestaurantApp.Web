@@ -169,6 +169,8 @@
     <Compile Include="Controllers\CourierController.cs" />
     <Compile Include="Controllers\DeviceController.cs" />
     <Compile Include="Controllers\FloorPlanController.cs" />
+    <Compile Include="Controllers\TableCameraController.cs" />
+    <Compile Include="Helpers\TableCameraStatus.cs" />
     <Compile Include="Controllers\ErrorController.cs" />
     <Compile Include="Controllers\KitchenController.cs" />
     <Compile Include="Controllers\MenuController.cs" />

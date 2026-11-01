@@ -1,0 +1,22 @@
+{
+  "server_url": "https://localhost:44309",
+  "verify_ssl": false,
+  "username": "kamera@restoraniniz.com",
+  "password": "",
+  "camera_index": 0,
+
+  "model": "yolov8n.pt",
+  "confidence": 0.35,
+  "person_overlap": 0.2,
+  "item_classes": [
+    "cup", "bowl", "bottle", "wine glass", "fork", "knife", "spoon",
+    "pizza", "sandwich", "cake", "donut", "hot dog",
+    "banana", "apple", "orange", "broccoli", "carrot"
+  ],
+
+  "check_interval_seconds": 0.5,
+  "hold_seconds": { "Dolu": 3, "Bos": 8, "Toplanacak": 8 },
+  "heartbeat_seconds": 30,
+
+  "tables": []
+}

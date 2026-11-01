@@ -45,16 +45,40 @@ var FloorPlan = (function () {
                      title="${escapeHtml(text)}">${inner}</div>`;
     }
 
+    // Masa doluluk kamerası (TableCameraController). cameraStatus yoksa kamera yok ya da kapalıdır.
+    var CAMERA = {
+        Bos: { label: "Boş", icon: "fa-chair" },
+        Dolu: { label: "Dolu", icon: "fa-user-group" },
+        Toplanacak: { label: "Toplanacak", icon: "fa-utensils" }
+    };
+
+    // Kameranın gördüğü ile sistemdeki durum çelişiyorsa (ya da masa toplanacaksa) kasiyere uyarı metni
+    function cameraAlert(t) {
+        if (!t.cameraStatus) return null;
+        if (t.cameraStatus === "Dolu" && !t.isOccupied) return "Müşteri oturdu, sipariş açılmadı";
+        if (t.cameraStatus !== "Dolu" && t.isOccupied) return "Masa boş görünüyor, hesap hâlâ açık";
+        if (t.cameraStatus === "Toplanacak") return "Masa toplanacak";
+        return null;
+    }
+
+    function cameraBadge(t) {
+        var cam = CAMERA[t.cameraStatus];
+        if (!cam) return "";
+        return `<span class="fp-t-cam cam-${t.cameraStatus}" title="Kamera: ${cam.label}"><i class="fa-solid fa-video"></i>${cam.label}</span>`;
+    }
+
     function tableHtml(t, opts) {
         var occupied = t.isOccupied;
         var classes = ["fp-item", "fp-table", t.shape === "Circle" ? "is-circle" : "is-square", occupied ? "is-occupied" : "is-empty"];
         if (t.isPriority) classes.push("is-priority");
+        var alert = opts.showStatus ? cameraAlert(t) : null;
+        if (alert) classes.push("has-camera-alert");
         var amount = occupied && t.remainingAmount > 0 ? `<span class="fp-t-amount">${money(t.remainingAmount)}</span>` : "";
         var status = opts.showStatus ? `<span class="fp-t-status">${occupied ? "Dolu" : "Boş"}</span>` : "";
         return `<div class="${classes.join(" ")}" data-kind="table" data-id="${t.tableId}"
                      style="left:${t.posX}px;top:${t.posY}px;width:${t.width}px;height:${t.height}px"
-                     title="${escapeHtml(t.tableNumber)}">
-                    ${t.isPriority ? '<i class="fa-solid fa-fire fp-t-fire"></i>' : ""}
+                     title="${escapeHtml(t.tableNumber + (alert ? " — " + alert : ""))}">
+                    ${t.isPriority ? '<i class="fa-solid fa-fire fp-t-fire"></i>' : ""}${opts.showStatus ? cameraBadge(t) : ""}
                     <span class="fp-t-name">${escapeHtml(t.tableNumber)}</span>${amount}${status}
                 </div>`;
     }
@@ -135,5 +159,5 @@ var FloorPlan = (function () {
         return stacked;
     }
 
-    return { TYPES: TYPES, render: render, sections: sections, stackedTableCount: stackedTableCount, escapeHtml: escapeHtml };
+    return { TYPES: TYPES, render: render, sections: sections, stackedTableCount: stackedTableCount, cameraAlert: cameraAlert, escapeHtml: escapeHtml };
 })();

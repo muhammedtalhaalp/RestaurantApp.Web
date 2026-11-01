@@ -31,6 +31,8 @@ namespace RestaurantApp.Web.Data
         public Nullable<int> Width { get; set; }
         public Nullable<int> Height { get; set; }
         public int CompanyId { get; set; }
+        public string CameraStatus { get; set; }
+        public Nullable<System.DateTime> CameraStatusDate { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<AppOrders> AppOrders { get; set; }

@@ -5,6 +5,7 @@ using System.Web.Mvc;
 using Newtonsoft.Json;
 using RestaurantApp.Web.Data;
 using RestaurantApp.Web.Filters;
+using RestaurantApp.Web.Helpers;
 
 namespace RestaurantApp.Web.Controllers
 {
@@ -389,7 +390,8 @@ namespace RestaurantApp.Web.Controllers
                 height = h,
                 isOccupied = t.Status == "Dolu" || open != null,
                 remainingAmount = open?.Amount ?? 0,
-                isPriority = open?.Priority ?? false
+                isPriority = open?.Priority ?? false,
+                cameraStatus = TableCameraStatus.Current(t, DateTime.Now)   // kamera yoksa null
             };
         }
 
