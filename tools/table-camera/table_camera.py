@@ -25,6 +25,7 @@ import requests
 
 CONFIG_PATH = Path(__file__).with_name("config.json")
 WINDOW_TITLE = "LezzetPOS Masa Kamerasi (cikis: Q)"
+DRAG_MIN_PIXELS = 12   # kalibrasyonda bundan kısa fare hareketi sürükleme değil tıklama sayılır
 CALIBRATE_TITLE = "LezzetPOS Masa Kalibrasyonu"
 
 STATUS_EMPTY = "Bos"
@@ -213,18 +214,78 @@ class StatusTracker:
         return False
 
 
-def open_camera(index):
-    camera = cv2.VideoCapture(index, cv2.CAP_DSHOW) if sys.platform == "win32" else cv2.VideoCapture(index)
-    if not camera.isOpened():
-        sys.exit(f"Kamera açılamadı (camera_index={index}). Başka bir program kamerayı kullanıyor olabilir.")
-    return camera
+class FrameSource:
+    """Görüntü kaynağı: kamera numarası (0, 1…), ağ akışı (telefonda IP kamera uygulaması, tavan
+    kamerasının RTSP adresi) ya da video dosyası. Video dosyası gerçek zaman hızında oynatılır ve
+    bitince başa sarar; böylece kayıtlı bir tavan kamerası videosu canlı kamera gibi kullanılabilir."""
+
+    def __init__(self, source):
+        if isinstance(source, str) and source.strip().isdigit():
+            source = int(source)
+        self.source = source
+        self.is_file = isinstance(source, str) and Path(source).is_file()
+        self.is_stream = isinstance(source, str) and not self.is_file
+        if isinstance(source, str) and not self.is_file and "://" not in source:
+            sys.exit(f"Görüntü kaynağı bulunamadı: {source}\nKamera numarası (0), video dosyası ya da http:// / rtsp:// adresi verin.")
+        self._open()
+
+    def _open(self):
+        if isinstance(self.source, int) and sys.platform == "win32":
+            self.capture = cv2.VideoCapture(self.source, cv2.CAP_DSHOW)
+        else:
+            self.capture = cv2.VideoCapture(self.source)
+        if not self.capture.isOpened():
+            sys.exit(f"Görüntü kaynağı açılamadı: {self.source}. Kamera başka bir programda açık ya da adres yanlış olabilir.")
+        if self.is_file:
+            self.fps = self.capture.get(cv2.CAP_PROP_FPS) or 25.0
+            self.frame_count = int(self.capture.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
+            self.position = 0
+            self.started = time.time()
+
+    def read(self):
+        if self.is_file:
+            return self._read_file()
+        ok, frame = self.capture.read()
+        if (not ok or frame is None) and self.is_stream:
+            # Ağ akışı kopmuş olabilir: bir kez yeniden bağlan
+            self.capture.release()
+            time.sleep(1)
+            self._open()
+            ok, frame = self.capture.read()
+        if not ok or frame is None:
+            raise RuntimeError("Görüntü kaynağından kare alınamadı.")
+        return frame
+
+    def _read_file(self):
+        # Geçen süreye karşılık gelen kareye kadar ilerle (grab kareyi çözmeden atlar)
+        target = int((time.time() - self.started) * self.fps)
+        if self.frame_count and target >= self.frame_count:
+            self.capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            self.position = 0
+            self.started = time.time()
+            target = 0
+        while self.position < target:
+            if not self.capture.grab():
+                break
+            self.position += 1
+        ok, frame = self.capture.read()
+        self.position += 1
+        if not ok or frame is None:
+            self.capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            self.position = 0
+            self.started = time.time()
+            ok, frame = self.capture.read()
+            if not ok or frame is None:
+                raise RuntimeError(f"Video dosyası okunamadı: {self.source}")
+        return frame
+
+    def release(self):
+        self.capture.release()
 
 
-def read_frame(camera):
-    ok, frame = camera.read()
-    if not ok or frame is None:
-        raise RuntimeError("Kameradan görüntü alınamadı.")
-    return frame
+def source_of(config):
+    """Ayarlardaki görüntü kaynağı: camera_source (dosya / adres / numara), yoksa camera_index."""
+    return config.get("camera_source", config.get("camera_index", 0))
 
 
 def draw_text(frame, text, origin, color=(255, 255, 255), scale=0.55):
@@ -315,14 +376,24 @@ def run_calibration(config, client):
         sys.exit("Restoranda aktif masa yok. Önce Masa Yönetimi'nden masa ekleyin.")
 
     regions = {t["tableId"]: t for t in config.get("tables", [])}
-    camera = open_camera(config.get("camera_index", 0))
+    camera = FrameSource(source_of(config))
     detector = None
     points = []
-    state = {"click": None}
+    # Kayıtlı videoda görüntü akıp gider; bu yüzden video dosyasıyla kalibrasyon donmuş başlar
+    state = {"click": None, "drag_start": None, "drag_now": None, "frozen": None}
+    frozen_at_start = camera.is_file
 
     def on_mouse(event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
-            state["click"] = ("add", x, y)
+            state["drag_start"], state["drag_now"] = (x, y), (x, y)
+        elif event == cv2.EVENT_MOUSEMOVE and state["drag_start"]:
+            state["drag_now"] = (x, y)
+        elif event == cv2.EVENT_LBUTTONUP and state["drag_start"]:
+            (x0, y0), state["drag_start"], state["drag_now"] = state["drag_start"], None, None
+            if abs(x - x0) > DRAG_MIN_PIXELS and abs(y - y0) > DRAG_MIN_PIXELS:
+                state["click"] = ("rect", x0, y0, x, y)    # sürükleme: dikdörtgen alan
+            else:
+                state["click"] = ("add", x, y)            # tıklama: köşe ekle
         elif event == cv2.EVENT_RBUTTONDOWN:
             state["click"] = ("close", x, y)
 
@@ -330,8 +401,10 @@ def run_calibration(config, client):
     cv2.setMouseCallback(CALIBRATE_TITLE, on_mouse)
     print(
         "\nKALİBRASYON\n"
-        "  Sol tık : masa alanının köşesini ekle (masanın kendisi + sandalyelerin oturulan kısmı)\n"
-        "  Sağ tık / Enter : alanı kapat, açılan listeden masa numarasını yazıp Enter'a bas (en az 3 köşe)\n"
+        "  Boşluk : görüntüyü dondur / devam ettir (kalibrasyonu donmuş görüntüde yapmak kolaydır)\n"
+        "  Sürükle : masa alanını dikdörtgen olarak çiz, açılan listeden masa numarasını yazıp Enter'a bas\n"
+        "  Sol tık : eğik açıdaki masalar için köşe ekle; Sağ tık / Enter ile alanı kapat (en az 3 köşe)\n"
+        "  F : tüm görüntü tek masa (kamera yalnızca bir masayı görüyorsa)\n"
         "  A : görüntüdeki masaları otomatik bul ve sırayla eşleştir\n"
         "  Z : son köşeyi geri al     X : son eklenen masa alanını sil\n"
         "  S : kaydet ve çık          Q : kaydetmeden çık\n"
@@ -352,7 +425,12 @@ def run_calibration(config, client):
 
     try:
         while True:
-            frame = read_frame(camera)
+            if state["frozen"] is None or frozen_at_start:
+                frame = camera.read()
+                if frozen_at_start:
+                    state["frozen"], frozen_at_start = frame, False
+            else:
+                frame = state["frozen"]
             height, width = frame.shape[:2]
             view = frame.copy()
 
@@ -364,13 +442,27 @@ def run_calibration(config, client):
                 cv2.polylines(view, [np.array(points, dtype=np.int32)], False, (255, 0, 255), 2)
                 for p in points:
                     cv2.circle(view, p, 4, (255, 0, 255), -1)
-            draw_text(view, f"Isaretli masa: {len(regions)}  |  Sol tik: kose  Sag tik: bitir  A: otomatik  S: kaydet", (10, 24))
+            if state["drag_start"]:
+                cv2.rectangle(view, state["drag_start"], state["drag_now"], (255, 0, 255), 2)
+            mode = "DONMUS" if state["frozen"] is not None else "CANLI"
+            draw_text(view, f"[{mode}] Masa: {len(regions)} | Bosluk: dondur  Surukle: alan  F: tum goruntu  A: otomatik  S: kaydet", (10, 24))
             cv2.imshow(CALIBRATE_TITLE, view)
 
             key = cv2.waitKey(30) & 0xFF
             click, state["click"] = state["click"], None
+            if key == ord(" "):
+                state["frozen"] = None if state["frozen"] is not None else frame
             if click and click[0] == "add":
                 points.append((click[1], click[2]))
+            if click and click[0] == "rect":
+                _, x0, y0, x1, y1 = click
+                x0, x1 = sorted((max(0, x0), min(width - 1, x1)))
+                y0, y1 = sorted((max(0, y0), min(height - 1, y1)))
+                assign(frame, [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], width, height)
+                points = []
+            if key == ord("f"):
+                assign(frame, [(0, 0), (width - 1, 0), (width - 1, height - 1), (0, height - 1)], width, height)
+                points = []
             if (click and click[0] == "close") or key == 13:
                 if len(points) >= 3:
                     assign(frame, points, width, height)
@@ -433,7 +525,7 @@ def run_loop(config, client, show_window=True):
     regions = build_regions(config)
     print("Model yükleniyor...")
     detector = make_detector(config)
-    camera = open_camera(config.get("camera_index", 0))
+    camera = FrameSource(source_of(config))
     hold = {STATUS_OCCUPIED: 3, STATUS_EMPTY: 8, STATUS_CLEARING: 8}
     hold.update(config.get("hold_seconds", {}))
     trackers = {region.table_id: StatusTracker(hold) for region in regions}
@@ -446,7 +538,7 @@ def run_loop(config, client, show_window=True):
     try:
         while True:
             started = time.time()
-            frame = read_frame(camera)
+            frame = camera.read()
             detections, raw = evaluate(frame, regions, detector, config)
 
             changed = [tid for tid, tracker in trackers.items() if tracker.update(raw[tid], started)]
@@ -488,11 +580,14 @@ def main():
     parser = argparse.ArgumentParser(description="LezzetPOS masa doluluk kamerası")
     parser.add_argument("--calibrate", action="store_true", help="kamera görüntüsünde masa alanlarını işaretle")
     parser.add_argument("--image", help="kamera yerine bu fotoğrafta bir kez dene (sunucuya göndermez)")
+    parser.add_argument("--source", help="görüntü kaynağı: kamera numarası, video dosyası ya da http:// / rtsp:// adresi (ayardaki camera_source yerine)")
     parser.add_argument("--no-window", action="store_true", help="görüntü penceresi açma")
     parser.add_argument("--config", default=str(CONFIG_PATH), help="ayar dosyası")
     args = parser.parse_args()
 
     config = load_config(Path(args.config))
+    if args.source:
+        config["camera_source"] = args.source
     if args.image:
         run_image(config, args.image)
         return

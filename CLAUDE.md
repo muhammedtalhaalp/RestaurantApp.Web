@@ -201,7 +201,16 @@ The real project lives in `RestaurantApp.Web/`.
 ### Table occupancy camera (`tools/table-camera/`)
 - `table_camera.py` is a standalone Python program (OpenCV + Ultralytics YOLOv8n, pretrained on COCO, which runs locally). It is not part of the .NET build. It is the TÜBİTAK 2209-A pre-study.
 - How it works:
+  - The image source is `camera_source` in `config.json` (or `--source`): a camera number, an `http://`/`rtsp://` stream (a ceiling IP camera, or a phone running an IP-camera app), or a video file.
+    - `FrameSource` plays video files at real-time speed and loops them, so recorded ceiling footage behaves like a live camera.
+    - The target deployment is a ceiling-corner camera looking down at the whole hall.
   - `--calibrate`: the admin draws each table's area on the camera image and matches it to a table from `/TableCamera/GetTables`. The areas are saved as relative coordinates in `config.json`, which is gitignored.
+    - Ways to draw an area:
+      - drag a rectangle;
+      - click corners and close with a right-click (for tilted tables);
+      - press F for the whole frame;
+      - press A to auto-detect tables.
+    - Space freezes the frame. A video file starts frozen.
   - For each frame it decides a raw state per area:
     - `Dolu`: a person overlaps the area;
     - `Toplanacak`: no person, but a cup, bowl or food is inside;

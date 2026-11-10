@@ -46,15 +46,37 @@ veya Mutfak** rolünde olmalıdır (hijyen kamerasının hesabı da kullanılabi
 
 Sunucuda `Database/011_TableCameraStatus.sql` çalıştırılmış olmalıdır.
 
+## Görüntü kaynağı: kamera nereye konmalı?
+
+Gerçek kurulumda kamera salonun **tavana yakın bir köşesine**, alanın tamamını yukarıdan eğik
+açıyla görecek şekilde konur. Kaynak `config.json` içindeki `camera_source` ile ya da her
+komutta `--source` ile verilir:
+
+| Kaynak | Örnek | Ne zaman |
+|---|---|---|
+| Kamera numarası | `0` | Bilgisayara takılı kamera (dizüstü kamerası 0) |
+| Ağ akışı | `http://192.168.1.20:8080/video`, `rtsp://…` | Tavandaki IP kamera ya da telefonda bir IP kamera uygulaması |
+| Video dosyası | `salon.mp4` | Kayıtlı tavan kamerası videosu; gerçek zaman hızında oynar, bitince başa sarar |
+
+Telefonu kamera olarak kullanmak için telefona bir "IP kamera" uygulaması kurulur, telefon ile
+bilgisayar aynı Wi-Fi'a (ya da telefonun hotspot'una) bağlanır ve uygulamanın verdiği adres
+`--source` olarak yazılır. Telefon yüksek bir rafa konursa gerçek tavan kamerası açısı elde edilir.
+
 ## 1. Kalibrasyon (bir kez)
 
 ```
 .venv\Scripts\python table_camera.py --calibrate
+.venv\Scripts\python table_camera.py --calibrate --source salon.mp4
 ```
 
-- Kamera penceresinde masanın köşelerine **sol tıkla**; **sağ tık** (ya da Enter) alanı kapatır.
-  Alanı masanın kendisi + sandalyelerin oturulan kısmı olacak şekilde çiz.
-- Pencerede restoranın masa listesi çıkar; bu alanın hangi masa olduğunu numarasını yazıp Enter'a basarak seç (Esc: vazgeç).
+- **Boşluk** görüntüyü dondurur / çözer. Kalibrasyonu donmuş görüntüde yapmak kolaydır; video
+  dosyasıyla kalibrasyon zaten donmuş başlar.
+- **Sürükle**: masa alanını dikdörtgen olarak çiz. Eğik açıda dikdörtgene uymayan masalar için
+  köşelere **sol tıkla**, **sağ tık** (ya da Enter) ile alanı kapat. Alanı masanın kendisi +
+  sandalyelerin oturulan kısmı olacak şekilde çiz.
+- Pencerede restoranın masa listesi çıkar; bu alanın hangi masa olduğunu numarasını yazıp
+  Enter'a basarak seç (Esc: vazgeç).
+- **F**: tüm görüntü tek masa (kamera yalnızca bir masayı görüyorsa, ör. dizüstüyle deneme).
 - **A**: görüntüdeki masaları model bulsun, sırayla eşleştir. **Z**: son köşeyi geri al.
   **X**: son masa alanını sil. **S**: kaydet ve çık. **Q**: kaydetmeden çık.
 - Alanlar oransal kaydedilir; kamera çözünürlüğü değişse de geçerli kalır. Kamera yerinden
@@ -64,6 +86,7 @@ Sunucuda `Database/011_TableCameraStatus.sql` çalıştırılmış olmalıdır.
 
 ```
 .venv\Scripts\python table_camera.py
+.venv\Scripts\python table_camera.py --source salon.mp4
 ```
 
 Pencerede masalar renklenir (yeşil boş, kırmızı dolu, turuncu toplanacak); bulunan insanlar ve
@@ -79,7 +102,7 @@ Kamera açmadan bir fotoğrafta denemek için (sunucuya bir şey göndermez):
 
 | Anahtar | Açıklama |
 |---|---|
-| `camera_index` | 0 = dizüstü kamerası; USB/IP kamera için 1, 2… |
+| `camera_source` | Görüntü kaynağı: kamera numarası, `http://`/`rtsp://` adresi ya da video dosyası (yukarıya bak). Eski `camera_index` de okunur |
 | `model` | `yolov8n.pt` hızlı; daha isabetli ama yavaş: `yolov8s.pt` |
 | `confidence` | Tespit eşiği (0–1). Yanlış tespit çoksa artır |
 | `person_overlap` | İnsan kutusunun masa alanıyla kesişme oranı; bu oranın altındaki insan o masada sayılmaz |
