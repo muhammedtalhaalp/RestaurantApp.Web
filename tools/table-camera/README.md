@@ -76,6 +76,13 @@ bilgisayar aynı Wi-Fi'a (ya da telefonun hotspot'una) bağlanır ve uygulamanı
   sandalyelerin oturulan kısmı olacak şekilde çiz.
 - Pencerede restoranın masa listesi çıkar; bu alanın hangi masa olduğunu numarasını yazıp
   Enter'a basarak seç (Esc: vazgeç).
+- **H — krokiyle otomatik eşleme (önerilen, tavan kamerası için):** Kamera görüntüsünde zemin
+  üzerinde 4 noktaya tıkla (salonun köşeleri ya da zemine bantla konan işaretler). Açılan kroki
+  penceresinde **aynı 4 noktaya aynı sırayla** tıkla. Program iki düzlem arasındaki dönüşümü
+  (homografi) hesaplar ve krokideki o alanın **bütün masalarını görüntüye kendisi yerleştirir**;
+  alanlar `seat_margin` kadar (varsayılan 35 kroki birimi) sandalye payıyla büyütülür.
+  Görüntüde görünmeyen masalar atlanır. Yanlış duran olursa **X** ile silip elle çizebilirsin.
+  Noktalar birbirinden uzak seçilmeli; üçü aynı doğru üzerindeyse program uyarır.
 - **F**: tüm görüntü tek masa (kamera yalnızca bir masayı görüyorsa, ör. dizüstüyle deneme).
 - **A**: görüntüdeki masaları model bulsun, sırayla eşleştir. **Z**: son köşeyi geri al.
   **X**: son masa alanını sil. **S**: kaydet ve çık. **Q**: kaydetmeden çık.
@@ -105,6 +112,7 @@ Kamera açmadan bir fotoğrafta denemek için (sunucuya bir şey göndermez):
 | `camera_source` | Görüntü kaynağı: kamera numarası, `http://`/`rtsp://` adresi ya da video dosyası (yukarıya bak). Eski `camera_index` de okunur |
 | `model` | `yolov8n.pt` hızlı; daha isabetli ama yavaş: `yolov8s.pt` |
 | `confidence` | Tespit eşiği (0–1). Yanlış tespit çoksa artır |
+| `seat_margin` | Krokiyle eşlemede masa alanının sandalye payı (kroki birimi; masa 75 birim civarındadır) |
 | `person_overlap` | İnsan kutusunun masa alanıyla kesişme oranı; bu oranın altındaki insan o masada sayılmaz |
 | `item_classes` | "Toplanacak" sayılan COCO nesneleri |
 | `hold_seconds` | Bir durumun kesinleşmesi için kaç saniye sabit kalması gerektiği |

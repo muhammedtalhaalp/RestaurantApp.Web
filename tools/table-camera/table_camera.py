@@ -27,6 +27,7 @@ CONFIG_PATH = Path(__file__).with_name("config.json")
 WINDOW_TITLE = "LezzetPOS Masa Kamerasi (cikis: Q)"
 DRAG_MIN_PIXELS = 12   # kalibrasyonda bundan kısa fare hareketi sürükleme değil tıklama sayılır
 CALIBRATE_TITLE = "LezzetPOS Masa Kalibrasyonu"
+PLAN_TITLE = "LezzetPOS Kroki"
 
 STATUS_EMPTY = "Bos"
 STATUS_OCCUPIED = "Dolu"
@@ -105,6 +106,9 @@ class LezzetPosClient:
 
     def get_tables(self):
         return self._request("GET", "/TableCamera/GetTables")["data"]
+
+    def get_plan(self):
+        return self._request("GET", "/TableCamera/GetPlan")["data"]
 
     def report(self, statuses):
         body = {"tables": [{"TableId": table_id, "Status": status} for table_id, status in statuses.items()]}
@@ -335,26 +339,179 @@ def make_detector(config):
     return Detector(config.get("model", "yolov8n.pt"), config.get("confidence", 0.35), config.get("item_classes", []))
 
 
-# ---------------- Kalibrasyon ----------------
+# ---------------- Kroki ile otomatik eşleme (homografi) ----------------
+# Kroki, zeminin kuşbakışı çizimidir. Kamera görüntüsünde zemin üzerindeki 4 nokta ile krokideki
+# karşılıkları eşlenince iki düzlem arasındaki dönüşüm (homografi) bulunur; krokideki her masanın
+# görüntüdeki yeri bu dönüşümle hesaplanır. Masa alanı, sandalyelerin oturulan kısmını da kapsasın
+# diye krokideki masadan seat_margin kadar büyütülür.
 
-def choose_table(frame, server_tables, used_ids):
-    """Masa listesini kamera penceresinin üstünde gösterir; numara yazılıp Enter'a basılır (Esc: vazgeç)."""
+def plan_sections(plan):
+    names = []
+    for item in plan["tables"] + plan["elements"]:
+        if not any(n.lower() == item["section"].lower() for n in names):
+            names.append(item["section"])
+    return names
+
+
+def table_footprint(table, margin):
+    """Krokideki masanın (sandalye payıyla büyütülmüş) dört köşesi, kroki koordinatlarında."""
+    x0, y0 = table["posX"] - margin, table["posY"] - margin
+    x1, y1 = table["posX"] + table["width"] + margin, table["posY"] + table["height"] + margin
+    return [(x0, y0), (x1, y0), (x1, y1), (x0, y1)]
+
+
+def well_spread(points, min_ratio=0.02):
+    """Herhangi üç nokta neredeyse aynı doğru üzerindeyse False (dönüşüm anlamsız olur)."""
+    pts = np.array(points, dtype=np.float64)
+    span = max(np.ptp(pts[:, 0]), np.ptp(pts[:, 1]), 1e-9)
+    for i in range(len(pts)):
+        for j in range(i + 1, len(pts)):
+            for k in range(j + 1, len(pts)):
+                a, b, c = pts[i], pts[j], pts[k]
+                twice_area = abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]))
+                if twice_area < min_ratio * span * span:
+                    return False
+    return True
+
+
+def find_homography(plan_points, image_points):
+    for points in (plan_points, image_points):
+        if not well_spread(points):
+            raise ValueError("Dört noktanın üçü aynı doğru üzerinde ya da birbirine çok yakın; salonun birbirinden uzak köşelerini seçin.")
+    matrix, _ = cv2.findHomography(np.array(plan_points, dtype=np.float64), np.array(image_points, dtype=np.float64))
+    if matrix is None or abs(np.linalg.det(matrix)) < 1e-12:
+        raise ValueError("Noktalardan dönüşüm hesaplanamadı; dört noktanın üçü aynı doğru üzerinde olmamalı.")
+    return matrix
+
+
+def project(matrix, points):
+    """Kroki noktalarını görüntüye taşır. Kameranın arkasına düşen nokta varsa None döner."""
+    pts = np.hstack([np.array(points, dtype=np.float64), np.ones((len(points), 1))]) @ matrix.T
+    if np.any(pts[:, 2] <= 1e-9):
+        return None
+    return pts[:, :2] / pts[:, 2:3]
+
+
+def polygon_area(points):
+    return abs(cv2.contourArea(np.array(points, dtype=np.float32)))
+
+
+def clip_to_frame(points, width, height):
+    """Görüntü dışına taşan kısmı kırpar; görüntüde kalan çokgen ve görünen oranı döner."""
+    frame = np.array([[0, 0], [width - 1, 0], [width - 1, height - 1], [0, height - 1]], dtype=np.float32)
+    area = polygon_area(points)
+    if area < 1:
+        return None, 0.0
+    inside, clipped = cv2.intersectConvexConvex(np.array(points, dtype=np.float32), frame)
+    if clipped is None or inside < 1:
+        return None, 0.0
+    return clipped.reshape(-1, 2), inside / area
+
+
+def polygon_iou(a, b):
+    """İki dışbükey çokgenin kesişim / birleşim oranı (otomatik eşlemenin doğruluğunu ölçmek için)."""
+    a, b = np.array(a, dtype=np.float32), np.array(b, dtype=np.float32)
+    inter, _ = cv2.intersectConvexConvex(a, b)
+    union = polygon_area(a) + polygon_area(b) - inter
+    return inter / union if union > 0 else 0.0
+
+
+def auto_regions(plan, section, matrix, width, height, margin, min_visible=0.3):
+    """Bir alandaki krokide çizili masaları görüntüye yerleştirir; görüntüde yeterince görünmeyenleri atlar."""
+    regions, skipped = {}, []
+    for table in plan["tables"]:
+        if table["section"].lower() != section.lower():
+            continue
+        projected = project(matrix, table_footprint(table, margin))
+        polygon, visible = (None, 0.0) if projected is None else clip_to_frame(projected, width, height)
+        if polygon is None or visible < min_visible:
+            skipped.append(table["tableNumber"])
+            continue
+        regions[table["tableId"]] = {
+            "tableId": table["tableId"],
+            "name": table["tableNumber"],
+            "polygon": [[round(float(x) / width, 4), round(float(y) / height, 4)] for x, y in polygon],
+        }
+    return regions, skipped
+
+
+ELEMENT_COLORS = {"zemin": (235, 232, 228), "duvar": (70, 60, 75), "kolon": (90, 80, 95), "mutfak": (180, 210, 245),
+                  "kasa": (225, 190, 225), "kapi": (150, 190, 220), "merdiven": (200, 200, 205), "wc": (240, 225, 180)}
+
+
+def render_plan(plan, section, max_width=1100, max_height=680):
+    """Krokinin bir alanını OpenCV penceresinde göstermek için çizer. (görüntü, ölçek) döner."""
+    canvas_w, canvas_h = plan["canvas"]["width"], plan["canvas"]["height"]
+    scale = min(max_width / canvas_w, max_height / canvas_h)
+    image = np.full((int(canvas_h * scale), int(canvas_w * scale), 3), (215, 210, 205), dtype=np.uint8)
+    elements = [e for e in plan["elements"] if e["section"].lower() == section.lower()]
+    elements.sort(key=lambda e: 0 if e["type"] == "zemin" else 1)   # zemin en altta
+    for e in elements:
+        center = ((e["posX"] + e["width"] / 2) * scale, (e["posY"] + e["height"] / 2) * scale)
+        box = cv2.boxPoints((center, (e["width"] * scale, e["height"] * scale), e.get("rotation") or 0)).astype(np.int32)
+        cv2.fillPoly(image, [box], ELEMENT_COLORS.get(e["type"], (210, 200, 190)))
+        cv2.polylines(image, [box], True, (120, 110, 125), 1)
+        if e["type"] != "zemin":
+            cv2.putText(image, ascii_name(e.get("label") or e["type"]), (box[:, 0].min() + 3, box[:, 1].min() + 14),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.4, (60, 50, 65), 1, cv2.LINE_AA)
+    for t in plan["tables"]:
+        if t["section"].lower() != section.lower():
+            continue
+        p0 = (int(t["posX"] * scale), int(t["posY"] * scale))
+        p1 = (int((t["posX"] + t["width"]) * scale), int((t["posY"] + t["height"]) * scale))
+        if t.get("shape") == "Circle":
+            cv2.ellipse(image, ((p0[0] + p1[0]) // 2, (p0[1] + p1[1]) // 2), ((p1[0] - p0[0]) // 2, (p1[1] - p0[1]) // 2), 0, 0, 360, (120, 200, 140), -1)
+        else:
+            cv2.rectangle(image, p0, p1, (120, 200, 140), -1)
+        cv2.putText(image, ascii_name(t["tableNumber"]), (p0[0] + 3, (p0[1] + p1[1]) // 2 + 4), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (20, 60, 30), 1, cv2.LINE_AA)
+    return image, scale
+
+
+def pick_points(window, image, count, prompt, done_points=None):
+    """Pencerede sırayla `count` nokta tıklatır. Z: geri al, Esc: vazgeç (None). Noktalar piksel cinsinden."""
+    points, clicks = [], []
+    cv2.namedWindow(window)
+    cv2.setMouseCallback(window, lambda event, x, y, flags, param: clicks.append((x, y)) if event == cv2.EVENT_LBUTTONDOWN else None)
+    while True:
+        if clicks:
+            points.append(clicks.pop(0))
+        view = image.copy()
+        for i, p in enumerate(done_points or []):
+            cv2.circle(view, (int(p[0]), int(p[1])), 5, (150, 150, 150), -1)
+        for i, p in enumerate(points, start=1):
+            cv2.circle(view, p, 6, (255, 0, 255), -1)
+            cv2.putText(view, str(i), (p[0] + 8, p[1] - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 0, 255), 2, cv2.LINE_AA)
+        if len(points) > 1:
+            cv2.polylines(view, [np.array(points, dtype=np.int32)], len(points) == count, (255, 0, 255), 1)
+        draw_text(view, f"{prompt} ({len(points)}/{count})  Z: geri al  Esc: vazgec", (10, 24))
+        cv2.imshow(window, view)
+        key = cv2.waitKey(30) & 0xFF
+        if key == 27:
+            return None
+        if key == ord("z") and points:
+            points.pop()
+        if len(points) >= count:
+            cv2.imshow(window, view)
+            cv2.waitKey(400)
+            return points[:count]
+
+
+def choose_from_list(frame, title, labels):
+    """Listeyi pencerenin üstünde gösterir; numara yazılıp Enter'a basılır (Esc: vazgeç). Seçilen sıra (0'dan) döner."""
     typed = ""
     while True:
         view = frame.copy()
         overlay = view.copy()
-        rows = len(server_tables) + 3
-        cv2.rectangle(overlay, (10, 40), (380, 40 + rows * 24 + 10), (30, 20, 35), -1)
+        rows = len(labels) + 3
+        cv2.rectangle(overlay, (10, 40), (420, 40 + rows * 24 + 10), (30, 20, 35), -1)
         cv2.addWeighted(overlay, 0.85, view, 0.15, 0, view)
         y = 64
-        cv2.putText(view, "Bu alan hangi masa? Numara yazip Enter", (20, y), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1, cv2.LINE_AA)
-        for i, t in enumerate(server_tables, start=1):
+        cv2.putText(view, title, (20, y), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (255, 255, 255), 1, cv2.LINE_AA)
+        for i, label in enumerate(labels, start=1):
             y += 24
-            mark = "  (isaretli)" if t["tableId"] in used_ids else ""
-            text = f"{i:>2}) {ascii_name(t['tableNumber'])}  [{ascii_name(t.get('section') or 'Salon')}]{mark}"
-            cv2.putText(view, text, (24, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (220, 200, 230), 1, cv2.LINE_AA)
+            cv2.putText(view, f"{i:>2}) {label}", (24, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (220, 200, 230), 1, cv2.LINE_AA)
         y += 30
-        cv2.putText(view, f"Masa no: {typed}_    (Esc: vazgec)", (20, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (120, 230, 255), 2, cv2.LINE_AA)
+        cv2.putText(view, f"No: {typed}_    (Esc: vazgec)", (20, y), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (120, 230, 255), 2, cv2.LINE_AA)
         cv2.imshow(CALIBRATE_TITLE, view)
 
         key = cv2.waitKey(50) & 0xFF
@@ -365,9 +522,59 @@ def choose_table(frame, server_tables, used_ids):
         elif ord("0") <= key <= ord("9") and len(typed) < 3:
             typed += chr(key)
         elif key == 13 and typed:
-            if 1 <= int(typed) <= len(server_tables):
-                return server_tables[int(typed) - 1]
+            if 1 <= int(typed) <= len(labels):
+                return int(typed) - 1
             typed = ""
+
+
+# ---------------- Kalibrasyon ----------------
+
+def choose_table(frame, server_tables, used_ids):
+    labels = [f"{ascii_name(t['tableNumber'])}  [{ascii_name(t.get('section') or 'Salon')}]" + ("  (isaretli)" if t["tableId"] in used_ids else "")
+              for t in server_tables]
+    index = choose_from_list(frame, "Bu alan hangi masa? Numara yazip Enter", labels)
+    return None if index is None else server_tables[index]
+
+
+def calibrate_with_plan(client, config, regions, frame):
+    """H tuşu: kamerada 4 zemin noktası + krokide aynı 4 nokta → alandaki tüm masalar otomatik yerleşir."""
+    plan = client.get_plan()
+    sections = plan_sections(plan)
+    if not plan["tables"] or not sections:
+        print("Krokide masa yok. Önce Kroki Yönetimi'nde krokiyi çizin.")
+        return
+    index = 0 if len(sections) == 1 else choose_from_list(frame, "Kamera hangi alani goruyor?", [ascii_name(s) for s in sections])
+    if index is None:
+        return
+    section = sections[index]
+    print(f"\n{section}: kamera görüntüsünde zemin üzerinde 4 nokta seçin (salon köşeleri ya da zemine konan işaretler),"
+          " sonra açılan kroki penceresinde AYNI 4 noktayı AYNI sırayla seçin.")
+
+    image_points = pick_points(CALIBRATE_TITLE, frame, 4, "Kamerada zeminde 4 nokta")
+    if not image_points:
+        return
+    plan_image, scale = render_plan(plan, section)
+    plan_clicks = pick_points(PLAN_TITLE, plan_image, 4, "Krokide ayni 4 nokta, ayni sirayla")
+    cv2.destroyWindow(PLAN_TITLE)
+    if not plan_clicks:
+        return
+    plan_points = [(x / scale, y / scale) for x, y in plan_clicks]
+
+    try:
+        matrix = find_homography(plan_points, image_points)
+    except ValueError as exc:
+        print(exc)
+        return
+    height, width = frame.shape[:2]
+    added, skipped = auto_regions(plan, section, matrix, width, height, config.get("seat_margin", 35))
+    regions.update(added)
+    config["homography"] = {
+        "section": section,
+        "image_points": [[round(x / width, 4), round(y / height, 4)] for x, y in image_points],
+        "plan_points": [[round(x, 1), round(y, 1)] for x, y in plan_points],
+    }
+    print(f"✓ {section}: {len(added)} masa otomatik yerleştirildi." + (f" Görüntüde görünmeyen: {', '.join(skipped)}" if skipped else "")
+          + " Yanlış duranı X ile silip elle çizebilirsiniz; S ile kaydedin.")
 
 
 def run_calibration(config, client):
@@ -405,6 +612,7 @@ def run_calibration(config, client):
         "  Sürükle : masa alanını dikdörtgen olarak çiz, açılan listeden masa numarasını yazıp Enter'a bas\n"
         "  Sol tık : eğik açıdaki masalar için köşe ekle; Sağ tık / Enter ile alanı kapat (en az 3 köşe)\n"
         "  F : tüm görüntü tek masa (kamera yalnızca bir masayı görüyorsa)\n"
+        "  H : krokiyle otomatik eşle: kamerada zeminde 4 nokta, krokide aynı 4 nokta → alandaki tüm masalar yerleşir\n"
         "  A : görüntüdeki masaları otomatik bul ve sırayla eşleştir\n"
         "  Z : son köşeyi geri al     X : son eklenen masa alanını sil\n"
         "  S : kaydet ve çık          Q : kaydetmeden çık\n"
@@ -445,7 +653,7 @@ def run_calibration(config, client):
             if state["drag_start"]:
                 cv2.rectangle(view, state["drag_start"], state["drag_now"], (255, 0, 255), 2)
             mode = "DONMUS" if state["frozen"] is not None else "CANLI"
-            draw_text(view, f"[{mode}] Masa: {len(regions)} | Bosluk: dondur  Surukle: alan  F: tum goruntu  A: otomatik  S: kaydet", (10, 24))
+            draw_text(view, f"[{mode}] Masa: {len(regions)} | Bosluk: dondur  Surukle: alan  H: kroki  F: tum goruntu  S: kaydet", (10, 24))
             cv2.imshow(CALIBRATE_TITLE, view)
 
             key = cv2.waitKey(30) & 0xFF
@@ -462,6 +670,10 @@ def run_calibration(config, client):
                 points = []
             if key == ord("f"):
                 assign(frame, [(0, 0), (width - 1, 0), (width - 1, height - 1), (0, height - 1)], width, height)
+                points = []
+            if key == ord("h"):
+                calibrate_with_plan(client, config, regions, frame)
+                cv2.setMouseCallback(CALIBRATE_TITLE, on_mouse)   # nokta seçimi fareyi devralmıştı
                 points = []
             if (click and click[0] == "close") or key == 13:
                 if len(points) >= 3:

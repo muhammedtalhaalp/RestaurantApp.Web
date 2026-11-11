@@ -8,6 +8,7 @@
   "model": "yolov8n.pt",
   "confidence": 0.35,
   "person_overlap": 0.2,
+  "seat_margin": 35,
   "item_classes": [
     "cup", "bowl", "bottle", "wine glass", "fork", "knife", "spoon",
     "pizza", "sandwich", "cake", "donut", "hot dog",
