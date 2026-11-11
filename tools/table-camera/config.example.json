@@ -17,7 +17,10 @@
 
   "check_interval_seconds": 0.5,
   "hold_seconds": { "Dolu": 3, "Bos": 8, "Toplanacak": 8 },
+  "gap_tolerance_seconds": 2,
+  "stale_after_seconds": 5,
   "heartbeat_seconds": 30,
+  "decision_log_dir": "logs",
 
   "tables": []
 }

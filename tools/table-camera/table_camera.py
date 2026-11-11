@@ -13,6 +13,7 @@ Görüntü hiçbir yere gönderilmez ve kaydedilmez; sunucuya yalnızca masa dur
 """
 
 import argparse
+import csv
 import json
 import sys
 import time
@@ -191,31 +192,98 @@ def classify(region, detections, person_overlap):
     return STATUS_EMPTY
 
 
-class StatusTracker:
-    """Ham durum hold_seconds[durum] boyunca hiç değişmeden görülürse kesinleşir.
+DEFAULT_HOLD = {STATUS_OCCUPIED: 3, STATUS_EMPTY: 8, STATUS_CLEARING: 8}
 
-    Böylece önünden geçen garson masayı "Dolu", lavaboya kalkan müşteri masayı "Bos" yapmaz.
+
+def hold_from(config):
+    hold = dict(DEFAULT_HOLD)
+    hold.update(config.get("hold_seconds", {}))
+    return hold
+
+
+class StatusTracker:
+    """Zamansal doğrulama: ham durum, kendi doğrulama süresi (hold[durum]) boyunca sürerse kesinleşir.
+
+    - gap_tolerance: aday durum, bu süreden kısa bir başka ham durumla kesilirse (tek kaçırılmış
+      tespit, masanın önünden geçen garson) aday sıfırlanmaz. Kesinti daha uzun sürerse yeni durum,
+      başladığı andan itibaren aday olur.
+    - stale_after: bu süreden uzun gözlem gelmezse (kamera kesildi) aday silinir. Kesinleşmiş durum
+      korunur; görüntü gelmeden yeni karar üretilmez.
+
+    Bütün süreler 0 verilirse her kare kendi kararını verir: tek kare referans yöntemi.
     """
 
-    def __init__(self, hold_seconds):
+    def __init__(self, hold_seconds, gap_tolerance=0.0, stale_after=None):
         self.hold = hold_seconds
-        self.keep = max(hold_seconds.values()) + 1
-        self.history = deque()
+        self.gap = gap_tolerance
+        self.stale_after = stale_after
         self.confirmed = None
+        self.candidate = None      # kesinleşmeyi bekleyen durum
+        self.since = None          # adayın başladığı an
+        self.last_seen = None      # adayın en son görüldüğü an
+        self.run_state = None      # en son ham durum ve kesintisiz başladığı an
+        self.run_since = None
+        self.last_update = None
 
     def update(self, raw, now):
-        self.history.append((now, raw))
-        while self.history and now - self.history[0][0] > self.keep:
-            self.history.popleft()
-        if raw == self.confirmed:
+        """Yeni ham gözlem. Kesinleşen durum değiştiyse True döner."""
+        if self.last_update is not None and self.stale_after is not None and now - self.last_update > self.stale_after:
+            self.candidate = None
+            self.run_state = None
+        self.last_update = now
+        if raw != self.run_state:
+            self.run_state, self.run_since = raw, now
+
+        if raw == self.candidate:
+            self.last_seen = now
+        elif self.candidate is not None and now - self.last_seen <= self.gap:
+            return False                                   # kısa kesinti: aday korunur
+        elif raw == self.confirmed:
+            self.candidate = None
             return False
-        need = self.hold.get(raw, 5)
-        if now - self.history[0][0] < need:
-            return False
-        if all(status == raw for t, status in self.history if now - t <= need):
-            self.confirmed = raw
+        else:
+            self.candidate, self.since, self.last_seen = raw, self.run_since, now
+
+        if now - self.since >= self.hold.get(self.candidate, DEFAULT_HOLD[STATUS_EMPTY]):
+            self.confirmed, self.candidate = self.candidate, None
             return True
         return False
+
+
+def reference_tracker():
+    """Referans yöntem: zamansal doğrulama yok, her karenin ham durumu doğrudan karardır."""
+    return StatusTracker({STATUS_OCCUPIED: 0, STATUS_EMPTY: 0, STATUS_CLEARING: 0}, 0.0)
+
+
+class DecisionLog:
+    """Kesinleşen durum değişikliklerini zaman damgasıyla CSV'ye yazar (görüntü yazılmaz).
+
+    Satırlar: zaman, video_sn (yalnız video değerlendirmesinde), yontem, masa_id, masa, onceki, yeni, olay.
+    olay = "karar" (durum değişti), "kesinti" (görüntü alınamıyor), "devam" (görüntü geri geldi).
+    """
+
+    FIELDS = ["zaman", "video_sn", "yontem", "masa_id", "masa", "onceki", "yeni", "olay"]
+
+    def __init__(self, path):
+        self.path = Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        new_file = not self.path.exists() or self.path.stat().st_size == 0
+        self.file = open(self.path, "a", encoding="utf-8-sig" if new_file else "utf-8", newline="")
+        self.writer = csv.DictWriter(self.file, fieldnames=self.FIELDS)
+        if new_file:
+            self.writer.writeheader()
+
+    def write(self, method, olay, table_id="", name="", before="", after="", video_seconds=None, when=None):
+        self.writer.writerow({
+            "zaman": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(when or time.time())),
+            "video_sn": "" if video_seconds is None else f"{video_seconds:.2f}",
+            "yontem": method, "masa_id": table_id, "masa": name,
+            "onceki": before or "", "yeni": after or "", "olay": olay,
+        })
+        self.file.flush()
+
+    def close(self):
+        self.file.close()
 
 
 class FrameSource:
@@ -231,7 +299,10 @@ class FrameSource:
         self.is_stream = isinstance(source, str) and not self.is_file
         if isinstance(source, str) and not self.is_file and "://" not in source:
             sys.exit(f"Görüntü kaynağı bulunamadı: {source}\nKamera numarası (0), video dosyası ya da http:// / rtsp:// adresi verin.")
-        self._open()
+        try:
+            self._open()
+        except RuntimeError as exc:
+            sys.exit(f"{exc} Kamera başka bir programda açık ya da adres yanlış olabilir.")
 
     def _open(self):
         if isinstance(self.source, int) and sys.platform == "win32":
@@ -239,7 +310,7 @@ class FrameSource:
         else:
             self.capture = cv2.VideoCapture(self.source)
         if not self.capture.isOpened():
-            sys.exit(f"Görüntü kaynağı açılamadı: {self.source}. Kamera başka bir programda açık ya da adres yanlış olabilir.")
+            raise RuntimeError(f"Görüntü kaynağı açılamadı: {self.source}.")
         if self.is_file:
             self.fps = self.capture.get(cv2.CAP_PROP_FPS) or 25.0
             self.frame_count = int(self.capture.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
@@ -250,8 +321,8 @@ class FrameSource:
         if self.is_file:
             return self._read_file()
         ok, frame = self.capture.read()
-        if (not ok or frame is None) and self.is_stream:
-            # Ağ akışı kopmuş olabilir: bir kez yeniden bağlan
+        if not ok or frame is None:
+            # Ağ akışı kopmuş ya da kamera çıkarılmış olabilir: bir kez yeniden bağlan
             self.capture.release()
             time.sleep(1)
             self._open()
@@ -733,31 +804,74 @@ def run_image(config, image_path):
     return raw
 
 
+def decision_log_path(config):
+    """Günlük karar kaydı dosyası; decision_log_dir boş verilirse kayıt tutulmaz."""
+    folder = config.get("decision_log_dir", "logs")
+    if not folder:
+        return None
+    folder = Path(folder)
+    if not folder.is_absolute():
+        folder = CONFIG_PATH.parent / folder
+    return folder / f"kararlar-{time.strftime('%Y-%m-%d')}.csv"
+
+
 def run_loop(config, client, show_window=True):
     regions = build_regions(config)
+    names = {region.table_id: region.name for region in regions}
     print("Model yükleniyor...")
     detector = make_detector(config)
     camera = FrameSource(source_of(config))
-    hold = {STATUS_OCCUPIED: 3, STATUS_EMPTY: 8, STATUS_CLEARING: 8}
-    hold.update(config.get("hold_seconds", {}))
-    trackers = {region.table_id: StatusTracker(hold) for region in regions}
+    gap = config.get("gap_tolerance_seconds", 2)
+    stale_after = config.get("stale_after_seconds", 5)
+    trackers = {region.table_id: StatusTracker(hold_from(config), gap, stale_after) for region in regions}
     interval = config.get("check_interval_seconds", 0.5)
     heartbeat = config.get("heartbeat_seconds", 30)
+    log_path = decision_log_path(config)
+    log = DecisionLog(log_path) if log_path else None
     last_sent = 0.0
     last_error = ""
+    last_frame_at = time.time()
+    outage = False      # görüntü alınamıyor: yeni karar üretilmez, sunucuya da gönderilmez
 
-    print(f"{len(regions)} masa izleniyor. Çıkmak için pencerede Q'ya basın (ya da Ctrl+C).")
+    print(f"{len(regions)} masa izleniyor." + (f" Kararlar: {log_path}" if log else "")
+          + " Çıkmak için pencerede Q'ya basın (ya da Ctrl+C).")
     try:
         while True:
             started = time.time()
-            frame = camera.read()
+            try:
+                frame = camera.read()
+            except RuntimeError as exc:
+                if not outage and started - last_frame_at > stale_after:
+                    outage = True
+                    print(f"{time.strftime('%H:%M:%S')}  Görüntü alınamıyor ({exc}); son durumlar korunuyor, yeni karar üretilmiyor.")
+                    if log:
+                        log.write("zamansal", "kesinti")
+                if show_window:
+                    blank = np.zeros((360, 640, 3), dtype=np.uint8)
+                    draw_text(blank, "Goruntu yok - son durumlar guncel degil", (10, 30), (80, 80, 255))
+                    cv2.imshow(WINDOW_TITLE, blank)
+                    if cv2.waitKey(1) & 0xFF == ord("q"):
+                        break
+                time.sleep(1)
+                continue
+            last_frame_at = started
+            if outage:
+                outage = False
+                print(f"{time.strftime('%H:%M:%S')}  Görüntü geri geldi.")
+                if log:
+                    log.write("zamansal", "devam")
+
             detections, raw = evaluate(frame, regions, detector, config)
 
-            changed = [tid for tid, tracker in trackers.items() if tracker.update(raw[tid], started)]
+            changed = []
+            for tid, tracker in trackers.items():
+                before = tracker.confirmed
+                if tracker.update(raw[tid], started):
+                    changed.append(tid)
+                    print(f"{time.strftime('%H:%M:%S')}  {names[tid]}: {tracker.confirmed}")
+                    if log:
+                        log.write("zamansal", "karar", tid, names[tid], before, tracker.confirmed, when=started)
             confirmed = {tid: t.confirmed for tid, t in trackers.items() if t.confirmed}
-            for tid in changed:
-                name = next(r.name for r in regions if r.table_id == tid)
-                print(f"{time.strftime('%H:%M:%S')}  {name}: {trackers[tid].confirmed}")
 
             # Değişiklik hemen, değişmeyen durumlar canlılık için heartbeat aralığıyla gönderilir
             if confirmed and (changed or started - last_sent >= heartbeat):
@@ -786,6 +900,8 @@ def run_loop(config, client, show_window=True):
     finally:
         camera.release()
         cv2.destroyAllWindows()
+        if log:
+            log.close()
 
 
 def main():

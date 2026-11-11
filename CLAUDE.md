@@ -217,7 +217,9 @@ The real project lives in `RestaurantApp.Web/`.
     - `Dolu`: a person overlaps the area;
     - `Toplanacak`: no person, but a cup, bowl or food is inside;
     - `Bos`: neither.
-  - A state is confirmed only after it has stayed the same for `hold_seconds`.
+  - `StatusTracker` confirms a new state only after it has lasted its own `hold_seconds` (Dolu 3 s, Bos/Toplanacak 8 s). Interruptions shorter than `gap_tolerance_seconds` don't reset a pending state. If no frame arrives for `stale_after_seconds`, no new decision is made and reports stop, so the last state is kept.
+  - Every confirmed change, outage and resume is appended to `logs/kararlar-YYYY-MM-DD.csv` (state and time only, no images; gitignored).
+  - `evaluate_video.py` is the offline M1 evaluation. It runs a recorded video once, then feeds the same raw states to the `referans` method (single-frame overlap, `reference_tracker()`) and the `zamansal` method. With a label CSV it reports macro-F1, false clearing, false occupancy, transition delay (mean/median/p95, per transition type) and per-frame time. `--from-raw` replays a saved `ham.csv` to tune durations on validation data. New methods (tracking, pose) are meant to be added to its `methods` dict. Keep it aligned with the TÜBİTAK proposal (sections 2.2/2.4).
   - Changes are posted to `/TableCamera/ReportStatus` immediately (JSON `{tables:[{TableId,Status}]}`). Unchanged states are re-sent every `heartbeat_seconds`.
 - **Frames are never saved or sent**; only table id and state leave the PC.
 - Server side:
