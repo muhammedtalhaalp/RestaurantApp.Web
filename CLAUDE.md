@@ -185,18 +185,18 @@ The real project lives in `RestaurantApp.Web/`.
 - Android channel ids are `deliveries` (courier) and `tables` (waiter), passed as `NotifyUser(..., channelId)`. Test a send without a phone through FCM HTTP v1 with `validate_only: true`: a fake FID returns 404 UNREGISTERED, which means the server credentials are fine.
 
 ### Hygiene camera (`tools/hygiene-camera/`)
-- `hygiene_camera.py` is a standalone Python program (OpenCV + Roboflow hosted detection API). It runs on the PC the kitchen camera is attached to. It is not part of the .NET build.
+- `hygiene_camera.py` is a standalone Python program (OpenCV + Ultralytics YOLOv8s). The model is our own: `models/hijyen.pt`, trained on 6 merged open datasets (classes `bone`, `bonesiz`, `onluk`, `onluksuz`; scripts and Colab notebook in `training/`). Detection runs locally; frames never go to a detection service. Do not reintroduce Roboflow inference (the advisor wants a self-hosted model); Roboflow is only used by `training/prepare_dataset.py` to download open datasets, with the key from `ROBOFLOW_API_KEY`. It runs on the PC the kitchen camera is attached to. It is not part of the .NET build.
 - How it works:
   - It logs in through `/Auth/ApiLogin` with a `Mutfak` account and calls `/AiVision/ReportHygieneViolation` with `Authorization: Bearer <token>`, sending `violationType` and an optional `image` file (JPEG/PNG, up to 2 MB).
   - Model classes listed in `violation_classes` (e.g. `bonesiz`, `no-hairnet`) count as violations. A violation is reported only after it has been seen in M of the last N checks, and then not again until a cooldown has passed.
-- Setup and the Roboflow training guide are in its `README.md`.
-- The program's settings live in `config.json`, which is gitignored (it holds the password and API key). Its virtualenv `.venv/` is also gitignored.
+- Setup, metrics (test mAP@0.5 0.96) and known weaknesses are in its `README.md`.
+- The program's settings live in `config.json`, which is gitignored (it holds the camera account's password). Model settings are under `model` (`path`, `confidence`, `overlap`, `class_confidence`). Its virtualenv `.venv/` is also gitignored.
 - Violation photos are employee images. They are stored in `App_Data/hygiene/<CompanyId>/`, which is not web-accessible and is gitignored, and they are served only through `AiVisionController.GetViolationImage` after a company check. Never move them under `Content/`.
 - The kitchen screen (`kitchen.js`, `receiveHygieneAlert(violationType, timeStr, imageUrl)`) shows the photo. `violationType` comes from outside the app, so it is HTML-escaped (`escapeHtml`) before being shown.
 - The kitchen screen also has a "Hijyen İhlalleri" history modal: `AiVision/GetViolations?range=today|week` lists the violations and returns `unresolvedTodayCount` for the button badge, and `AiVision/MarkViolationResolved` sets `IsResolved`. Both are company-scoped. A new alert refreshes the badge.
   - `AiVision/DeleteViolations` bulk-deletes records together with their photo files. It is restricted to **Admin and Mutfak Şefi**, so kitchen staff and the camera account cannot erase their own violations. The view hides the checkboxes through `window.canDeleteHygieneViolations`.
-  - The camera program sends one merged report per trigger (e.g. `"Bone takılmamış, Önlük giyilmemiş"`). When any violation passes `detections_required`, every violation seen at least `detections_to_include` times in the same window is added to that report. Per-class thresholds can be set with `roboflow.class_confidence`.
-  - The recommended model is `chef-dataset/1` (classes `without_apron`, `without_cap`). The README has a benchmark on the user's own webcam photos. CCTV-trained models such as `kitchenhygiene/2` could not see aprons at close range.
+  - The camera program sends one merged report per trigger (e.g. `"Bone takılmamış, Önlük giyilmemiş"`). When any violation passes `detections_required`, every violation seen at least `detections_to_include` times in the same window is added to that report. Per-class thresholds can be set with `model.class_confidence`.
+  - Known weakness: on close-up laptop-webcam photos (black tank top) it mistakes the top for an apron (only 2/19 no-apron found). Fine-tuning with own camera images is planned.
 
 ### Table occupancy camera (`tools/table-camera/`)
 - `table_camera.py` is a standalone Python program (OpenCV + Ultralytics YOLOv8n, pretrained on COCO, which runs locally). It is not part of the .NET build. It is the TÜBİTAK 2209-A pre-study.
@@ -208,6 +208,8 @@ The real project lives in `RestaurantApp.Web/`.
     - Ways to draw an area:
       - drag a rectangle;
       - click corners and close with a right-click (for tilted tables);
+      - press H to map from the kroki (homography): click 4 floor points on the image, then the same 4 on the kroki window drawn from `/TableCamera/GetPlan`. Every table of that section is then projected into the image, grown by `seat_margin` for the chairs. Tables not visible are skipped.
+        - Simulated ceiling-camera test: mean IoU 0.93.
       - press F for the whole frame;
       - press A to auto-detect tables.
     - Space freezes the frame. A video file starts frozen.
@@ -219,7 +221,7 @@ The real project lives in `RestaurantApp.Web/`.
   - Changes are posted to `/TableCamera/ReportStatus` immediately (JSON `{tables:[{TableId,Status}]}`). Unchanged states are re-sent every `heartbeat_seconds`.
 - **Frames are never saved or sent**; only table id and state leave the PC.
 - Server side:
-  - `TableCameraController` (Admin, Kasiyer, Garson, Mutfak) stores the state in `AppTables.CameraStatus` / `CameraStatusDate` (`Database/011`). It is company-checked, and unknown states are skipped.
+  - `TableCameraController` (Admin, Kasiyer, Garson, Mutfak): `GetTables` and `GetPlan` (draft kroki: table rects + elements, for calibration). It stores the state in `AppTables.CameraStatus` / `CameraStatusDate` (`Database/011`). It is company-checked, and unknown states are skipped.
   - It pushes `onTableCameraStatus` to the company group when something changes.
   - `Helpers/TableCameraStatus.Current` ignores data older than 2 minutes (camera off).
 - **The camera state is advisory only.** It never changes orders or `AppTables.Status`.

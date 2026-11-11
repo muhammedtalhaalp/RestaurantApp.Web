@@ -378,3 +378,8 @@ tools/table-camera/config.json
 tools/table-camera/__pycache__/
 tools/table-camera/.venv/
 tools/table-camera/*.pt
+tools/hygiene-camera/dataset/
+tools/hygiene-camera/dataset-cache/
+tools/hygiene-camera/runs/
+tools/hygiene-camera/*.pt
+tools/hygiene-camera/*.zip

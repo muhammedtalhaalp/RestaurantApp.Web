@@ -1,11 +1,12 @@
 """LezzetPOS hijyen kamerası.
 
-Mutfak kamerasından görüntü alır, Roboflow nesne tespit modeline sorar ve bonesiz / önlüksüz
-personel görürse ihlal fotoğrafıyla birlikte LezzetPOS'a bildirir. LezzetPOS da uyarıyı
-yalnızca bu restoranın mutfak ekranına gönderir.
+Mutfak kamerasından görüntü alır, kendi eğittiğimiz YOLOv8 modeliyle bu bilgisayarda (internetsiz)
+inceler ve bonesiz / önlüksüz personel görürse ihlal fotoğrafıyla birlikte LezzetPOS'a bildirir.
+LezzetPOS da uyarıyı yalnızca bu restoranın mutfak ekranına gönderir. Kamera görüntüsü hiçbir
+tespit servisine gönderilmez; sunucuya yalnızca ihlal anının fotoğrafı gider.
 
 Kullanım:
-    python hygiene_camera.py              # normal mod (Roboflow modeli gerekir)
+    python hygiene_camera.py              # normal mod (models/hijyen.pt gerekir)
     python hygiene_camera.py --demo       # model olmadan: B / O tuşları sahte ihlal gönderir
     python hygiene_camera.py --test-once  # giriş yapıp tek bir test ihlali gönderir ve çıkar
     python hygiene_camera.py --verbose --confidence 25   # modelin gördüğü her şeyi düşük eşikle yazdırır
@@ -14,7 +15,6 @@ Ayarlar config.json dosyasından okunur (bkz. config.example.json ve README.md).
 """
 
 import argparse
-import base64
 import json
 import sys
 import time
@@ -25,13 +25,15 @@ import cv2
 import requests
 import urllib3
 
-CONFIG_PATH = Path(__file__).with_name("config.json")
+HERE = Path(__file__).resolve().parent
+CONFIG_PATH = HERE / "config.json"
+DEFAULT_MODEL_PATH = "models/hijyen.pt"
 WINDOW_TITLE = "LezzetPOS Hijyen Kamerasi (cikis: Q)"
 
 # Gönderilen ihlal fotoğrafının en büyük genişliği (sunucu en fazla 2 MB kabul eder)
 SNAPSHOT_MAX_WIDTH = 960
-# Roboflow'a gönderilen karenin en büyük genişliği (model genelde 640 px ile eğitilir)
-INFERENCE_MAX_WIDTH = 640
+# Model 640 px görüntülerle eğitildi
+INFERENCE_SIZE = 640
 
 DEMO_KEYS = {
     ord("b"): "Bone takılmamış",
@@ -50,6 +52,10 @@ def load_config(path):
                  f"config.example.json dosyasını config.json adıyla kopyalayıp doldurun.")
     with path.open(encoding="utf-8") as f:
         config = json.load(f)
+    if "roboflow" in config:
+        print("Uyarı: config.json içindeki 'roboflow' bölümü artık kullanılmıyor; tespit yerel modelle yapılır. "
+              "Bu bölümü (API anahtarıyla birlikte) silebilirsiniz.")
+    config.setdefault("model", {})
     config["violation_classes"] = {
         normalize_class_name(k): v for k, v in config.get("violation_classes", {}).items()
     }
@@ -131,36 +137,31 @@ class LezzetPosClient:
         return None
 
 
-class RoboflowDetector:
-    """Roboflow barındırılan (hosted) nesne tespit API'sine kare gönderir."""
+class LocalDetector:
+    """Kendi eğittiğimiz YOLOv8 modeli (training/ klasörüne bakın). Tespit tamamen bu bilgisayarda yapılır.
 
-    def __init__(self, api_url, api_key, model_id, confidence=50, overlap=30):
-        if not api_key or not model_id:
-            sys.exit("Roboflow 'api_key' ve 'model_id' ayarları boş. Model olmadan denemek için --demo kullanın.")
-        self.url = f"{api_url.rstrip('/')}/{model_id.strip('/')}"
-        self.params = {"api_key": api_key, "confidence": confidence, "overlap": overlap}
+    Sınıflar: bone, bonesiz, onluk, onluksuz. İhlal sayılanlar config.json'daki violation_classes ile seçilir.
+    """
+
+    def __init__(self, model_path, confidence=50, overlap=30):
+        path = Path(model_path)
+        if not path.is_absolute():
+            path = HERE / path
+        if not path.exists():
+            sys.exit(f"Model dosyası bulunamadı: {path}\n"
+                     f"Eğitilen best.pt dosyasını bu ada kopyalayın (README, 4. bölüm). Model olmadan denemek için --demo kullanın.")
+        from ultralytics import YOLO          # ağır kütüphane; --demo ve --test-once modlarında yüklenmesin
+        self.model = YOLO(str(path))
+        self.confidence = confidence / 100
+        self.iou = overlap / 100
+        self.names = self.model.names
 
     def detect(self, frame):
-        """Kare üzerindeki tespitleri, karenin orijinal piksel ölçeğinde döndürür."""
-        small, scale = resize_to_width(frame, INFERENCE_MAX_WIDTH)
-        body = base64.b64encode(encode_jpeg(small, quality=85))
-        response = requests.post(
-            self.url,
-            params=self.params,
-            data=body,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            timeout=20,
-        )
-        response.raise_for_status()
-
+        """Kare üzerindeki tespitleri, karenin piksel ölçeğinde (merkez x/y, genişlik, yükseklik) döndürür."""
+        result = self.model.predict(frame, imgsz=INFERENCE_SIZE, conf=self.confidence, iou=self.iou, verbose=False)[0]
         predictions = []
-        for p in response.json().get("predictions", []):
-            predictions.append({
-                "class": p["class"],
-                "confidence": p["confidence"],
-                "x": p["x"] / scale, "y": p["y"] / scale,
-                "width": p["width"] / scale, "height": p["height"] / scale,
-            })
+        for (x, y, w, h), cls, conf in zip(result.boxes.xywh.tolist(), result.boxes.cls.tolist(), result.boxes.conf.tolist()):
+            predictions.append({"class": self.names[int(cls)], "confidence": conf, "x": x, "y": y, "width": w, "height": h})
         return predictions
 
 
@@ -216,7 +217,7 @@ class ConfidenceFilter:
         return self.per_class.get(normalize_class_name(class_name), self.default)
 
     def lowest(self):
-        """Roboflow'a gönderilecek eşik: hiçbir sınıfın tespiti API tarafında elenmesin."""
+        """Modele verilecek eşik: düşük eşikli sınıfların tespiti modelde elenmesin."""
         return min([self.default, *self.per_class.values()])
 
     def accepts(self, prediction):
@@ -282,12 +283,11 @@ def run_test_once(config, client):
 def run_loop(config, client, demo, verbose=False):
     detector = None
     if not demo:
-        rf = config["roboflow"]
-        confidence = ConfidenceFilter(rf.get("confidence", 50), rf.get("class_confidence"))
-        detector = RoboflowDetector(rf.get("api_url", "https://detect.roboflow.com"), rf.get("api_key"),
-                                    rf.get("model_id"), confidence.lowest(), rf.get("overlap", 30))
+        settings = config["model"]
+        confidence = ConfidenceFilter(settings.get("confidence", 50), settings.get("class_confidence"))
+        detector = LocalDetector(settings.get("path", DEFAULT_MODEL_PATH), confidence.lowest(), settings.get("overlap", 45))
         class_info = ", ".join(f"{k} %{v}" for k, v in confidence.per_class.items())
-        print(f"Model: {rf.get('model_id')} | güven eşiği: %{confidence.default}"
+        print(f"Model: {settings.get('path', DEFAULT_MODEL_PATH)} (yerel) | güven eşiği: %{confidence.default}"
               + (f" (sınıf bazında: {class_info})" if class_info else ""))
 
     violation_classes = config["violation_classes"]
@@ -333,9 +333,9 @@ def run_loop(config, client, demo, verbose=False):
                         best_snapshot = max(reversed(recent_snapshots), key=lambda s: s[0])[1]
                         send_violation(client, ", ".join(to_report), best_snapshot)
                     status = f"{len(predictions)} tespit, {len(detected_types)} ihlal turu"
-                except requests.RequestException as ex:
-                    status = "Roboflow baglanti hatasi"
-                    print(f"Roboflow isteği başarısız: {ex}")
+                except Exception as ex:
+                    status = "Model hatasi"
+                    print(f"Tespit başarısız: {ex}")
 
             display = frame.copy()
             draw_predictions(display, predictions, violation_classes)
@@ -355,7 +355,7 @@ def run_loop(config, client, demo, verbose=False):
 def main():
     parser = argparse.ArgumentParser(description="LezzetPOS hijyen kamerası")
     parser.add_argument("--config", type=Path, default=CONFIG_PATH, help="Ayar dosyası (varsayılan: config.json)")
-    parser.add_argument("--demo", action="store_true", help="Roboflow olmadan çalış; B / O tuşları sahte ihlal gönderir")
+    parser.add_argument("--demo", action="store_true", help="Model olmadan çalış; B / O tuşları sahte ihlal gönderir")
     parser.add_argument("--test-once", action="store_true", help="Giriş yapıp tek bir test ihlali gönder ve çık")
     parser.add_argument("--verbose", action="store_true", help="Modelin her kontrolde gördüğü tüm sınıfları ve güvenlerini yaz")
     parser.add_argument("--confidence", type=int, help="config.json'daki güven eşiğini (0-100) bu çalıştırma için geçersiz kıl")
@@ -363,7 +363,7 @@ def main():
 
     config = load_config(args.config)
     if args.confidence is not None:
-        config["roboflow"]["confidence"] = args.confidence
+        config["model"]["confidence"] = args.confidence
     verify_ssl = config.get("verify_ssl", True)
     if not verify_ssl:
         # IIS Express'in geliştirme sertifikası kendinden imzalıdır

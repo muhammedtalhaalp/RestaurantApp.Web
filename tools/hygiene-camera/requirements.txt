@@ -1,2 +1,4 @@
 opencv-python>=4.8,<5
 requests>=2.31,<3
+# Yerel model. CPU sürümü için önce: pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+ultralytics>=8.3

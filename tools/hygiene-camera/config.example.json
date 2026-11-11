@@ -5,24 +5,18 @@
   "password": "",
   "camera_index": 0,
 
-  "roboflow": {
-    "api_url": "https://detect.roboflow.com",
-    "api_key": "",
-    "model_id": "",
+  "model": {
+    "path": "models/hijyen.pt",
     "confidence": 50,
-    "overlap": 30,
+    "overlap": 45,
     "class_confidence": {
-      "no-apron": 30
+      "onluksuz": 40
     }
   },
 
   "violation_classes": {
     "bonesiz": "Bone takılmamış",
-    "onluksuz": "Önlük giyilmemiş",
-    "no-hairnet": "Bone takılmamış",
-    "no-apron": "Önlük giyilmemiş",
-    "without-cap": "Bone takılmamış",
-    "without-apron": "Önlük giyilmemiş"
+    "onluksuz": "Önlük giyilmemiş"
   },
 
   "check_interval_seconds": 1.0,
