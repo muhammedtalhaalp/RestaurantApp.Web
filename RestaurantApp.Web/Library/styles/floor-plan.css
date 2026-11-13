@@ -148,6 +148,7 @@
     .fp-t-cam.cam-Bos { background: #2f9e64; }
     .fp-t-cam.cam-Dolu { background: #d64545; }
     .fp-t-cam.cam-Toplanacak { background: #d98a06; }
+    .fp-t-cam.is-stale { background: #9a94a3; opacity: .85; }
 
 .fp-table.has-camera-alert { animation: fp-camera-alert 1.4s ease-in-out infinite; }
 
@@ -173,6 +174,18 @@
 }
 
     .camera-alert-chip b { color: #4a2d00; }
+
+.camera-stale-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    background: #f3f1f5;
+    border: 1px solid #d8d3de;
+    color: #5b5466;
+}
 
 /* Seçim ekranlarında masaya tıklanır */
 .fp-viewport:not(.is-editable) .fp-table { cursor: pointer; }

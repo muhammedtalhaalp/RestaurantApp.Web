@@ -45,7 +45,8 @@ var FloorPlan = (function () {
                      title="${escapeHtml(text)}">${inner}</div>`;
     }
 
-    // Masa doluluk kamerası (TableCameraController). cameraStatus yoksa kamera yok ya da kapalıdır.
+    // Masa doluluk kamerası (TableCameraController). cameraStatus yoksa kamera yok.
+    // cameraStale: kamera haber vermiyor; son durum gri ve "güncel değil" olarak gösterilir.
     var CAMERA = {
         Bos: { label: "Boş", icon: "fa-chair" },
         Dolu: { label: "Dolu", icon: "fa-user-group" },
@@ -54,7 +55,7 @@ var FloorPlan = (function () {
 
     // Kameranın gördüğü ile sistemdeki durum çelişiyorsa (ya da masa toplanacaksa) kasiyere uyarı metni
     function cameraAlert(t) {
-        if (!t.cameraStatus) return null;
+        if (!t.cameraStatus || t.cameraStale) return null;   // güncel olmayan bilgiyle uyarı üretilmez
         if (t.cameraStatus === "Dolu" && !t.isOccupied) return "Müşteri oturdu, sipariş açılmadı";
         if (t.cameraStatus !== "Dolu" && t.isOccupied) return "Masa boş görünüyor, hesap hâlâ açık";
         if (t.cameraStatus === "Toplanacak") return "Masa toplanacak";
@@ -64,6 +65,10 @@ var FloorPlan = (function () {
     function cameraBadge(t) {
         var cam = CAMERA[t.cameraStatus];
         if (!cam) return "";
+        if (t.cameraStale) {
+            var since = t.cameraTime ? ` (son bilgi ${escapeHtml(t.cameraTime)})` : "";
+            return `<span class="fp-t-cam is-stale" title="Kamera bilgisi güncel değil${since}: ${cam.label}"><i class="fa-solid fa-video-slash"></i>${cam.label}?</span>`;
+        }
         return `<span class="fp-t-cam cam-${t.cameraStatus}" title="Kamera: ${cam.label}"><i class="fa-solid fa-video"></i>${cam.label}</span>`;
     }
 

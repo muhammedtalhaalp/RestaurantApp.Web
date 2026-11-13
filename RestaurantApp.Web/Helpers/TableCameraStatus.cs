@@ -18,11 +18,28 @@ namespace RestaurantApp.Web.Helpers
         // Kamera programı değişmeyen durumları da en geç heartbeat_seconds'ta bir yeniden gönderir.
         public static readonly TimeSpan StaleAfter = TimeSpan.FromMinutes(2);
 
+        // Kamera kesildiğinde son durum "güncel değil" uyarısıyla bu süre boyunca gösterilir (TÜBİTAK önerisi:
+        // kesintide yeni karar üretilmez, son karar güncellik uyarısıyla korunur). Daha eski bilgi hiç gösterilmez.
+        public static readonly TimeSpan ShowStaleFor = TimeSpan.FromHours(12);
+
         // Güncel kamera durumu; kamera yoksa veya bilgi eskiyse null
         public static string Current(AppTables table, DateTime now)
         {
             if (string.IsNullOrEmpty(table.CameraStatus) || !table.CameraStatusDate.HasValue) return null;
             return now - table.CameraStatusDate.Value > StaleAfter ? null : table.CameraStatus;
+        }
+
+        // Ekranda gösterilecek son bilinen durum: güncel ya da (ShowStaleFor içinde) güncelliğini yitirmiş
+        public static string LastKnown(AppTables table, DateTime now)
+        {
+            if (string.IsNullOrEmpty(table.CameraStatus) || !table.CameraStatusDate.HasValue) return null;
+            return now - table.CameraStatusDate.Value > ShowStaleFor ? null : table.CameraStatus;
+        }
+
+        // Son bilinen durum var ama kamera StaleAfter süresidir haber vermiyor
+        public static bool IsStale(AppTables table, DateTime now)
+        {
+            return LastKnown(table, now) != null && Current(table, now) == null;
         }
     }
 }

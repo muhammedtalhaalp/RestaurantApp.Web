@@ -9,13 +9,7 @@ using RestaurantApp.Web.Helpers;
 
 namespace RestaurantApp.Web.Controllers
 {
-    // Restoran krokisi: her alan/kat (Salon, Alt Kat, Balkon...) için masalar (AppTables) ve mimari öğeler (FloorPlanElements).
-    // Koordinatlar mantıksal tuvaldedir (CanvasWidth x CanvasHeight); ekranda Library/scripts/floor-plan-view.js ölçekler.
-    //
-    // Taslak / yayın: Admin krokiyi Kroki Yönetimi'nde çizer, her değişiklik taslak olarak anında kaydedilir.
-    // "Yayınla" denince alanın o anki çizimi doğrulanıp FloorPlanSections.PublishedJson'a kopyalanır.
-    // Masa seçim ekranları (POS) yalnızca GetPublishedPlan'ı kullanır; yayınlanmamış alan orada görünmez.
-    // Yetki: sınıf ve metot öznitelikleri birlikte uygulanır, bu yüzden sınıfta en geniş izin, metotlarda kısıtlama vardır.
+    
     [JwtAuthorize(Roles = "Admin, Garson, Kasiyer")]
     public class FloorPlanController : TenantController
     {
@@ -391,7 +385,11 @@ namespace RestaurantApp.Web.Controllers
                 isOccupied = t.Status == "Dolu" || open != null,
                 remainingAmount = open?.Amount ?? 0,
                 isPriority = open?.Priority ?? false,
-                cameraStatus = TableCameraStatus.Current(t, DateTime.Now)   // kamera yoksa null
+                // Kamera kesildiyse son durum cameraStale = true ile gönderilir; ekranda "güncel değil" gösterilir,
+                // bu eski bilgiyle çelişki uyarısı üretilmez. Kamera hiç yoksa ya da bilgi çok eskiyse null.
+                cameraStatus = TableCameraStatus.LastKnown(t, DateTime.Now),
+                cameraStale = TableCameraStatus.IsStale(t, DateTime.Now),
+                cameraTime = t.CameraStatusDate?.ToString("HH:mm")
             };
         }
 

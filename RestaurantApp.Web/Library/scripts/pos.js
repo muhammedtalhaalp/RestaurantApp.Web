@@ -1252,8 +1252,15 @@ function renderPosTableSelection(silent) {
 function posCameraAlertsHtml(tables) {
     var alerts = (tables || []).map(function (t) { return { table: t, text: FloorPlan.cameraAlert(t) }; })
         .filter(function (a) { return a.text; });
-    if (!alerts.length) return "";
-    return '<div class="camera-alerts">' + alerts.map(function (a) {
+    // Kamera haber vermiyorsa son durumlar güncel değildir; uyarı üretilmez, yalnızca bilgi verilir
+    var stale = (tables || []).filter(function (t) { return t.cameraStale; });
+    var staleHtml = "";
+    if (stale.length) {
+        var last = stale.map(function (t) { return t.cameraTime || ""; }).sort().pop();
+        staleHtml = `<span class="camera-stale-note"><i class="fa-solid fa-video-slash"></i>Kamera bağlantısı yok: ${stale.length} masanın kamera bilgisi güncel değil${last ? " (son bilgi " + FloorPlan.escapeHtml(last) + ")" : ""}</span>`;
+    }
+    if (!alerts.length && !staleHtml) return "";
+    return '<div class="camera-alerts">' + staleHtml + alerts.map(function (a) {
         return `<span class="camera-alert-chip" data-section="${FloorPlan.escapeHtml(a.table.section)}">
                     <i class="fa-solid fa-video"></i><b>${FloorPlan.escapeHtml(a.table.tableNumber)}</b>${FloorPlan.escapeHtml(a.text)}
                 </span>`;

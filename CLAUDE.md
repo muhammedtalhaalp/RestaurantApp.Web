@@ -225,7 +225,8 @@ The real project lives in `RestaurantApp.Web/`.
 - Server side:
   - `TableCameraController` (Admin, Kasiyer, Garson, Mutfak): `GetTables` and `GetPlan` (draft kroki: table rects + elements, for calibration). It stores the state in `AppTables.CameraStatus` / `CameraStatusDate` (`Database/011`). It is company-checked, and unknown states are skipped.
   - It pushes `onTableCameraStatus` to the company group when something changes.
-  - `Helpers/TableCameraStatus.Current` ignores data older than 2 minutes (camera off).
+  - `Helpers/TableCameraStatus.Current` ignores data older than 2 minutes (camera off) and is used for change detection.
+  - For display, the plan JSON uses `LastKnown` (up to 12 h) plus `cameraStale`/`cameraTime`. A stale state is shown as a grey "güncel değil" badge with a "Kamera bağlantısı yok" note on the POS. It never produces conflict alerts. Per the TÜBİTAK proposal, an outage keeps the last decision with a staleness warning and makes no new decision.
 - **The camera state is advisory only.** It never changes orders or `AppTables.Status`.
   - The floor-plan JSON carries `cameraStatus`. `FloorPlan.cameraAlert(t)` compares it with `isOccupied`:
     - "seated but no order";

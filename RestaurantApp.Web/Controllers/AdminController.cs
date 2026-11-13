@@ -15,7 +15,7 @@ namespace RestaurantApp.Web.Controllers
     {
         private RestaurantAppDBEntities db = new RestaurantAppDBEntities();
 
-        // Personel Yönetimi ekranından eklenip silinebilen roller
+        
         private static readonly string[] StaffRoles = { "Mutfak Şefi", "Mutfak", "Kasiyer", "Garson", "Kurye" };
 
         private bool IsOwnCategory(int categoryId)
