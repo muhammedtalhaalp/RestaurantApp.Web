@@ -149,6 +149,130 @@ namespace RestaurantApp.Web.Controllers
             });
         }
 
+        #region ŞİFREMİ UNUTTUM (GİRİŞ SAYFASI, OTURUM AÇMADAN)
+
+        // Oturum açmadan şifre sıfırlama: e-postaya 6 haneli kod gider, kod + yeni şifre tek adımda onaylanır.
+        // Kod tahminini zorlaştırmak için: kod 6 hane, 5 hatalı denemede iptal, aynı hesaba en fazla
+        // dakikada 1 ve saatte 5 kod (oturumdan bağımsız, sunucu belleğinde sayılır).
+        private const string ResetOtpSessionKey = "PendingPasswordReset";
+        private const int ResetCodeDigits = 6;
+        private const int ResetMaxCodesPerHour = 5;
+        private static readonly object ResetLock = new object();
+
+        // Hesabın var olup olmadığını belli etmemek için kayıtlı olsun olmasın aynı cevap verilir
+        private const string ResetGenericMessage = "Bu e-posta adresi kayıtlıysa 6 haneli doğrulama kodu gönderildi. Gelen kutunuzu ve gereksiz klasörünü kontrol edin.";
+
+        private static bool TryReserveResetCode(int userId, out string error)
+        {
+            string key = "PasswordResetSends_" + userId;
+            lock (ResetLock)
+            {
+                var cache = System.Runtime.Caching.MemoryCache.Default;
+                var sends = ((cache.Get(key) as System.Collections.Generic.List<DateTime>) ?? new System.Collections.Generic.List<DateTime>())
+                    .Where(t => DateTime.Now - t < TimeSpan.FromHours(1)).ToList();
+                if (sends.Any(t => DateTime.Now - t < TimeSpan.FromMinutes(1)))
+                {
+                    error = "Yeni kod istemeden önce 1 dakika bekleyin.";
+                    return false;
+                }
+                if (sends.Count >= ResetMaxCodesPerHour)
+                {
+                    error = "Bu hesap için çok fazla kod istendi. Lütfen bir saat sonra tekrar deneyin.";
+                    return false;
+                }
+                sends.Add(DateTime.Now);
+                cache.Set(key, sends, DateTimeOffset.Now.AddHours(1));
+                error = null;
+                return true;
+            }
+        }
+
+        private AppUsers FindActiveUserByEmail(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return null;
+            email = email.Trim();
+            return db.AppUsers.FirstOrDefault(u => (u.Email == email || u.Username == email) && u.IsActive);
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public JsonResult ForgotPasswordSendCode(string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return Json(new { success = false, message = "E-posta adresinizi yazın." });
+            }
+
+            var user = FindActiveUserByEmail(email);
+            if (user == null || string.IsNullOrEmpty(user.Email))
+            {
+                Session[ResetOtpSessionKey] = null;
+                return Json(new { success = true, message = ResetGenericMessage });
+            }
+
+            string limitError;
+            if (!TryReserveResetCode(user.UserId, out limitError))
+            {
+                return Json(new { success = false, message = limitError });
+            }
+
+            string code = PasswordHasher.GenerateNumericCode(ResetCodeDigits);
+            Session[ResetOtpSessionKey] = new PendingOtp
+            {
+                UserId = user.UserId,
+                Code = code,
+                ExpiresAt = DateTime.Now.AddMinutes(OtpValidMinutes)
+            };
+
+            if (!EmailHelper.SendVerificationCode(user.Email, code))
+            {
+                Session[ResetOtpSessionKey] = null;
+                return Json(new { success = false, message = "E-posta gönderilemedi. Lütfen daha sonra tekrar deneyin." });
+            }
+            return Json(new { success = true, message = ResetGenericMessage });
+        }
+
+        [HttpPost]
+        [AllowAnonymous]
+        public JsonResult ForgotPasswordReset(string email, string code, string newPassword)
+        {
+            var otp = Session[ResetOtpSessionKey] as PendingOtp;
+            var user = FindActiveUserByEmail(email);
+
+            if (otp == null || user == null || otp.UserId != user.UserId)
+            {
+                return Json(new { success = false, message = "Geçerli bir doğrulama kodu bulunamadı. Lütfen yeni kod isteyin." });
+            }
+            if (DateTime.Now > otp.ExpiresAt)
+            {
+                Session[ResetOtpSessionKey] = null;
+                return Json(new { success = false, message = "Doğrulama kodunun süresi doldu. Lütfen yeni kod isteyin." });
+            }
+            if (string.IsNullOrWhiteSpace(code) || otp.Code != code.Trim())
+            {
+                otp.FailedAttempts++;
+                if (otp.FailedAttempts >= OtpMaxFailedAttempts)
+                {
+                    Session[ResetOtpSessionKey] = null;
+                    return Json(new { success = false, message = "Çok fazla hatalı deneme yapıldı. Lütfen yeni kod isteyin." });
+                }
+                return Json(new { success = false, message = $"Doğrulama kodu hatalı. Kalan deneme hakkı: {OtpMaxFailedAttempts - otp.FailedAttempts}" });
+            }
+            if (string.IsNullOrWhiteSpace(newPassword) || newPassword.Length < MinPasswordLength)
+            {
+                // Kod doğru; şifre kuralına uymuyorsa kod iptal edilmez, kullanıcı yalnızca şifreyi düzeltir
+                return Json(new { success = false, message = $"Yeni şifre en az {MinPasswordLength} karakter olmalıdır." });
+            }
+
+            user.PasswordHash = PasswordHasher.Hash(newPassword);
+            db.SaveChanges();
+            Session[ResetOtpSessionKey] = null;
+
+            return Json(new { success = true, message = "Şifreniz değiştirildi. Yeni şifrenizle giriş yapabilirsiniz." });
+        }
+
+        #endregion
+
         #region ORTAK PROFİL AYARLARI (TÜM ROLLER İÇİN)
 
         // Kullanıcı yalnızca JwtAuthorize'ın doğruladığı token'daki kimlikten bulunur

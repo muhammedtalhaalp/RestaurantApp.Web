@@ -372,6 +372,20 @@
                 color: var(--color-accent);
             }
 
+        .forgot-link {
+            display: block;
+            margin-top: 8px;
+            text-align: right;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--color-accent);
+            text-decoration: none;
+        }
+
+            .forgot-link:hover {
+                text-decoration: underline;
+            }
+
         .btn-submit {
             width: 100%;
             padding: 13px;
@@ -507,6 +521,7 @@
                                 <input type="password" id="loginPassword" placeholder="••••••••" required />
                                 <i class="fa-solid fa-lock"></i>
                             </div>
+                            <a href="#" class="forgot-link" id="lnkForgotPassword">Şifremi unuttum</a>
                         </div>
 
                         <button type="submit" class="btn-submit" id="btnSignInSubmit">
@@ -629,6 +644,87 @@
                         Swal.fire("Hata", "Sunucuya bağlanırken bir sorun oluştu.", "error");
                     }
                 });
+            });
+
+            // ŞİFREMİ UNUTTUM: 1) e-posta → kod gönderilir, 2) kod + yeni şifre → şifre değişir
+            function forgotPasswordAskEmail() {
+                Swal.fire({
+                    title: "Şifremi unuttum",
+                    text: "Hesabınızın e-posta adresini yazın; 6 haneli doğrulama kodu gönderelim.",
+                    input: "email",
+                    inputValue: $("#loginEmail").val().trim(),
+                    inputPlaceholder: "ornek@lezzetpos.com",
+                    validationMessage: "Geçerli bir e-posta adresi yazın.",
+                    showCancelButton: true,
+                    confirmButtonText: "Kod gönder",
+                    cancelButtonText: "Vazgeç",
+                    confirmButtonColor: "#7b2d7e",
+                    showLoaderOnConfirm: true,
+                    allowOutsideClick: function () { return !Swal.isLoading(); },
+                    preConfirm: function (email) {
+                        return forgotPasswordSendCode(email).then(function (r) {
+                            if (!r.success) Swal.showValidationMessage(r.message);
+                            return r.success ? { email: email.trim(), message: r.message } : false;
+                        });
+                    }
+                }).then(function (result) {
+                    if (result.isConfirmed && result.value) forgotPasswordAskCode(result.value.email, result.value.message);
+                });
+            }
+
+            function forgotPasswordSendCode(email) {
+                return $.post("/Auth/ForgotPasswordSendCode", { email: email.trim() })
+                    .then(function (r) { return r; }, function () { return { success: false, message: "Sunucuya bağlanırken bir sorun oluştu." }; });
+            }
+
+            function forgotPasswordAskCode(email, info) {
+                var safeInfo = $("<div>").text(info).html();
+                Swal.fire({
+                    title: "Yeni şifre belirle",
+                    html: `<p style="font-size:.9rem;margin-bottom:12px">${safeInfo}</p>
+                           <input id="fpCode" class="swal2-input" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6 haneli kod" style="letter-spacing:4px;text-align:center">
+                           <input id="fpPass" class="swal2-input" type="password" autocomplete="new-password" placeholder="Yeni şifre (en az 6 karakter)">
+                           <input id="fpPass2" class="swal2-input" type="password" autocomplete="new-password" placeholder="Yeni şifre (tekrar)">`,
+                    showCancelButton: true,
+                    showDenyButton: true,
+                    confirmButtonText: "Şifreyi değiştir",
+                    denyButtonText: "Kodu tekrar gönder",
+                    cancelButtonText: "Vazgeç",
+                    confirmButtonColor: "#7b2d7e",
+                    denyButtonColor: "#6b6475",
+                    focusConfirm: false,
+                    showLoaderOnConfirm: true,
+                    allowOutsideClick: function () { return !Swal.isLoading(); },
+                    didOpen: function () { $("#fpCode").trigger("focus"); },
+                    preConfirm: function () {
+                        var code = $("#fpCode").val().trim(), pass = $("#fpPass").val(), pass2 = $("#fpPass2").val();
+                        if (!/^\d{6}$/.test(code)) return Swal.showValidationMessage("E-postadaki 6 haneli kodu yazın."), false;
+                        if (pass.length < 6) return Swal.showValidationMessage("Yeni şifre en az 6 karakter olmalı."), false;
+                        if (pass !== pass2) return Swal.showValidationMessage("Şifreler birbirini tutmuyor."), false;
+                        return $.post("/Auth/ForgotPasswordReset", { email: email, code: code, newPassword: pass })
+                            .then(function (r) { return r; }, function () { return { success: false, message: "Sunucuya bağlanırken bir sorun oluştu." }; })
+                            .then(function (r) {
+                                if (!r.success) Swal.showValidationMessage(r.message);
+                                return r.success ? r : false;
+                            });
+                    }
+                }).then(function (result) {
+                    if (result.isDenied) {
+                        forgotPasswordSendCode(email).then(function (r) {
+                            if (r.success) forgotPasswordAskCode(email, r.message);
+                            else Swal.fire("Kod gönderilemedi", r.message, "warning").then(function () { forgotPasswordAskCode(email, info); });
+                        });
+                    } else if (result.isConfirmed && result.value) {
+                        $("#loginEmail").val(email);
+                        $("#loginPassword").val("").trigger("focus");
+                        Swal.fire("Şifre değişti", result.value.message, "success");
+                    }
+                });
+            }
+
+            $("#lnkForgotPassword").on("click", function (e) {
+                e.preventDefault();
+                forgotPasswordAskEmail();
             });
 
             // KAYIT OL AJAX

@@ -23,7 +23,7 @@ namespace RestaurantApp.Web.Helpers
                 mail.Body = $@"
                     <div style='font-family: Arial, sans-serif; padding: 20px; color: #333;'>
                         <h2>Şifre Değiştirme Talebi</h2>
-                        <p>Hesabınızın şifresini değiştirmek için aşağıdaki 4 haneli doğrulama kodunu kullanabilirsiniz:</p>
+                        <p>Hesabınızın şifresini değiştirmek için aşağıdaki {code.Length} haneli doğrulama kodunu kullanabilirsiniz:</p>
                         <h1 style='color: #4a154b; letter-spacing: 5px;'>{code}</h1>
                         <p style='font-size: 12px; color: #777;'>Bu talebi siz yapmadıysanız lütfen bu e-postayı dikkate almayın.</p>
                     </div>";
