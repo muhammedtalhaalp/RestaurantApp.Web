@@ -213,6 +213,8 @@ The real project lives in `RestaurantApp.Web/`.
       - press F for the whole frame;
       - press A to auto-detect tables.
     - Space freezes the frame. A video file starts frozen.
+    - Automatic regions (H, A) keep `auto_polygon` and `reviewed`. After H a review step opens (`review_regions`): each table is shown in turn, corners or the whole area can be dragged, Enter approves, D deletes, G resumes later. The proposal (2.2) says floor-homography table regions are not trusted without this check. S warns once if any automatic region is unreviewed.
+    - On save, `logs/kalibrasyon.csv` gets one row per table: method, reviewed, IoU between the automatic and the final region (pixel-mask IoU, works for non-convex shapes), plus total, kroki-mapping and review seconds. These are the proposal's "IoU and setup time" measurements.
   - For each frame it decides a raw state per area:
     - `Dolu`: a person overlaps the area;
     - `Toplanacak`: no person, but a cup, bowl or food is inside;

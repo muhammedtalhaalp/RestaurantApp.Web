@@ -88,13 +88,30 @@ bilgisayar aynı Wi-Fi'a (ya da telefonun hotspot'una) bağlanır ve uygulamanı
   penceresinde **aynı 4 noktaya aynı sırayla** tıkla. Program iki düzlem arasındaki dönüşümü
   (homografi) hesaplar ve krokideki o alanın **bütün masalarını görüntüye kendisi yerleştirir**;
   alanlar `seat_margin` kadar (varsayılan 35 kroki birimi) sandalye payıyla büyütülür.
-  Görüntüde görünmeyen masalar atlanır. Yanlış duran olursa **X** ile silip elle çizebilirsin.
-  Noktalar birbirinden uzak seçilmeli; üçü aynı doğru üzerindeyse program uyarır.
+  Görüntüde görünmeyen masalar atlanır. Noktalar birbirinden uzak seçilmeli; üçü aynı doğru
+  üzerindeyse program uyarır.
+- **Gözden geçirme (H'den sonra kendiliğinden açılır):** Zemin dönüşümü masa yüzeyini ve
+  sandalyeleri tam doğru yerleştiremez (masa üstü zeminden farklı bir düzlemdedir). Bu yüzden
+  otomatik gelen her masa sırayla gösterilir. Mor çizgi düzeltilecek bölge, ince sarı çizgi
+  otomatik başlangıç bölgesidir.
+  - **Köşeyi sürükle**: o köşeyi taşı. **Alanın içini sürükle**: tüm alanı kaydır.
+  - **Enter / N**: onayla, sonrakine geç. **B**: önceki. **R**: otomatik hâline geri dön.
+  - **D**: bu masayı sil (görüntüde aslında yok ya da bu kamerayla izlenmeyecek).
+  - **Esc**: incelemeyi bırak; **G** ile kaldığın yerden devam edersin.
+  - **A** ile modelin bulduğu masalar da aynı şekilde G ile gözden geçirilir.
+  - Gözden geçirilmemiş bölge varken **S** önce uyarır; yine de kaydetmek için S'ye tekrar bas.
 - **F**: tüm görüntü tek masa (kamera yalnızca bir masayı görüyorsa, ör. dizüstüyle deneme).
 - **A**: görüntüdeki masaları model bulsun, sırayla eşleştir. **Z**: son köşeyi geri al.
   **X**: son masa alanını sil. **S**: kaydet ve çık. **Q**: kaydetmeden çık.
 - Alanlar oransal kaydedilir; kamera çözünürlüğü değişse de geçerli kalır. Kamera yerinden
   oynarsa kalibrasyonu yenile.
+- **Kurulum kaydı** (`logs/kalibrasyon.csv`, `;` ayraçlı): her kayıtta kalibrasyondaki her masa
+  için bir satır yazılır: yöntem (`kroki`, `model`, `elle`, `tum_goruntu`), gözden geçirildi mi
+  (`evet`/`hayir`/`silindi`), otomatik bölge ile son bölgenin örtüşmesi (`iou_otomatik_son`) ve
+  oturumun süreleri (pencere açılışından kayda toplam, kroki eşleme, gözden geçirme; saniye).
+  Kayıtta özet de yazdırılır (ortalama / ortanca / en düşük IoU). Görüntü kaydedilmez.
+  Bunlar araştırma önerisindeki "otomatik başlangıç bölgesi ile elle düzeltilmiş bölgenin
+  örtüşmesi ve kurulum süresi" ölçümleridir.
 
 ## 2. Çalıştırma
 

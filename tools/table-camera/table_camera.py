@@ -479,12 +479,16 @@ def clip_to_frame(points, width, height):
     return clipped.reshape(-1, 2), inside / area
 
 
-def polygon_iou(a, b):
-    """İki dışbükey çokgenin kesişim / birleşim oranı (otomatik eşlemenin doğruluğunu ölçmek için)."""
-    a, b = np.array(a, dtype=np.float32), np.array(b, dtype=np.float32)
-    inter, _ = cv2.intersectConvexConvex(a, b)
-    union = polygon_area(a) + polygon_area(b) - inter
-    return inter / union if union > 0 else 0.0
+def polygon_iou(a, b, width, height):
+    """İki oransal (0-1) çokgenin kesişim / birleşim oranı. Otomatik başlangıç bölgesi ile elle
+    düzeltilmiş bölgenin örtüşmesini ölçer. Piksel maskesiyle hesaplanır; düzeltilmiş bölge
+    dışbükey olmasa da doğru sonuç verir."""
+    mask_a = np.zeros((height, width), dtype=np.uint8)
+    mask_b = np.zeros((height, width), dtype=np.uint8)
+    cv2.fillPoly(mask_a, [polygon_pixels(a, width, height)], 1)
+    cv2.fillPoly(mask_b, [polygon_pixels(b, width, height)], 1)
+    union = int(np.count_nonzero(mask_a | mask_b))
+    return int(np.count_nonzero(mask_a & mask_b)) / union if union else 0.0
 
 
 def auto_regions(plan, section, matrix, width, height, margin, min_visible=0.3):
@@ -498,10 +502,14 @@ def auto_regions(plan, section, matrix, width, height, margin, min_visible=0.3):
         if polygon is None or visible < min_visible:
             skipped.append(table["tableNumber"])
             continue
+        polygon = [[round(float(x) / width, 4), round(float(y) / height, 4)] for x, y in polygon]
         regions[table["tableId"]] = {
             "tableId": table["tableId"],
             "name": table["tableNumber"],
-            "polygon": [[round(float(x) / width, 4), round(float(y) / height, 4)] for x, y in polygon],
+            "polygon": polygon,
+            "method": "kroki",
+            "auto_polygon": [list(p) for p in polygon],   # IoU için otomatik başlangıç bölgesi saklanır
+            "reviewed": False,
         }
     return regions, skipped
 
@@ -608,34 +616,35 @@ def choose_table(frame, server_tables, used_ids):
 
 
 def calibrate_with_plan(client, config, regions, frame):
-    """H tuşu: kamerada 4 zemin noktası + krokide aynı 4 nokta → alandaki tüm masalar otomatik yerleşir."""
+    """H tuşu: kamerada 4 zemin noktası + krokide aynı 4 nokta → alandaki tüm masalar otomatik yerleşir.
+    Yerleştirilen masaların kimlikleri ve alan adı döner (vazgeçilirse ([], None))."""
     plan = client.get_plan()
     sections = plan_sections(plan)
     if not plan["tables"] or not sections:
         print("Krokide masa yok. Önce Kroki Yönetimi'nde krokiyi çizin.")
-        return
+        return [], None
     index = 0 if len(sections) == 1 else choose_from_list(frame, "Kamera hangi alani goruyor?", [ascii_name(s) for s in sections])
     if index is None:
-        return
+        return [], None
     section = sections[index]
     print(f"\n{section}: kamera görüntüsünde zemin üzerinde 4 nokta seçin (salon köşeleri ya da zemine konan işaretler),"
           " sonra açılan kroki penceresinde AYNI 4 noktayı AYNI sırayla seçin.")
 
     image_points = pick_points(CALIBRATE_TITLE, frame, 4, "Kamerada zeminde 4 nokta")
     if not image_points:
-        return
+        return [], None
     plan_image, scale = render_plan(plan, section)
     plan_clicks = pick_points(PLAN_TITLE, plan_image, 4, "Krokide ayni 4 nokta, ayni sirayla")
     cv2.destroyWindow(PLAN_TITLE)
     if not plan_clicks:
-        return
+        return [], None
     plan_points = [(x / scale, y / scale) for x, y in plan_clicks]
 
     try:
         matrix = find_homography(plan_points, image_points)
     except ValueError as exc:
         print(exc)
-        return
+        return [], None
     height, width = frame.shape[:2]
     added, skipped = auto_regions(plan, section, matrix, width, height, config.get("seat_margin", 35))
     regions.update(added)
@@ -644,8 +653,159 @@ def calibrate_with_plan(client, config, regions, frame):
         "image_points": [[round(x / width, 4), round(y / height, 4)] for x, y in image_points],
         "plan_points": [[round(x, 1), round(y, 1)] for x, y in plan_points],
     }
+    for region in added.values():
+        region["section"] = section
     print(f"✓ {section}: {len(added)} masa otomatik yerleştirildi." + (f" Görüntüde görünmeyen: {', '.join(skipped)}" if skipped else "")
-          + " Yanlış duranı X ile silip elle çizebilirsiniz; S ile kaydedin.")
+          + " Şimdi her masa tek tek gözden geçirilecek.")
+    return list(added), section
+
+
+# ---------------- Bölgeleri gözden geçirme ----------------
+# Zemin dönüşümü masa yüzeyini ve sandalyeleri tam doğru yerleştiremez (masa üstü farklı bir düzlemdedir).
+# Bu yüzden otomatik gelen her bölge kurulumda tek tek denetlenir, gerekirse köşeleri düzeltilir.
+# Otomatik bölge ile son bölgenin örtüşmesi (IoU) ve geçen süre kaydedilir.
+
+HANDLE_RADIUS = 10   # köşeyi yakalamak için fare bu kadar piksel yakın olmalı
+
+
+def review_regions(frame, regions, ids, timing):
+    """`ids` sırasıyla masaları gösterir. Köşe sürükle: köşeyi taşı, alanın içini sürükle: tüm alanı taşı.
+    Enter/N: onayla ve sonraki, B: önceki, R: otomatik hâline dön, D: bu masayı sil, Esc: incelemeyi bırak."""
+    ids = [i for i in ids if i in regions]
+    if not ids:
+        print("Gözden geçirilecek otomatik bölge yok.")
+        return
+    height, width = frame.shape[:2]
+    state = {"drag": None, "last": None}
+    started = time.monotonic()
+    index = next((n for n, i in enumerate(ids) if not regions[i].get("reviewed")), 0)
+
+    def current_px():
+        return [[x * width, y * height] for x, y in regions[ids[index]]["polygon"]]
+
+    def store(points_px):
+        regions[ids[index]]["polygon"] = [[round(min(max(x, 0), width - 1) / width, 4),
+                                           round(min(max(y, 0), height - 1) / height, 4)] for x, y in points_px]
+
+    def on_mouse(event, x, y, flags, param):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            pts = current_px()
+            near = min(range(len(pts)), key=lambda k: (pts[k][0] - x) ** 2 + (pts[k][1] - y) ** 2)
+            if (pts[near][0] - x) ** 2 + (pts[near][1] - y) ** 2 <= HANDLE_RADIUS ** 2:
+                state["drag"] = ("corner", near)
+            elif cv2.pointPolygonTest(np.array(pts, dtype=np.float32), (float(x), float(y)), False) >= 0:
+                state["drag"] = ("move", None)
+            state["last"] = (x, y)
+        elif event == cv2.EVENT_MOUSEMOVE and state["drag"]:
+            pts, (lx, ly) = current_px(), state["last"]
+            if state["drag"][0] == "corner":
+                pts[state["drag"][1]] = [x, y]
+            else:
+                pts = [[px + x - lx, py + y - ly] for px, py in pts]
+            store(pts)
+            state["last"] = (x, y)
+        elif event == cv2.EVENT_LBUTTONUP:
+            state["drag"] = None
+
+    cv2.setMouseCallback(CALIBRATE_TITLE, on_mouse)
+    try:
+        while True:
+            if not ids:
+                print("Gözden geçirilecek masa kalmadı.")
+                return
+            index = min(index, len(ids) - 1)
+            region = regions[ids[index]]
+            view = frame.copy()
+            for other_id in ids:
+                if other_id != ids[index]:
+                    other = regions[other_id]
+                    color = (100, 180, 50) if other.get("reviewed") else (160, 160, 160)
+                    cv2.polylines(view, [polygon_pixels(other["polygon"], width, height)], True, color, 1)
+            if region.get("auto_polygon"):
+                cv2.polylines(view, [polygon_pixels(region["auto_polygon"], width, height)], True, (230, 200, 60), 1)
+            pts = polygon_pixels(region["polygon"], width, height)
+            cv2.polylines(view, [pts], True, (255, 0, 255), 2)
+            for p in pts:
+                cv2.circle(view, tuple(int(v) for v in p), 6, (255, 0, 255), -1)
+            iou = polygon_iou(region["auto_polygon"], region["polygon"], width, height) if region.get("auto_polygon") else None
+            done = sum(1 for i in ids if regions[i].get("reviewed"))
+            draw_text(view, f"Gozden gecirme {index + 1}/{len(ids)} (onayli {done}) | {ascii_name(region['name'])}"
+                            + (f" | IoU {iou:.2f}" if iou is not None else ""), (10, 24))
+            draw_text(view, "Kose/ic surukle: duzelt  Enter/N: onayla  B: onceki  R: otomatik hale don  D: sil  Esc: birak", (10, 48), scale=0.5)
+            cv2.imshow(CALIBRATE_TITLE, view)
+
+            key = cv2.waitKey(30) & 0xFF
+            if key in (13, ord("n")):
+                region["reviewed"] = True
+                region["iou"] = round(iou, 3) if iou is not None else None
+                print(f"✓ {region['name']} onaylandı" + (f" (IoU {iou:.2f})" if iou is not None else "") + ".")
+                if all(regions[i].get("reviewed") for i in ids):
+                    print("Bütün otomatik bölgeler gözden geçirildi.")
+                    return
+                index = (index + 1) % len(ids)
+            elif key == ord("b"):
+                index = (index - 1) % len(ids)
+            elif key == ord("r") and region.get("auto_polygon"):
+                region["polygon"] = [list(p) for p in region["auto_polygon"]]
+                region["reviewed"] = False
+            elif key == ord("d"):
+                timing["removed"].append({"tableId": region["tableId"], "name": region["name"], "section": region.get("section", "")})
+                print(f"{region['name']} silindi (bu kamerada görünmüyor/kullanılmayacak).")
+                del regions[ids[index]]
+                ids.pop(index)
+                if ids and all(regions[i].get("reviewed") for i in ids):
+                    print("Bütün otomatik bölgeler gözden geçirildi.")
+                    return
+            elif key == 27:
+                left = sum(1 for i in ids if not regions[i].get("reviewed"))
+                print(f"İnceleme bırakıldı; {left} masa gözden geçirilmedi. G ile kaldığınız yerden devam edebilirsiniz.")
+                return
+    finally:
+        timing["review_seconds"] += time.monotonic() - started
+
+
+def calibration_log_path(config):
+    folder = Path(config.get("decision_log_dir", "logs"))
+    if not folder.is_absolute():
+        folder = Path(__file__).parent / folder
+    folder.mkdir(parents=True, exist_ok=True)
+    return folder / "kalibrasyon.csv"
+
+
+def write_calibration_log(config, regions, timing, source):
+    """Kurulum kaydı: masa başına bir satır (yöntem, gözden geçirildi mi, IoU) ve oturumun süreleri.
+    Görüntü kaydedilmez; yalnızca bölge ölçüleri ve süreler yazılır."""
+    path = calibration_log_path(config)
+    new_file = not path.exists()
+    now = time.strftime("%Y-%m-%d %H:%M:%S")
+    total = time.monotonic() - timing["opened"]
+    common = [now, str(source), f"{total:.0f}", f"{timing['plan_seconds']:.0f}", f"{timing['review_seconds']:.0f}"]
+    with open(path, "a", newline="", encoding="utf-8-sig") as f:
+        writer = csv.writer(f, delimiter=";")
+        if new_file:
+            writer.writerow(["zaman", "kaynak", "toplam_kurulum_sn", "kroki_esleme_sn", "gozden_gecirme_sn",
+                             "alan", "masa_id", "masa", "yontem", "gozden_gecirildi", "iou_otomatik_son"])
+        for region in regions.values():
+            iou = region.get("iou")
+            writer.writerow(common + [region.get("section", ""), region["tableId"], region["name"], region.get("method", "elle"),
+                                      "evet" if region.get("reviewed", True) else "hayir", "" if iou is None else f"{iou:.3f}"])
+        for removed in timing["removed"]:
+            writer.writerow(common + [removed["section"], removed["tableId"], removed["name"], "kroki", "silindi", ""])
+    return path, total
+
+
+def calibration_summary(regions, timing, total):
+    ious = [r["iou"] for r in regions.values() if r.get("iou") is not None]
+    lines = [f"Kurulum süresi: toplam {total:.0f} sn (kroki eşleme {timing['plan_seconds']:.0f} sn, "
+             f"gözden geçirme {timing['review_seconds']:.0f} sn)"]
+    if ious:
+        ious.sort()
+        median = ious[len(ious) // 2] if len(ious) % 2 else (ious[len(ious) // 2 - 1] + ious[len(ious) // 2]) / 2
+        lines.append(f"Otomatik bölge ile son bölge örtüşmesi (IoU), {len(ious)} masa: ortalama {sum(ious) / len(ious):.2f}, "
+                     f"ortanca {median:.2f}, en düşük {ious[0]:.2f}")
+    if timing["removed"]:
+        lines.append(f"Görüntüde kullanılmayıp silinen otomatik bölge: {len(timing['removed'])}")
+    return lines
 
 
 def run_calibration(config, client):
@@ -657,6 +817,9 @@ def run_calibration(config, client):
     camera = FrameSource(source_of(config))
     detector = None
     points = []
+    # Kurulum süresi (TÜBİTAK önerisi 2.2): pencere açılışından kayda kadar; kroki eşleme ve gözden geçirme ayrıca
+    timing = {"opened": time.monotonic(), "plan_seconds": 0.0, "review_seconds": 0.0, "removed": []}
+    save_warned = False
     # Kayıtlı videoda görüntü akıp gider; bu yüzden video dosyasıyla kalibrasyon donmuş başlar
     state = {"click": None, "drag_start": None, "drag_now": None, "frozen": None}
     frozen_at_start = camera.is_file
@@ -683,24 +846,30 @@ def run_calibration(config, client):
         "  Sürükle : masa alanını dikdörtgen olarak çiz, açılan listeden masa numarasını yazıp Enter'a bas\n"
         "  Sol tık : eğik açıdaki masalar için köşe ekle; Sağ tık / Enter ile alanı kapat (en az 3 köşe)\n"
         "  F : tüm görüntü tek masa (kamera yalnızca bir masayı görüyorsa)\n"
-        "  H : krokiyle otomatik eşle: kamerada zeminde 4 nokta, krokide aynı 4 nokta → alandaki tüm masalar yerleşir\n"
+        "  H : krokiyle otomatik eşle: kamerada zeminde 4 nokta, krokide aynı 4 nokta → alandaki tüm masalar yerleşir,\n"
+        "      ardından her masa tek tek gözden geçirilir (köşe sürükle: düzelt, Enter: onayla, D: sil)\n"
+        "  G : otomatik gelen bölgeleri gözden geçirmeye devam et\n"
         "  A : görüntüdeki masaları otomatik bul ve sırayla eşleştir\n"
         "  Z : son köşeyi geri al     X : son eklenen masa alanını sil\n"
         "  S : kaydet ve çık          Q : kaydetmeden çık\n"
     )
 
-    def assign(frame, polygon_px, width, height):
+    def assign(frame, polygon_px, width, height, method="elle"):
         preview = frame.copy()
         cv2.polylines(preview, [np.array(polygon_px, dtype=np.int32)], True, (255, 0, 255), 3)
         table = choose_table(preview, server_tables, set(regions))
         if table is None:
             return
-        regions[table["tableId"]] = {
-            "tableId": table["tableId"],
-            "name": table["tableNumber"],
-            "polygon": [[round(x / width, 4), round(y / height, 4)] for x, y in polygon_px],
-        }
+        polygon = [[round(x / width, 4), round(y / height, 4)] for x, y in polygon_px]
+        region = {"tableId": table["tableId"], "name": table["tableNumber"], "polygon": polygon,
+                  "section": table.get("section") or "", "method": method}
+        if method == "model":   # modelin bulduğu kutu da otomatik başlangıçtır; gözden geçirilir
+            region.update({"auto_polygon": [list(p) for p in polygon], "reviewed": False})
+        regions[table["tableId"]] = region
         print(f"✓ {table['tableNumber']} işaretlendi.")
+
+    def unreviewed_ids():
+        return [i for i, r in regions.items() if r.get("auto_polygon") and not r.get("reviewed")]
 
     try:
         while True:
@@ -724,7 +893,9 @@ def run_calibration(config, client):
             if state["drag_start"]:
                 cv2.rectangle(view, state["drag_start"], state["drag_now"], (255, 0, 255), 2)
             mode = "DONMUS" if state["frozen"] is not None else "CANLI"
-            draw_text(view, f"[{mode}] Masa: {len(regions)} | Bosluk: dondur  Surukle: alan  H: kroki  F: tum goruntu  S: kaydet", (10, 24))
+            pending = len(unreviewed_ids())
+            draw_text(view, f"[{mode}] Masa: {len(regions)}" + (f" (incelenmedi: {pending})" if pending else "")
+                            + " | Bosluk: dondur  Surukle: alan  H: kroki  G: gozden gecir  F: tum goruntu  S: kaydet", (10, 24))
             cv2.imshow(CALIBRATE_TITLE, view)
 
             key = cv2.waitKey(30) & 0xFF
@@ -740,11 +911,19 @@ def run_calibration(config, client):
                 assign(frame, [(x0, y0), (x1, y0), (x1, y1), (x0, y1)], width, height)
                 points = []
             if key == ord("f"):
-                assign(frame, [(0, 0), (width - 1, 0), (width - 1, height - 1), (0, height - 1)], width, height)
+                assign(frame, [(0, 0), (width - 1, 0), (width - 1, height - 1), (0, height - 1)], width, height, "tum_goruntu")
                 points = []
             if key == ord("h"):
-                calibrate_with_plan(client, config, regions, frame)
-                cv2.setMouseCallback(CALIBRATE_TITLE, on_mouse)   # nokta seçimi fareyi devralmıştı
+                plan_started = time.monotonic()
+                added, _ = calibrate_with_plan(client, config, regions, frame)
+                timing["plan_seconds"] += time.monotonic() - plan_started
+                if added:
+                    review_regions(frame, regions, added, timing)
+                cv2.setMouseCallback(CALIBRATE_TITLE, on_mouse)   # nokta seçimi ve inceleme fareyi devralmıştı
+                points = []
+            if key == ord("g"):
+                review_regions(frame, regions, [i for i, r in regions.items() if r.get("auto_polygon")], timing)
+                cv2.setMouseCallback(CALIBRATE_TITLE, on_mouse)
                 points = []
             if (click and click[0] == "close") or key == 13:
                 if len(points) >= 3:
@@ -764,11 +943,22 @@ def run_calibration(config, client):
                 found = [box for name, _, box in detector.detect(frame) if name == "dining table"]
                 print(f"{len(found)} masa bulundu.")
                 for x1, y1, x2, y2 in found:
-                    assign(frame, [(x1, y1), (x2, y1), (x2, y2), (x1, y2)], width, height)
+                    assign(frame, [(x1, y1), (x2, y1), (x2, y2), (x1, y2)], width, height, "model")
             if key == ord("s"):
+                pending = unreviewed_ids()
+                if pending and not save_warned:
+                    names = ", ".join(regions[i]["name"] for i in pending)
+                    print(f"⚠ {len(pending)} otomatik bölge gözden geçirilmedi ({names}). G ile gözden geçirin "
+                          "ya da yine de kaydetmek için S'ye tekrar basın.")
+                    save_warned = True
+                    continue
                 config["tables"] = list(regions.values())
                 save_config(CONFIG_PATH, config)
+                log_path, total = write_calibration_log(config, regions, timing, source_of(config))
                 print(f"{len(regions)} masa alanı kaydedildi: {CONFIG_PATH}")
+                for line in calibration_summary(regions, timing, total):
+                    print("  " + line)
+                print(f"  Kurulum kaydı: {log_path}")
                 break
             if key == ord("q"):
                 print("Kaydedilmeden çıkıldı.")
