@@ -131,9 +131,7 @@ function loadAdminPendingOrders() {
 function openOrderDetailsModal(orderId) {
     $("#tblOrderItemsBody").html(`
         <tr>
-            <td colspan="6" class="text-center py-4 text-muted">
-                <i class="fa-solid fa-spinner fa-spin me-2"></i>Ürünler yükleniyor...
-            </td>
+            <td colspan="6" class="py-4">${lzLoader("Ürünler yükleniyor…", true)}</td>
         </tr>
     `);
 

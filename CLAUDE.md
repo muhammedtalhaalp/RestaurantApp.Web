@@ -78,6 +78,7 @@ The real project lives in `RestaurantApp.Web/`.
 - **New pages must use `_Layout.cshtml`** and follow the existing look: an `h4` title with a purple icon plus a muted subtitle, white rounded cards, and the brand color `#4a154b`. Users expect the same sidebar, profile menu and logout on every role's screen.
 - **Design system: `Library/styles/lezzet-ui.css`** (light theme, font Plus Jakarta Sans).
   - `_Layout` loads it **after** the page's `@section styles`, so Bootstrap components (card, btn, form, table, modal, badge, dropdown, nav) and the shared purple classes (`btn-purple`, `btn-purple-main`, `btn-brand`, `btn-outline-purple`/`-brand`, `text-purple-main`, `text-brand`, `card-clean`) look the same on every page. SweetAlert2 and jQuery UI are themed there too.
+  - Loading states use the brand loader `.lz-loader` (the purple leaf logo pulsing inside a rotating gradient ring; `.lz-loader-sm` is the small side-by-side form for table rows and modals). Page JS builds it with `lzLoader(text, small)` from `_Layout`; static views write the markup directly. The same CSS restyles SweetAlert2's `Swal.showLoading()` ring (`.swal2-loader`; never give it a `display`, Swal toggles that). Small in-button "Kaydediliyor…" spinners stay `fa-spinner`.
   - Use its `--lz-*` tokens instead of new hard-coded colors. Page CSS should only hold page-specific pieces, styled with more specific selectors.
   - The sidebar is a dark purple gradient, and the top bar is a floating frosted-glass strip.
 - `Views/Auth/Login.cshtml` uses the dark, premium style of the mobile app.

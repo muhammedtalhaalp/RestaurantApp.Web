@@ -71,10 +71,7 @@ function fetchKitchenReport() {
     var $tbody = $("#tblKitchenReportBody");
     $tbody.html(`
         <tr>
-            <td colspan="5" class="text-center py-5 text-muted">
-                <i class="fa-solid fa-spinner fa-spin fs-4 mb-2 d-block" style="color: #4a154b;"></i>
-                <span>Sipariş verileri getiriliyor...</span>
-            </td>
+            <td colspan="5" class="py-5">${lzLoader("Sipariş verileri getiriliyor…")}</td>
         </tr>`);
 
     $.ajax({

@@ -1207,7 +1207,7 @@ function renderPosTableSelection(silent) {
     }
 
     // Kroki her açılışta yeniden alınır: masaların dolu/boş durumu güncel olsun
-    if (!silent) $("#posFloorPlan").html('<div class="text-center text-muted py-5"><i class="fa-solid fa-spinner fa-spin me-2"></i>Kroki yükleniyor…</div>');
+    if (!silent) $("#posFloorPlan").html('<div class="py-5">' + lzLoader("Kroki yükleniyor…") + '</div>');
     $.get("/FloorPlan/GetPublishedPlan", function (res) {
         if (silent && posTableView !== "plan") return;
         if (!res || !res.success) {

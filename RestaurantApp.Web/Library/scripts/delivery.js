@@ -479,7 +479,7 @@ function openCourierCash() {
 }
 
 function loadCourierCash() {
-    $("#courierCashBody").html('<tr><td colspan="5" class="text-center text-muted py-4"><i class="fa-solid fa-spinner fa-spin me-1"></i>Yükleniyor...</td></tr>');
+    $("#courierCashBody").html('<tr><td colspan="5" class="py-4">' + lzLoader("Kurye kasası yükleniyor…", true) + '</td></tr>');
     $.get("/Delivery/GetCourierCash", function (res) {
         if (!res || !res.success) {
             $("#courierCashBody").html(`<tr><td colspan="5" class="text-center text-danger py-4">${escapeHtml((res && res.message) || "Kurye kasası yüklenemedi.")}</td></tr>`);

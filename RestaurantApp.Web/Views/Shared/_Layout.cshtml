@@ -557,6 +557,14 @@
             return window.lezzetAuthToken || localStorage.getItem("JWToken");
         }
 
+        // Marka yükleme simgesi (lezzet-ui.css .lz-loader). small = tablo satırı / modal içi için yan yana küçük hâli.
+        function lzLoader(text, small) {
+            var safe = $("<span>").text(text || "Yükleniyor…").html();
+            return '<div class="lz-loader' + (small ? ' lz-loader-sm' : '') + '" role="status">'
+                + '<span class="lz-loader-mark"><i class="fa-solid fa-leaf"></i></span>'
+                + '<span class="lz-loader-text">' + safe + '</span></div>';
+        }
+
         function fetchLayoutNotifications() {
             var serverRole = "@userRole";
             var localRole = (localStorage.getItem("Role") || "").trim();

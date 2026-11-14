@@ -100,7 +100,7 @@ function clearStaffFilterState() {
 
 function loadStaffList() {
     var $tbody = $("#tblStaffList");
-    $tbody.html('<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin me-2"></i>Personeller yükleniyor...</td></tr>');
+    $tbody.html('<tr><td colspan="5" class="py-4">' + lzLoader("Personeller yükleniyor…", true) + '</td></tr>');
 
     $.ajax({
         url: "/Admin/GetStaffList",
