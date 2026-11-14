@@ -130,13 +130,23 @@ class Detector:
     def detect(self, frame):
         """[(class_name, confidence, (x1, y1, x2, y2)), ...]"""
         result = self.model.predict(frame, conf=self.confidence, verbose=False)[0]
-        detections = []
+        return self._boxes(result)[0]
+
+    def detect_tracked(self, frame, tracker="bytetrack.yaml"):
+        """Aynı tespit + kareler arası geçici iz kimlikleri (ByteTrack). Kareler sırayla verilmelidir.
+        (tespitler, iz kimlikleri) döner; kimliği henüz kesinleşmemiş kutunun kimliği None'dır."""
+        result = self.model.track(frame, conf=self.confidence, persist=True, tracker=tracker, verbose=False)[0]
+        return self._boxes(result)
+
+    def _boxes(self, result):
+        detections, ids = [], []
         for box in result.boxes:
             name = self.names[int(box.cls[0])]
             if name == "person" or name == "dining table" or name in self.item_classes:
                 x1, y1, x2, y2 = (int(v) for v in box.xyxy[0].tolist())
                 detections.append((name, float(box.conf[0]), (x1, y1, x2, y2)))
-        return detections
+                ids.append(int(box.id[0]) if box.id is not None else None)
+        return detections, ids
 
 
 def polygon_pixels(polygon, width, height):
@@ -182,14 +192,105 @@ class TableRegion:
         center = (float((x1 + x2) / 2), float((y1 + y2) / 2))
         return cv2.pointPolygonTest(self._points, center, False) >= 0
 
+    def contains_point(self, point):
+        return cv2.pointPolygonTest(self._points, (float(point[0]), float(point[1])), False) >= 0
+
+    def distance_to_center(self, point):
+        cx, cy = self._points.mean(axis=0)
+        return ((point[0] - cx) ** 2 + (point[1] - cy) ** 2) ** 0.5
+
+
+def has_items(region, detections):
+    return any(name not in ("person", "dining table") and region.contains_center(box) for name, _, box in detections)
+
 
 def classify(region, detections, person_overlap):
-    """Tek karedeki ham durum: Dolu / Toplanacak / Bos."""
+    """Referans yöntem, tek karedeki ham durum: kişi kutusu masa alanıyla kesişiyorsa Dolu."""
     if any(name == "person" and region.overlap(box) >= person_overlap for name, _, box in detections):
         return STATUS_OCCUPIED
-    if any(name not in ("person", "dining table") and region.contains_center(box) for name, _, box in detections):
+    if has_items(region, detections):
         return STATUS_CLEARING
     return STATUS_EMPTY
+
+
+def classify_assigned(region, assigned, detections):
+    """Takip yöntemi: masaya atanmış (ayağı masa bölgesinde, orada duran) bir kişi varsa Dolu."""
+    if assigned.get(region.table_id):
+        return STATUS_OCCUPIED
+    if has_items(region, detections):
+        return STATUS_CLEARING
+    return STATUS_EMPTY
+
+
+# ---------------- Kişi takibi ve ayak konumuyla masa ataması ----------------
+# Referans yöntemde kişi kutusu masa alanına değdiği anda masa Dolu sayılır; yanından geçen garson
+# ya da arkadaki masada oturan kişi de değebilir. Bu yöntemde her kişi kareler boyunca bir iz
+# kimliğiyle takip edilir ve masaya yalnızca şu koşullarla atanır (TÜBİTAK önerisi 2.2):
+#   - ayak noktası (kişi kutusunun alt kenarının ortası, zemine değdiği yer) masa bölgesinin içinde,
+#   - en az dwell_seconds boyunca aynı masada kalmış,
+#   - bu süre içinde yer değiştirmesi, kişinin boyuna oranla still_ratio'dan küçük (yürümüyor).
+# Ayak birden fazla masa bölgesine düşerse merkezi en yakın masa seçilir.
+# Oturma bilgisi (poz) sonraki adımda bu atamaya eklenecek; kalça konumu zemin konumu sayılmaz.
+
+DEFAULT_TRACKING = {"tracker": "bytetrack.yaml", "dwell_seconds": 2.0, "still_ratio": 0.35, "forget_seconds": 5.0}
+
+
+def tracking_settings(config):
+    settings = dict(DEFAULT_TRACKING)
+    settings.update(config.get("tracking", {}))
+    return settings
+
+
+def foot_point(box):
+    x1, _, x2, y2 = box
+    return ((x1 + x2) / 2.0, float(y2))
+
+
+class PersonAssigner:
+    def __init__(self, dwell_seconds=2.0, still_ratio=0.35, forget_seconds=5.0, **_):
+        self.dwell = dwell_seconds
+        self.still_ratio = still_ratio
+        self.forget = forget_seconds
+        self.tracks = {}     # iz kimliği -> {table, since, history: deque[(t, x, y, boy)], last}
+
+    def _table_of(self, point, regions):
+        inside = [r for r in regions if r.contains_point(point)]
+        return min(inside, key=lambda r: r.distance_to_center(point)).table_id if inside else None
+
+    def _is_still(self, history):
+        """Son dwell_seconds içinde ayak noktasının kapsadığı alanın köşegeni / kişinin boyu.
+        Boya oranlamak uzaktaki (küçük görünen) ve yakındaki kişiyi aynı ölçüde değerlendirir."""
+        xs = [p[1] for p in history]
+        ys = [p[2] for p in history]
+        heights = sorted(p[3] for p in history)
+        height = max(heights[len(heights) // 2], 1.0)
+        extent = ((max(xs) - min(xs)) ** 2 + (max(ys) - min(ys)) ** 2) ** 0.5
+        return extent / height <= self.still_ratio
+
+    def update(self, now, persons, regions):
+        """persons: [(iz kimliği, kutu)]. {masa_id: [atanan iz kimlikleri]} döner."""
+        assigned = {}
+        for track_id, box in persons:
+            point = foot_point(box)
+            table = self._table_of(point, regions)
+            track = self.tracks.get(track_id)
+            if track is None or track["table"] != table:
+                track = self.tracks[track_id] = {"table": table, "since": now, "history": deque()}
+            track["last"] = now
+            history = track["history"]
+            history.append((now, point[0], point[1], float(box[3] - box[1])))
+            while history and now - history[0][0] > self.dwell:
+                history.popleft()
+            track["assigned"] = (table is not None and now - track["since"] >= self.dwell and self._is_still(history))
+            if track["assigned"]:
+                assigned.setdefault(table, []).append(track_id)
+        for track_id in [k for k, t in self.tracks.items() if now - t["last"] > self.forget]:
+            del self.tracks[track_id]
+        return assigned
+
+
+def make_assigner(config):
+    return PersonAssigner(**tracking_settings(config))
 
 
 DEFAULT_HOLD = {STATUS_OCCUPIED: 3, STATUS_EMPTY: 8, STATUS_CLEARING: 8}
@@ -655,8 +756,12 @@ def calibrate_with_plan(client, config, regions, frame):
     }
     for region in added.values():
         region["section"] = section
-    print(f"✓ {section}: {len(added)} masa otomatik yerleştirildi." + (f" Görüntüde görünmeyen: {', '.join(skipped)}" if skipped else "")
-          + " Şimdi her masa tek tek gözden geçirilecek.")
+    hidden = f" Görüntüde görünmeyen: {', '.join(skipped)}." if skipped else ""
+    if not added:
+        print(f"{section}: hiçbir masa görüntüye düşmedi.{hidden} Noktaları salonun zemininde ve birbirinden uzak seçin"
+              " (salon köşeleri ya da zemine konan işaretler); H ile tekrar deneyin.")
+        return [], section
+    print(f"✓ {section}: {len(added)} masa otomatik yerleştirildi.{hidden} Şimdi her masa tek tek gözden geçirilecek.")
     return list(added), section
 
 
@@ -979,6 +1084,33 @@ def evaluate(frame, regions, detector, config):
     return detections, raw
 
 
+def evaluate_tracked(frame, regions, detector, assigner, now, config):
+    """Takipli tespit; aynı tespitlerden hem referans hem takip yönteminin ham durumunu üretir.
+    (tespitler, iz kimlikleri, referans ham, takip ham, atamalar) döner."""
+    height, width = frame.shape[:2]
+    for region in regions:
+        region.prepare(width, height)
+    detections, ids = detector.detect_tracked(frame, tracking_settings(config)["tracker"])
+    persons = [(tid, box) for (name, _, box), tid in zip(detections, ids) if name == "person" and tid is not None]
+    assigned = assigner.update(now, persons, regions)
+    overlap = config.get("person_overlap", 0.2)
+    raw_ref = {r.table_id: classify(r, detections, overlap) for r in regions}
+    raw_track = {r.table_id: classify_assigned(r, assigned, detections) for r in regions}
+    return detections, ids, raw_ref, raw_track, assigned
+
+
+def draw_tracks(frame, detections, ids, assigner):
+    """Takip yönteminde ayak noktaları: yeşil = masaya atanmış, gri = atanmamış (yürüyor / yeni geldi)."""
+    for (name, _, box), tid in zip(detections, ids):
+        if name != "person" or tid is None:
+            continue
+        x, y = (int(v) for v in foot_point(box))
+        assigned = assigner.tracks.get(tid, {}).get("assigned")
+        color = (60, 200, 60) if assigned else (170, 170, 170)
+        cv2.circle(frame, (x, y), 6, color, -1)
+        cv2.putText(frame, f"#{tid}", (x + 8, y - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 1, cv2.LINE_AA)
+
+
 def run_image(config, image_path):
     """Kamera açmadan tek bir fotoğrafta dener (test için). Sunucuya bir şey göndermez."""
     regions = build_regions(config)
@@ -1018,12 +1150,17 @@ def run_loop(config, client, show_window=True):
     heartbeat = config.get("heartbeat_seconds", 30)
     log_path = decision_log_path(config)
     log = DecisionLog(log_path) if log_path else None
+    # person_assignment: "kesisim" (kutu–masa kesişimi) ya da "takip" (kişi takibi + ayak konumu)
+    use_tracking = config.get("person_assignment", "kesisim") == "takip"
+    assigner = make_assigner(config) if use_tracking else None
+    method = "takip_zamansal" if use_tracking else "zamansal"
     last_sent = 0.0
     last_error = ""
     last_frame_at = time.time()
     outage = False      # görüntü alınamıyor: yeni karar üretilmez, sunucuya da gönderilmez
 
-    print(f"{len(regions)} masa izleniyor." + (f" Kararlar: {log_path}" if log else "")
+    print(f"{len(regions)} masa izleniyor ({'kişi takibi + ayak konumu' if use_tracking else 'kutu–masa kesişimi'})."
+          + (f" Kararlar: {log_path}" if log else "")
           + " Çıkmak için pencerede Q'ya basın (ya da Ctrl+C).")
     try:
         while True:
@@ -1035,7 +1172,7 @@ def run_loop(config, client, show_window=True):
                     outage = True
                     print(f"{time.strftime('%H:%M:%S')}  Görüntü alınamıyor ({exc}); son durumlar korunuyor, yeni karar üretilmiyor.")
                     if log:
-                        log.write("zamansal", "kesinti")
+                        log.write(method, "kesinti")
                 if show_window:
                     blank = np.zeros((360, 640, 3), dtype=np.uint8)
                     draw_text(blank, "Goruntu yok - son durumlar guncel degil", (10, 30), (80, 80, 255))
@@ -1049,9 +1186,12 @@ def run_loop(config, client, show_window=True):
                 outage = False
                 print(f"{time.strftime('%H:%M:%S')}  Görüntü geri geldi.")
                 if log:
-                    log.write("zamansal", "devam")
+                    log.write(method, "devam")
 
-            detections, raw = evaluate(frame, regions, detector, config)
+            if use_tracking:
+                detections, ids, _, raw, _ = evaluate_tracked(frame, regions, detector, assigner, started, config)
+            else:
+                detections, raw = evaluate(frame, regions, detector, config)
 
             changed = []
             for tid, tracker in trackers.items():
@@ -1060,7 +1200,7 @@ def run_loop(config, client, show_window=True):
                     changed.append(tid)
                     print(f"{time.strftime('%H:%M:%S')}  {names[tid]}: {tracker.confirmed}")
                     if log:
-                        log.write("zamansal", "karar", tid, names[tid], before, tracker.confirmed, when=started)
+                        log.write(method, "karar", tid, names[tid], before, tracker.confirmed, when=started)
             confirmed = {tid: t.confirmed for tid, t in trackers.items() if t.confirmed}
 
             # Değişiklik hemen, değişmeyen durumlar canlılık için heartbeat aralığıyla gönderilir
@@ -1078,6 +1218,8 @@ def run_loop(config, client, show_window=True):
                 view = frame.copy()
                 draw_regions(view, regions, {tid: t.confirmed for tid, t in trackers.items()})
                 draw_detections(view, detections)
+                if use_tracking:
+                    draw_tracks(view, detections, ids, assigner)
                 status = "Sunucu baglantisi yok!" if last_error else "Goruntu kaydedilmez; sunucuya yalnizca masa durumu gider."
                 draw_text(view, status, (10, view.shape[0] - 12), (80, 80, 255) if last_error else (255, 255, 255))
                 cv2.imshow(WINDOW_TITLE, view)

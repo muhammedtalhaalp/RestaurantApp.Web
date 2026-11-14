@@ -8,6 +8,8 @@
   "model": "yolov8n.pt",
   "confidence": 0.35,
   "person_overlap": 0.2,
+  "person_assignment": "kesisim",
+  "tracking": { "tracker": "bytetrack.yaml", "dwell_seconds": 2, "still_ratio": 0.35, "forget_seconds": 5 },
   "seat_margin": 35,
   "item_classes": [
     "cup", "bowl", "bottle", "wine glass", "fork", "knife", "spoon",

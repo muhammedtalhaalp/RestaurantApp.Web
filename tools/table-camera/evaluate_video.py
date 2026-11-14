@@ -1,12 +1,20 @@
 """Masa kararlarının kayıtlı video üzerinde çevrim dışı değerlendirilmesi (TÜBİTAK 2209-A, M1).
 
-Aynı videodan çıkarılan aynı ham gözlemler iki yönteme verilir:
+Videonun her örnekleme anında aynı tespitlerden iki ham gözlem çıkarılır:
 
-    referans  : tek karedeki kişi–masa kutu kesişimi; her kare kendi kararını verir
-    zamansal  : aynı ham durumlar + duruma özgü doğrulama süreleri + gözlem boşluğu toleransı
+    kesişim ham : kişi kutusu masa alanına değiyorsa Dolu (tek kare)
+    takip ham   : kişi kareler boyunca takip edilir; ayak noktası masa bölgesinde ve orada
+                  duruyorsa (yürümüyorsa) masaya atanır, atanmış kişi varsa Dolu
 
-Böylece yöntemler arasındaki fark yalnızca karar adımından gelir; görüntü koşulları aynıdır.
-Kişi takibi ve oturma bilgisi eklendiğinde yeni yöntemler METHODS listesine eklenir.
+Bunlar dört yönteme verilir (önerideki sırayla bileşenlerin katkısı ayrı görünsün diye):
+
+    referans        : kesişim ham, her kare kendi kararını verir
+    zamansal        : kesişim ham + duruma özgü doğrulama süreleri + gözlem boşluğu toleransı
+    takip           : takip ham, her kare kendi kararını verir
+    takip_zamansal  : takip ham + aynı zamansal doğrulama
+
+Görüntü koşulları ve tespitler bütün yöntemlerde aynıdır. Oturma bilgisi (poz) eklendiğinde
+yeni yöntem main() içindeki methods sözlüğüne eklenir.
 
 Çıktılar (görüntü kaydedilmez, yalnızca durum ve zaman):
     ham.csv               örnekleme anı başına masa ham durumu ve kare işlem süresi
@@ -28,8 +36,8 @@ import time
 from pathlib import Path
 
 from table_camera import (CONFIG_PATH, STATUS_CLEARING, STATUS_EMPTY, STATUS_OCCUPIED, DecisionLog,
-                          StatusTracker, build_regions, evaluate, hold_from, load_config, make_detector,
-                          reference_tracker)
+                          StatusTracker, build_regions, evaluate_tracked, hold_from, load_config,
+                          make_assigner, make_detector, reference_tracker, tracking_settings)
 
 STATES = [STATUS_EMPTY, STATUS_OCCUPIED, STATUS_CLEARING]
 HERE = Path(__file__).resolve().parent
@@ -40,8 +48,8 @@ HERE = Path(__file__).resolve().parent
 def extract_raw(video_path, config, interval):
     """Videoyu (gerçek zaman beklemeden) baştan sona işler; her `interval` saniyede bir ham durum üretir.
 
-    Dönüş: (zamanlar, {masa_id: [ham durum, ...]}, kare süreleri, masa adları)
-    Kare süresi; karenin çözülmesi, tespit ve masa sınıflandırmasını kapsar.
+    Dönüş: (zamanlar, {"kesisim"|"takip": {masa_id: [ham durum, ...]}}, kare süreleri, masa adları)
+    Kare süresi; karenin çözülmesi, tespit, takip ve masa sınıflandırmasını kapsar.
     """
     import cv2
 
@@ -58,8 +66,10 @@ def extract_raw(video_path, config, interval):
     if ok:
         detector.detect(first)
     capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
+    assigner = make_assigner(config)
 
-    times, raw, durations = [], {r.table_id: [] for r in regions}, []
+    times, durations = [], []
+    raw = {"kesisim": {r.table_id: [] for r in regions}, "takip": {r.table_id: [] for r in regions}}
     index, next_sample = 0, 0.0
     print(f"Video: {video_path} ({fps:.1f} fps, {total / fps:.0f} sn). {len(regions)} masa, her {interval} sn'de bir örnek.")
     while True:
@@ -73,11 +83,12 @@ def extract_raw(video_path, config, interval):
         ok, frame = capture.read()
         if not ok or frame is None:
             break
-        _, states = evaluate(frame, regions, detector, config)
+        _, _, raw_ref, raw_track, _ = evaluate_tracked(frame, regions, detector, assigner, t, config)
         durations.append(time.perf_counter() - started)
         times.append(round(t, 3))
-        for tid, state in states.items():
-            raw[tid].append(state)
+        for tid in raw_ref:
+            raw["kesisim"][tid].append(raw_ref[tid])
+            raw["takip"][tid].append(raw_track[tid])
         index += 1
         next_sample += interval
         if len(times) % 100 == 0:
@@ -89,14 +100,17 @@ def extract_raw(video_path, config, interval):
 def save_raw(path, times, raw, durations, names):
     with open(path, "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["video_sn", "masa_id", "masa", "ham_durum", "kare_suresi_sn"])
+        writer.writerow(["video_sn", "masa_id", "masa", "ham_durum", "ham_takip", "kare_suresi_sn"])
         for i, t in enumerate(times):
-            for tid in raw:
-                writer.writerow([t, tid, names[tid], raw[tid][i], f"{durations[i]:.4f}" if durations else ""])
+            for tid in raw["kesisim"]:
+                writer.writerow([t, tid, names[tid], raw["kesisim"][tid][i], raw["takip"][tid][i],
+                                 f"{durations[i]:.4f}" if durations else ""])
 
 
 def load_raw(path):
-    times, raw, durations, names = [], {}, [], {}
+    """ham.csv'yi okur. Takip sütunu olmayan eski kayıtlarda yalnızca kesişim yöntemleri çalışır."""
+    times, durations, names = [], [], {}
+    raw = {"kesisim": {}, "takip": {}}
     with open(path, encoding="utf-8-sig", newline="") as f:
         for row in csv.DictReader(f):
             t, tid = float(row["video_sn"]), int(row["masa_id"])
@@ -104,8 +118,12 @@ def load_raw(path):
                 times.append(t)
                 if row.get("kare_suresi_sn"):
                     durations.append(float(row["kare_suresi_sn"]))
-            raw.setdefault(tid, []).append(row["ham_durum"])
+            raw["kesisim"].setdefault(tid, []).append(row["ham_durum"])
+            if row.get("ham_takip"):
+                raw["takip"].setdefault(tid, []).append(row["ham_takip"])
             names[tid] = row["masa"]
+    if not raw["takip"]:
+        del raw["takip"]
     return times, raw, durations, names
 
 
@@ -303,6 +321,10 @@ def report_markdown(results, durations, settings):
     lines.append(f"- Video / ham kayıt: `{settings['kaynak']}`")
     lines.append(f"- Örnekleme aralığı: {settings['aralik']} sn, eşleşme toleransı: {settings['tolerans']} sn")
     lines.append(f"- Zamansal yöntem: doğrulama süreleri {settings['hold']}, gözlem boşluğu toleransı {settings['gap']} sn")
+    if settings.get("takip"):
+        tr = settings["takip"]
+        lines.append(f"- Takip: {tr['tracker']}, masada kalma {tr['dwell_seconds']} sn, hareket sınırı boyun "
+                     f"{tr['still_ratio']} katı; ayak noktası = kişi kutusunun alt kenar ortası")
     if durations:
         lines.append(f"- Kare başına işlem süresi (çözme + tespit + sınıflandırma): ortalama {statistics.mean(durations):.3f} sn, "
                      f"95. yüzdelik {percentile(durations, 0.95):.3f} sn, en çok {max(durations):.3f} sn (hedef ≤ 1 sn)")
@@ -350,7 +372,7 @@ def parse_hold(text, config):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Masa kararlarını kayıtlı video üzerinde değerlendirir (referans ve zamansal yöntem).")
+    parser = argparse.ArgumentParser(description="Masa kararlarını kayıtlı video üzerinde değerlendirir (referans, zamansal, takip, takip_zamansal).")
     parser.add_argument("video", nargs="?", help="değerlendirilecek video dosyası")
     parser.add_argument("--from-raw", help="videoyu yeniden işlemeden önceki ham.csv'den çalış (süre denemeleri için)")
     parser.add_argument("--labels", help="gerçek durum etiketleri (CSV: masa,tur,baslangic,bitis,durum)")
@@ -387,14 +409,20 @@ def main():
     if not times:
         sys.exit("Videodan hiç kare okunamadı.")
 
+    # yöntem adı -> (ham gözlem türü, karar adımı). Video kesintisiz olduğundan stale_after kullanılmaz.
     methods = {
-        "referans": reference_tracker,
-        # Video kesintisiz olduğundan stale_after kullanılmaz
-        "zamansal": lambda: StatusTracker(hold, gap),
+        "referans": ("kesisim", reference_tracker),
+        "zamansal": ("kesisim", lambda: StatusTracker(hold, gap)),
+        "takip": ("takip", reference_tracker),
+        "takip_zamansal": ("takip", lambda: StatusTracker(hold, gap)),
     }
+    missing = [n for n, (kind, _) in methods.items() if kind not in raw]
+    if missing:
+        print(f"Ham kayıtta takip sütunu yok (eski kayıt); atlanan yöntemler: {', '.join(missing)}. Videoyu yeniden işleyin.")
+        methods = {n: m for n, m in methods.items() if n not in missing}
     decided = {}
-    for name, factory in methods.items():
-        decided[name] = replay(times, raw, factory)
+    for name, (kind, factory) in methods.items():
+        decided[name] = replay(times, raw[kind], factory)
         write_decisions(out / f"kararlar_{name}.csv", name, times, decided[name], names)
         changes = sum(sum(1 for a, b in zip(s, s[1:]) if a != b) for s in decided[name].values())
         print(f"{name}: {changes} durum değişikliği → {out / f'kararlar_{name}.csv'}")
@@ -408,7 +436,8 @@ def main():
 
     segments, passes = load_labels(args.labels, names)
     results = {name: measure(times, decided[name], segments, passes, args.tolerance) for name in methods}
-    settings = {"kaynak": source, "aralik": interval, "tolerans": args.tolerance, "hold": hold, "gap": gap}
+    settings = {"kaynak": source, "aralik": interval, "tolerans": args.tolerance, "hold": hold, "gap": gap,
+                "takip": tracking_settings(config) if "takip" in raw else None}
     report = report_markdown(results, durations, settings)
     (out / "sonuc.md").write_text(report, encoding="utf-8")
     with open(out / "sonuc.json", "w", encoding="utf-8") as f:

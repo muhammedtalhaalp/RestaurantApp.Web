@@ -25,6 +25,13 @@ Kamera **hiçbir şeyi otomatik kapatmaz**; siparişlere ve masa durumuna dokunm
 - Her masanın alanı kamera görüntüsünde bir kez işaretlenir (kalibrasyon).
 - Bir karede alanla yeterince kesişen **insan** varsa → `Dolu`; insan yok ama alanın içinde **bardak,
   kase, şişe, çatal, yemek** vb. varsa → `Toplanacak`; ikisi de yoksa → `Bos`.
+- **Kişi takibi ve ayak konumu** (`person_assignment: "takip"`): Kutu kesişimi yerine her kişi
+  kareler boyunca bir iz kimliğiyle (ByteTrack) takip edilir. Kişi bir masaya yalnızca **ayak
+  noktası** (kutunun alt kenarının ortası) masa bölgesindeyse, orada en az `dwell_seconds` (2 sn)
+  kalmışsa ve bu sürede boyunun `still_ratio` (0,35) katından fazla yer değiştirmemişse atanır.
+  Böylece yürüyerek geçen garson, art arda geçen kişiler ve kutusu yan masaya taşan oturan kişi
+  masayı dolu yapmaz. Varsayılan hâlâ `kesisim`dir; hangisinin kullanılacağı salon videosundaki
+  karşılaştırmayla seçilecektir. Oturma bilgisi (poz) sonraki adımda eklenecek.
 - **Zamansal doğrulama:** Yeni durum, kendi doğrulama süresi (`hold_seconds`; varsayılan Dolu 3 sn,
   Boş/Toplanacak 8 sn) boyunca sürerse kesinleşir. Önünden geçen garson masayı dolu yapmaz.
 - **Gözlem boşluğu toleransı** (`gap_tolerance_seconds`, varsayılan 2 sn): Bekleyen durum bu süreden
@@ -121,7 +128,8 @@ bilgisayar aynı Wi-Fi'a (ya da telefonun hotspot'una) bağlanır ve uygulamanı
 ```
 
 Pencerede masalar renklenir (yeşil boş, kırmızı dolu, turuncu toplanacak); bulunan insanlar ve
-nesneler kutu içinde gösterilir. **Q** ile çıkılır. Pencere istemezsen `--no-window`.
+nesneler kutu içinde gösterilir. Takip yönteminde her kişinin ayak noktası da `#iz` kimliğiyle
+çizilir: yeşil = masaya atanmış, gri = atanmamış (yürüyor ya da yeni geldi). **Q** ile çıkılır. Pencere istemezsen `--no-window`.
 
 Kamera açmadan bir fotoğrafta denemek için (sunucuya bir şey göndermez):
 
@@ -129,17 +137,20 @@ Kamera açmadan bir fotoğrafta denemek için (sunucuya bir şey göndermez):
 .venv\Scripts\python table_camera.py --image ornek.jpg
 ```
 
-## 3. Video üzerinde değerlendirme (referans ve zamansal yöntem)
+## 3. Video üzerinde değerlendirme (yöntem karşılaştırması)
 
-`evaluate_video.py`, kayıtlı bir salon videosunu gerçek zaman beklemeden baştan sona işler ve
-**aynı ham gözlemleri** iki yönteme verir. Böylece fark yalnızca karar adımından gelir:
+`evaluate_video.py`, kayıtlı bir salon videosunu gerçek zaman beklemeden baştan sona işler. Her
+örnekleme anında **aynı tespitlerden** iki ham gözlem çıkarır (kutu kesişimi ve takip + ayak
+konumu) ve bunları dört yönteme verir. Böylece her bileşenin katkısı ayrı görünür:
 
-| Yöntem | Karar |
-|---|---|
-| `referans` | Tek karedeki kişi–masa kutu kesişimi; her kare kendi kararını verir |
-| `zamansal` | Aynı ham durumlar + duruma özgü doğrulama süreleri + gözlem boşluğu toleransı |
+| Yöntem | Kişi–masa ataması | Karar |
+|---|---|---|
+| `referans` | Kutu kesişimi | Her kare kendi kararını verir |
+| `zamansal` | Kutu kesişimi | Duruma özgü doğrulama süreleri + gözlem boşluğu toleransı |
+| `takip` | Takip + ayak konumu + masada kalma | Her kare kendi kararını verir |
+| `takip_zamansal` | Takip + ayak konumu + masada kalma | Aynı zamansal doğrulama |
 
-Kişi takibi, ayak konumuyla atama ve oturma bilgisi eklendikçe yeni yöntemler aynı karşılaştırmaya eklenecek.
+Oturma bilgisi (poz) eklendiğinde yeni yöntem aynı karşılaştırmaya eklenecek.
 
 ```
 .venv/Scripts/python evaluate_video.py salon.mp4 --labels salon_etiket.csv
@@ -147,8 +158,8 @@ Kişi takibi, ayak konumuyla atama ve oturma bilgisi eklendikçe yeni yöntemler
 
 Çıktılar `degerlendirme/<video adı>/` klasörüne yazılır (gitignore'da; görüntü içermez):
 
-- `ham.csv`: her örnekleme anında masa başına ham durum ve kare işlem süresi
-- `kararlar_referans.csv`, `kararlar_zamansal.csv`: kesinleşen durum değişiklikleri (video saniyesiyle)
+- `ham.csv`: her örnekleme anında masa başına ham durum (`ham_durum` kesişim, `ham_takip` takip) ve kare işlem süresi
+- `kararlar_<yontem>.csv`: kesinleşen durum değişiklikleri (video saniyesiyle)
 - `sonuc.md`, `sonuc.json`: etiket verildiyse ölçütler
 
 Doğrulama sürelerini ve toleransı **doğrulama videosunda** seçmek için video yeniden işlenmeden
@@ -158,7 +169,8 @@ farklı değerler denenebilir:
 .venv/Scripts/python evaluate_video.py --from-raw degerlendirme/salon/ham.csv --labels salon_etiket.csv --hold Dolu=3,Bos=8,Toplanacak=8 --gap 2
 ```
 
-Seçilen değerler `config.json`'a yazılır. Nihai test videosu bu ayarı seçerken kullanılmaz; yalnızca en sonda bir kez değerlendirilir.
+`--from-raw` takip parametrelerini (`dwell_seconds`, `still_ratio`) değiştirmez; onları denemek
+için video yeniden işlenir. Seçilen değerler `config.json`'a yazılır. Nihai test videosu bu ayarı seçerken kullanılmaz; yalnızca en sonda bir kez değerlendirilir.
 
 ### Etiket dosyası
 
@@ -187,7 +199,7 @@ M1,gecis,7:05,7:08,
 | Yanlış boşaltma | Gerçek Dolu aralıklarından, içinde Boş/Toplanacak kararı görülenlerin oranı | < %5 |
 | Yanlış doluluk | Geçiş olaylarından Dolu kararı üretilenlerin oranı | < %5 |
 | Geçiş gecikmesi | Gerçek değişimden kararın yeni duruma ulaşmasına kadar geçen süre; ortalama, medyan, 95. yüzdelik ve geçiş türüne göre | ort. ≤ 60 sn |
-| Kare süresi | Karenin çözülmesi + tespit + sınıflandırma | ≤ 1 sn |
+| Kare süresi | Karenin çözülmesi + tespit + takip + sınıflandırma | ≤ 1 sn |
 
 Sonuçlar yalnızca o kayıtlar için geçerlidir; ardışık kareler bağımsız örnek sayılmaz.
 
@@ -199,7 +211,9 @@ Sonuçlar yalnızca o kayıtlar için geçerlidir; ardışık kareler bağımsı
 | `model` | `yolov8n.pt` hızlı; daha isabetli ama yavaş: `yolov8s.pt` |
 | `confidence` | Tespit eşiği (0–1). Yanlış tespit çoksa artır |
 | `seat_margin` | Krokiyle eşlemede masa alanının sandalye payı (kroki birimi; masa 75 birim civarındadır) |
-| `person_overlap` | İnsan kutusunun masa alanıyla kesişme oranı; bu oranın altındaki insan o masada sayılmaz |
+| `person_overlap` | İnsan kutusunun masa alanıyla kesişme oranı; bu oranın altındaki insan o masada sayılmaz (kesişim yöntemi) |
+| `person_assignment` | Canlı çalışmada kişi–masa ataması: `kesisim` (varsayılan) ya da `takip` |
+| `tracking` | Takip ayarları: `tracker` (`bytetrack.yaml`), `dwell_seconds` (masada en az kalma, sn), `still_ratio` (bu sürede boyuna oranla en çok yer değiştirme), `forget_seconds` (görünmeyen izin unutulma süresi) |
 | `item_classes` | "Toplanacak" sayılan COCO nesneleri |
 | `hold_seconds` | Duruma özgü doğrulama süresi: yeni durumun kesinleşmesi için kaç saniye sürmesi gerektiği |
 | `gap_tolerance_seconds` | Gözlem boşluğu toleransı: bekleyen durumu sıfırlamayan en uzun kesinti |
@@ -213,5 +227,9 @@ Sonuçlar yalnızca o kayıtlar için geçerlidir; ardışık kareler bağımsı
   ortamda yanılabilir. Gerçek restoran görüntüleriyle **kendi veri setini** toplayıp modeli
   ince ayarlamak (fine-tuning) projenin bir sonraki adımıdır.
 - Uzaktaki masalarda bardak/çatal gibi küçük nesneler kaçabilir; bu durumda masa `Bos` görünür.
+- Ayak noktası kutunun alt kenarıdır. Ayaklar masa altında ya da görüntünün dışındaysa kutunun
+  alt kenarı gerçek ayak konumu değildir; oturan kişide bu genellikle masa bölgesine düşer, ama
+  tavan açısındaki gerçek videoda ölçülmelidir. Takip örnekleme aralığında (0,5 sn) yapılır;
+  hızlı yürüyen kişinin kimliği değişebilir, bu da onun masaya atanmasını zorlaştırır (bilerek temkinli).
 - Bir kamera birden fazla masayı izleyebilir; birden fazla kamera için programı ayrı `--config`
   dosyalarıyla birden çok kez çalıştır.
