@@ -288,6 +288,7 @@
     <Content Include="Library\scripts\financial-reports.js" />
     <Content Include="Library\scripts\floor-plan-management.js" />
     <Content Include="Library\scripts\kitchen-performance.js" />
+    <Content Include="Library\scripts\lz-charts.js" />
     <Content Include="Library\scripts\kitchen-recipes.js" />
     <Content Include="Library\scripts\order-index.js" />
     <Content Include="Library\scripts\kitchen-report.js" />

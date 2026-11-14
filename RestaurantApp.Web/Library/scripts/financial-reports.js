@@ -101,86 +101,174 @@ function renderChannelReport(d) {
     $("#channelReportBody").html(html);
 }
 
+// ===================================================
+// GRAFİKLER (tema ve yardımcılar: lz-charts.js)
+// ===================================================
+var PERIOD_TEXT = {
+    daily: { now: "şu anki 2 saatlik dilim", ref: "Önceki dilimler ort." },
+    weekly: { now: "bugün", ref: "Önceki 6 gün ort." },
+    monthly: { now: "bu ay", ref: "Önceki 5 ay ort." }
+};
+
 function initEmptyCharts() {
-    // 1. Ciro Grafiği
-    var ctxRevenue = document.getElementById('revenueChart').getContext('2d');
-    revenueChartInstance = new Chart(ctxRevenue, {
-        type: 'bar',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Ciro (₺)',
-                data: [],
-                backgroundColor: 'rgba(74, 21, 75, 0.85)',
-                borderColor: '#4a154b',
-                borderWidth: 1,
-                borderRadius: 8
-            }]
-        },
+    var C = LzCharts.COLORS;
+
+    // 1. Ciro: tek seri, güncel dönem vurgulu; önceki dönemlerin ortalaması ince çizgi
+    revenueChartInstance = new Chart(document.getElementById("revenueChart"), {
+        type: "bar",
+        data: { labels: [], datasets: [{ label: "Ciro", data: [], backgroundColor: [], hoverBackgroundColor: C.accent }] },
+        plugins: [LzCharts.referenceLine, LzCharts.valueLabels],
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true } }
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+                lzReference: {},
+                lzValueLabels: { indices: [], format: function (v) { return LzCharts.moneyRound(v); } },
+                tooltip: {
+                    callbacks: {
+                        title: function (items) { return LzCharts.money(items[0].parsed.y); },
+                        label: function (item) { return item.label; }
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, grace: "12%", ticks: { callback: function (v) { return LzCharts.moneyAxis(v, this.max); }, maxTicksLimit: 6 } },
+                x: { grid: { display: false } }
+            }
         }
     });
 
-    // 2. Top 5 Ürün Grafiği (Yatay Bar)
-    var ctxTop = document.getElementById('topProductsChart').getContext('2d');
-    topProductsChartInstance = new Chart(ctxTop, {
-        type: 'bar',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Satış Adedi',
-                data: [],
-                backgroundColor: 'rgba(25, 135, 84, 0.85)',
-                borderColor: '#198754',
-                borderWidth: 1,
-                borderRadius: 6
-            }]
-        },
+    // 2. En çok satan 5 ürün: yatay çubuk, adet çubuk ucunda (5 çubuk; eksen gerekmez)
+    topProductsChartInstance = new Chart(document.getElementById("topProductsChart"), {
+        type: "bar",
+        data: { labels: [], datasets: [{ label: "Satış adedi", data: [], backgroundColor: C.accent }] },
+        plugins: [LzCharts.valueLabels],
         options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { x: { beginAtZero: true } }
+            indexAxis: "y",
+            layout: { padding: { right: 36 } },
+            interaction: { mode: "index", intersect: false, axis: "y" },
+            plugins: {
+                lzValueLabels: { indices: [], format: function (v) { return LzCharts.count(v) + " adet"; } },
+                tooltip: {
+                    callbacks: {
+                        title: function (items) { return LzCharts.count(items[0].parsed.x) + " adet"; },
+                        label: function (item) { return item.label; }
+                    }
+                }
+            },
+            scales: {
+                x: { beginAtZero: true, display: false, grace: "18%" },
+                y: { grid: { display: false }, ticks: { color: C.text, font: { weight: "600" } } }
+            }
         }
     });
 
-    // 3. Saatlik Yoğunluk Grafiği (Çizgi Grafik)
-    var ctxHourly = document.getElementById('hourlyDensityChart').getContext('2d');
-    hourlyChartInstance = new Chart(ctxHourly, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: 'Sipariş Adedi',
-                data: [],
-                borderColor: '#0dcaf0',
-                backgroundColor: 'rgba(13, 202, 240, 0.15)',
-                fill: true,
-                tension: 0.4
-            }]
-        },
+    // 3. Saatlik yoğunluk: saat saat sayım olduğu için sütun; en yoğun saat vurgulu
+    hourlyChartInstance = new Chart(document.getElementById("hourlyDensityChart"), {
+        type: "bar",
+        data: { labels: [], datasets: [{ label: "Sipariş", data: [], backgroundColor: [], hoverBackgroundColor: C.accent }] },
+        plugins: [LzCharts.valueLabels],
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: { y: { beginAtZero: true } }
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+                lzValueLabels: { indices: [], format: function (v) { return LzCharts.count(v); } },
+                tooltip: {
+                    callbacks: {
+                        title: function (items) { return LzCharts.count(items[0].parsed.y) + " sipariş"; },
+                        label: function (item) { return item.label + " – " + nextHour(item.label); }
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, grace: "15%", ticks: { precision: 0, maxTicksLimit: 5 } },
+                x: { grid: { display: false } }
+            }
         }
     });
 }
 
+function nextHour(label) {
+    var h = parseInt(label, 10);
+    return (isNaN(h) ? "" : String((h + 1) % 24).padStart(2, "0") + ":00");
+}
+
 function changeRevenuePeriod(period, btn) {
-    $(".btn-time-filter").removeClass("active");
+    $("#timeFilterGroup .btn-time-filter").removeClass("active");
     $(btn).addClass("active");
     currentPeriod = period;
     loadFinancialData();
 }
 
+function renderStatTiles(d) {
+    var cmp = d.comparison || {}, trend = d.trend || { labels: [], revenue: [], orderCount: [], avgOrderAmount: [] };
+    var period = cmp.label || "dünün bu saatine göre";
+
+    $("#lblTodayRevenue").text(LzCharts.money(d.todayRevenue));
+    $("#lblTodayOrderCount").text(LzCharts.count(d.todayOrderCount));
+    $("#lblAvgOrderAmount").text(LzCharts.money(d.avgOrderAmount));
+    $("#lblTopSellingProduct").text(d.topSellingProduct || "–").attr("title", d.topSellingProduct || "");
+    $("#lblTopSellingQuantity").text(d.topSellingQuantity ? "Bugün " + LzCharts.count(d.topSellingQuantity) + " adet satıldı" : "Bugün henüz satış yok");
+
+    LzCharts.delta("#deltaRevenue", d.todayRevenue, cmp.revenue, period, true);
+    LzCharts.delta("#deltaOrders", d.todayOrderCount, cmp.orderCount, period, true);
+    LzCharts.delta("#deltaAvg", d.avgOrderAmount, cmp.avgOrderAmount, period, true);
+
+    LzCharts.sparkline(document.getElementById("sparkRevenue"), trend.revenue, trend.labels, LzCharts.moneyRound);
+    LzCharts.sparkline(document.getElementById("sparkOrders"), trend.orderCount, trend.labels, LzCharts.count);
+    LzCharts.sparkline(document.getElementById("sparkAvg"), trend.avgOrderAmount, trend.labels, LzCharts.moneyRound);
+}
+
+function renderRevenueChart(chart) {
+    var values = chart.data.map(function (v) { return v === null ? null : Number(v); });
+    var current = LzCharts.lastIndexWithValue(values);
+    var previous = values.filter(function (v, i) { return v !== null && i !== current; });
+    var avg = previous.length ? previous.reduce(function (a, b) { return a + b; }, 0) / previous.length : null;
+    var text = PERIOD_TEXT[currentPeriod] || PERIOD_TEXT.daily;
+
+    var c = revenueChartInstance;
+    c.data.labels = chart.labels;
+    c.data.datasets[0].data = values;
+    c.data.datasets[0].backgroundColor = LzCharts.emphasis(values, current);
+    c.options.plugins.lzValueLabels.indices = current >= 0 ? [current] : [];
+    c.options.plugins.lzReference = avg !== null && avg > 0 ? { value: avg, label: text.ref + " " + LzCharts.moneyRound(avg) } : {};
+    c.update();
+
+    $("#revenueCaption").text("Koyu mor: " + text.now + (avg ? " · ince çizgi: önceki dönemlerin ortalaması" : ""));
+    $("#revenueChart").attr("aria-label", "Ciro grafiği: " + chart.labels.map(function (l, i) {
+        return l + " " + (values[i] === null ? "henüz yok" : LzCharts.moneyRound(values[i]));
+    }).join(", "));
+}
+
+function renderTopProducts(chart) {
+    var c = topProductsChartInstance;
+    c.data.labels = chart.labels;
+    c.data.datasets[0].data = chart.data;
+    c.options.plugins.lzValueLabels.indices = chart.data.map(function (_, i) { return i; });
+    c.update();
+    $("#topProductsChart").attr("aria-label", "En çok satan ürünler (son 30 gün): " + chart.labels.map(function (l, i) {
+        return l + " " + chart.data[i] + " adet";
+    }).join(", "));
+}
+
+function renderHourly(chart) {
+    var values = chart.data.map(function (v) { return v === null ? null : Number(v); });
+    var peak = LzCharts.maxIndex(values);
+    var c = hourlyChartInstance;
+    c.data.labels = chart.labels;
+    c.data.datasets[0].data = values;
+    c.data.datasets[0].backgroundColor = LzCharts.emphasis(values, peak);
+    c.options.plugins.lzValueLabels.indices = peak >= 0 ? [peak] : [];
+    c.update();
+    $("#hourlyCaption").text(peak >= 0
+        ? "Bugün, saat saat sipariş sayısı · en yoğun saat " + chart.labels[peak] + " – " + nextHour(chart.labels[peak]) + " (" + LzCharts.count(values[peak]) + " sipariş)"
+        : "Bugün, saat saat sipariş sayısı · henüz sipariş yok");
+    $("#hourlyDensityChart").attr("aria-label", "Saatlik sipariş yoğunluğu: " + chart.labels.map(function (l, i) {
+        return l + " " + (values[i] === null ? "henüz yok" : values[i]);
+    }).join(", "));
+}
+
 function loadFinancialData() {
+    // Yenilenirken grafikler kaybolmaz, soluklaşır (sayfa zıplamaz)
+    $("#statTiles, .chart-card").addClass("is-refreshing");
     $.ajax({
         url: "/Admin/GetFinancialData",
         type: "GET",
@@ -189,39 +277,19 @@ function loadFinancialData() {
         success: function (res) {
             if (res.success && res.data) {
                 var d = res.data;
-
-                // 1. Özet Kartları Güncelle
-                $("#lblTodayRevenue").text(parseFloat(d.todayRevenue || 0).toFixed(2) + " ₺");
-                $("#lblTodayOrderCount").text(d.todayOrderCount || 0);
-                $("#lblAvgOrderAmount").text(parseFloat(d.avgOrderAmount || 0).toFixed(2) + " ₺");
-                $("#lblTopSellingProduct").text(d.topSellingProduct || "--");
-
-                // 2. Ciro Grafiğini Güncelle
-                if (revenueChartInstance && d.revenueChart) {
-                    revenueChartInstance.data.labels = d.revenueChart.labels;
-                    revenueChartInstance.data.datasets[0].data = d.revenueChart.data;
-                    revenueChartInstance.update();
-                }
-
-                // 3. Top 5 Ürün Grafiğini Güncelle
-                if (topProductsChartInstance && d.topProductsChart) {
-                    topProductsChartInstance.data.labels = d.topProductsChart.labels;
-                    topProductsChartInstance.data.datasets[0].data = d.topProductsChart.data;
-                    topProductsChartInstance.update();
-                }
-
-                // 4. Saatlik Yoğunluk Grafiğini Güncelle
-                if (hourlyChartInstance && d.hourlyChart) {
-                    hourlyChartInstance.data.labels = d.hourlyChart.labels;
-                    hourlyChartInstance.data.datasets[0].data = d.hourlyChart.data;
-                    hourlyChartInstance.update();
-                }
+                renderStatTiles(d);
+                if (revenueChartInstance && d.revenueChart) renderRevenueChart(d.revenueChart);
+                if (topProductsChartInstance && d.topProductsChart) renderTopProducts(d.topProductsChart);
+                if (hourlyChartInstance && d.hourlyChart) renderHourly(d.hourlyChart);
             } else {
                 console.error("Finansal veriler çekilemedi:", res.message);
             }
         },
         error: function (xhr) {
             console.error("Finansal Veri Çekme Hatası:", xhr);
+        },
+        complete: function () {
+            $("#statTiles, .chart-card").removeClass("is-refreshing");
         }
     });
 }

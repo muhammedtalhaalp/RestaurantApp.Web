@@ -60,45 +60,42 @@ function renderPerformanceChart(labels, values) {
         kitchenChartInstance.destroy();
     }
 
+    // Tema ve biçim: lz-charts.js. Tek seri çizgi: 2px, soluk alan, son nokta vurgulu; ipucunda önce değer
+    var C = LzCharts.COLORS;
+    var lastIndex = values.length - 1;
     kitchenChartInstance = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
             datasets: [{
-                label: 'Ortalama Hazırlık Süresi (Dk)',
+                label: 'Ortalama hazırlık süresi',
                 data: values,
-                borderColor: '#4a154b',
-                backgroundColor: 'rgba(74, 21, 75, 0.1)',
-                borderWidth: 3,
+                borderColor: C.accent,
+                backgroundColor: C.area,
                 fill: true,
                 tension: 0.35,
-                pointBackgroundColor: '#4a154b',
-                pointRadius: 4,
-                pointHoverRadius: 6
+                pointRadius: values.map(function (_, i) { return i === lastIndex ? 4 : 0; }),
+                pointBackgroundColor: C.accent,
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointHoverRadius: 5
             }]
         },
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
             plugins: {
-                legend: {
-                    display: false
-                },
                 tooltip: {
                     callbacks: {
-                        label: function (context) {
-                            return ` Süre: ${context.parsed.y} Dakika`;
-                        }
+                        title: function (items) { return items[0].parsed.y + ' dk'; },
+                        label: function (item) { return item.label + ' · ortalama hazırlık'; }
                     }
                 }
             },
             scales: {
                 y: {
                     beginAtZero: true,
-                    grid: {
-                        color: '#f1f5f9'
-                    },
                     ticks: {
+                        maxTicksLimit: 6,
                         callback: function (val) {
                             return val + " dk";
                         }

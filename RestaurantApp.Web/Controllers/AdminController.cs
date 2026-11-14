@@ -205,8 +205,9 @@ namespace RestaurantApp.Web.Controllers
 
                 // Ciro = sipariş değeri (tahsil edilen + kalan borç). TotalAmount tek başına kalan borçtur.
                 // Grafiklerin kapsadığı en geniş aralıktaki siparişler bir kez çekilip bellekte gruplanır.
+                const int TrendDays = 12;   // özet kartlarındaki eğilim çizgisi: son 12 gün (bugün dahil)
                 DateTime rangeStart = new DateTime(now.Year, now.Month, 1).AddMonths(-5);
-                if (now.Date.AddDays(-6) < rangeStart) rangeStart = now.Date.AddDays(-6);
+                if (now.Date.AddDays(-(TrendDays - 1)) < rangeStart) rangeStart = now.Date.AddDays(-(TrendDays - 1));
 
                 var rangeOrders = db.AppOrders
                     .Where(o => o.CompanyId == companyId && o.CreatedDate >= rangeStart && o.CreatedDate <= endOfToday && o.Status != "İptal")
@@ -232,8 +233,32 @@ namespace RestaurantApp.Web.Controllers
 
                 string topSellingProductName = topProductToday != null ? topProductToday.ProductName : "Henüz Yok";
 
+                // Karşılaştırma: dünün aynı saatine kadar (gün henüz bitmediği için dünün tamamıyla karşılaştırılmaz)
+                DateTime yesterdayStart = startOfToday.AddDays(-1);
+                DateTime yesterdaySameTime = now.AddDays(-1);
+                var yesterdayOrders = rangeOrders.Where(o => o.CreatedDate >= yesterdayStart && o.CreatedDate <= yesterdaySameTime).ToList();
+                decimal yesterdayRevenue = yesterdayOrders.Sum(o => OrderAmounts.Value(o));
+                int yesterdayOrderCount = yesterdayOrders.Count;
+                decimal yesterdayAvg = yesterdayOrderCount > 0 ? yesterdayRevenue / yesterdayOrderCount : 0;
+
+                // Eğilim: son TrendDays günün günlük cirosu, sipariş sayısı ve ortalama adisyonu (bugün dahil, kısmi gün)
+                var trendLabels = new List<string>();
+                var trendRevenue = new List<decimal>();
+                var trendCount = new List<int>();
+                var trendAvg = new List<decimal>();
+                for (int i = TrendDays - 1; i >= 0; i--)
+                {
+                    DateTime day = startOfToday.AddDays(-i);
+                    var dayOrders = rangeOrders.Where(o => o.CreatedDate >= day && o.CreatedDate < day.AddDays(1)).ToList();
+                    decimal rev = dayOrders.Sum(o => OrderAmounts.Value(o));
+                    trendLabels.Add(day.ToString("dd MMM"));
+                    trendRevenue.Add(rev);
+                    trendCount.Add(dayOrders.Count);
+                    trendAvg.Add(dayOrders.Count > 0 ? Math.Round(rev / dayOrders.Count, 2) : 0);
+                }
+
                 List<string> revenueLabels = new List<string>();
-                List<decimal> revenueValues = new List<decimal>();
+                List<decimal?> revenueValues = new List<decimal?>();   // henüz başlamamış dilim null (grafikte boş)
 
                 if (period == "weekly")
                 {
@@ -269,10 +294,8 @@ namespace RestaurantApp.Web.Controllers
                         DateTime hStart = startOfToday.AddHours(hour);
                         DateTime hEnd = startOfToday.AddHours(hour + 2).AddTicks(-1);
 
-                        decimal hRev = revenueBetween(hStart, hEnd);
-
                         revenueLabels.Add($"{hour:D2}:00-{(hour + 2):D2}:00");
-                        revenueValues.Add(hRev);
+                        revenueValues.Add(hStart > now ? (decimal?)null : revenueBetween(hStart, hEnd));
                     }
                 }
 
@@ -289,19 +312,14 @@ namespace RestaurantApp.Web.Controllers
                     .Take(5)
                     .ToList();
 
+                // Saatlik yoğunluk: bugünün siparişleri saat saat (08:00–23:00); henüz gelmemiş saatler null
                 List<string> hourlyLabels = new List<string>();
-                List<int> hourlyOrderCounts = new List<int>();
-
-                for (int h = 10; h <= 22; h += 2)
+                List<int?> hourlyOrderCounts = new List<int?>();
+                for (int h = 8; h <= 23; h++)
                 {
                     DateTime hStart = startOfToday.AddHours(h);
-                    DateTime hEnd = startOfToday.AddHours(h + 2).AddTicks(-1);
-
-                    int count = db.AppOrders
-                        .Count(o => o.CompanyId == companyId && o.CreatedDate >= hStart && o.CreatedDate <= hEnd && o.Status != "İptal");
-
                     hourlyLabels.Add($"{h:D2}:00");
-                    hourlyOrderCounts.Add(count);
+                    hourlyOrderCounts.Add(hStart > now ? (int?)null : todayOrders.Count(o => o.CreatedDate >= hStart && o.CreatedDate < hStart.AddHours(1)));
                 }
 
                 var result = new
@@ -310,6 +328,15 @@ namespace RestaurantApp.Web.Controllers
                     todayOrderCount = todayOrderCount,
                     avgOrderAmount = avgOrderAmount,
                     topSellingProduct = topSellingProductName,
+                    topSellingQuantity = topProductToday != null ? topProductToday.TotalQty : 0,
+                    comparison = new
+                    {
+                        label = "dünün bu saatine göre",
+                        revenue = yesterdayRevenue,
+                        orderCount = yesterdayOrderCount,
+                        avgOrderAmount = yesterdayAvg
+                    },
+                    trend = new { labels = trendLabels, revenue = trendRevenue, orderCount = trendCount, avgOrderAmount = trendAvg },
                     revenueChart = new { labels = revenueLabels, data = revenueValues },
                     topProductsChart = new { labels = top5Products.Select(x => x.ProductName).ToList(), data = top5Products.Select(x => x.TotalQuantity).ToList() },
                     hourlyChart = new { labels = hourlyLabels, data = hourlyOrderCounts }

@@ -23,64 +23,64 @@
         </div>
     </div>
 
-    <!-- ÖZET İSTATİSTİK KARTLARI -->
-    <div class="row g-3 mb-4">
-        <!-- Bugünkü Ciro -->
+    <!-- ÖZET KARTLARI: değer + dünün aynı saatine göre değişim + son 12 günün eğilimi -->
+    <div class="row g-3 mb-4" id="statTiles">
         <div class="col-md-6 col-xl-3">
             <div class="card stat-card p-3 shadow-sm h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-muted small fw-semibold d-block mb-1">Bugünün Cirosu</span>
-                        <h4 class="fw-bold text-dark mb-0" id="lblTodayRevenue">0.00 ₺</h4>
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div class="min-w-0">
+                        <span class="stat-label">Bugünün cirosu</span>
+                        <div class="stat-value" id="lblTodayRevenue">–</div>
                     </div>
-                    <div class="stat-icon icon-purple">
-                        <i class="fa-solid fa-turkish-lira-sign"></i>
-                    </div>
+                    <div class="stat-icon"><i class="fa-solid fa-turkish-lira-sign"></i></div>
+                </div>
+                <div class="stat-foot">
+                    <div class="stat-delta" id="deltaRevenue"></div>
+                    <div class="stat-spark" id="sparkRevenue"></div>
                 </div>
             </div>
         </div>
-
-        <!-- Bugünkü Sipariş -->
         <div class="col-md-6 col-xl-3">
             <div class="card stat-card p-3 shadow-sm h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-muted small fw-semibold d-block mb-1">Bugünkü Sipariş</span>
-                        <h4 class="fw-bold text-dark mb-0" id="lblTodayOrderCount">0</h4>
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div class="min-w-0">
+                        <span class="stat-label">Bugünkü sipariş</span>
+                        <div class="stat-value" id="lblTodayOrderCount">–</div>
                     </div>
-                    <div class="stat-icon icon-blue">
-                        <i class="fa-solid fa-receipt"></i>
-                    </div>
+                    <div class="stat-icon"><i class="fa-solid fa-receipt"></i></div>
+                </div>
+                <div class="stat-foot">
+                    <div class="stat-delta" id="deltaOrders"></div>
+                    <div class="stat-spark" id="sparkOrders"></div>
                 </div>
             </div>
         </div>
-
-        <!-- Ortalama Adisyon Tutarı -->
         <div class="col-md-6 col-xl-3">
             <div class="card stat-card p-3 shadow-sm h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-muted small fw-semibold d-block mb-1">Ort. Adisyon Tutarı</span>
-                        <h4 class="fw-bold text-dark mb-0" id="lblAvgOrderAmount">0.00 ₺</h4>
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div class="min-w-0">
+                        <span class="stat-label">Ort. adisyon tutarı</span>
+                        <div class="stat-value" id="lblAvgOrderAmount">–</div>
                     </div>
-                    <div class="stat-icon icon-green">
-                        <i class="fa-solid fa-calculator"></i>
-                    </div>
+                    <div class="stat-icon"><i class="fa-solid fa-calculator"></i></div>
+                </div>
+                <div class="stat-foot">
+                    <div class="stat-delta" id="deltaAvg"></div>
+                    <div class="stat-spark" id="sparkAvg"></div>
                 </div>
             </div>
         </div>
-
-        <!-- En Çok Satan Ürün -->
         <div class="col-md-6 col-xl-3">
             <div class="card stat-card p-3 shadow-sm h-100">
-                <div class="d-flex align-items-center justify-content-between">
-                    <div>
-                        <span class="text-muted small fw-semibold d-block mb-1"> Bugün En Çok Satan Ürün</span>
-                        <h6 class="fw-bold text-dark mb-0 text-truncate" style="max-width: 150px;" id="lblTopSellingProduct">--</h6>
+                <div class="d-flex align-items-start justify-content-between gap-2">
+                    <div class="min-w-0">
+                        <span class="stat-label">Bugün en çok satan ürün</span>
+                        <div class="stat-value stat-value-text text-truncate" id="lblTopSellingProduct">–</div>
                     </div>
-                    <div class="stat-icon icon-yellow">
-                        <i class="fa-solid fa-crown"></i>
-                    </div>
+                    <div class="stat-icon"><i class="fa-solid fa-crown"></i></div>
+                </div>
+                <div class="stat-foot">
+                    <div class="stat-delta is-flat" id="lblTopSellingQuantity"></div>
                 </div>
             </div>
         </div>
@@ -92,7 +92,10 @@
         <div class="col-lg-8">
             <div class="card chart-card shadow-sm p-4 h-100">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-chart-column me-2" style="color: #4a154b;"></i>Ciro Analizi</h6>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-chart-column me-2" style="color: #4a154b;"></i>Ciro Analizi</h6>
+                        <div class="chart-caption" id="revenueCaption"></div>
+                    </div>
                     <div class="btn-group btn-group-sm" role="group" id="timeFilterGroup">
                         <button type="button" class="btn btn-outline-secondary btn-time-filter active" onclick="changeRevenuePeriod('daily', this)">Günlük</button>
                         <button type="button" class="btn btn-outline-secondary btn-time-filter" onclick="changeRevenuePeriod('weekly', this)">Haftalık</button>
@@ -100,7 +103,7 @@
                     </div>
                 </div>
                 <div class="chart-container">
-                    <canvas id="revenueChart"></canvas>
+                    <canvas id="revenueChart" role="img" aria-label="Ciro grafiği"></canvas>
                 </div>
             </div>
         </div>
@@ -108,9 +111,10 @@
         <!-- 2. En Çok Satan Top 5 Ürün (Yatay Bar Grafiği) -->
         <div class="col-lg-4">
             <div class="card chart-card shadow-sm p-4 h-100">
-                <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-fire me-2" style="color: #4a154b;"></i>En Çok Satan Top 5 Ürün</h6>
+                <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-fire me-2" style="color: #4a154b;"></i>En Çok Satan 5 Ürün</h6>
+                <div class="chart-caption mb-3">Son 30 gün, satış adedi</div>
                 <div class="chart-container">
-                    <canvas id="topProductsChart"></canvas>
+                    <canvas id="topProductsChart" role="img" aria-label="En çok satan ürünler grafiği"></canvas>
                 </div>
             </div>
         </div>
@@ -120,9 +124,10 @@
     <div class="row g-4 mb-4">
         <div class="col-12">
             <div class="card chart-card shadow-sm p-4">
-                <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-clock me-2" style="color: #4a154b;"></i>Saatlik Sipariş Yoğunluğu </h6>
+                <h6 class="fw-bold text-dark mb-0"><i class="fa-solid fa-clock me-2" style="color: #4a154b;"></i>Saatlik Sipariş Yoğunluğu</h6>
+                <div class="chart-caption mb-3" id="hourlyCaption">Bugün, saat saat sipariş sayısı</div>
                 <div class="chart-container-sm">
-                    <canvas id="hourlyDensityChart"></canvas>
+                    <canvas id="hourlyDensityChart" role="img" aria-label="Saatlik sipariş yoğunluğu grafiği"></canvas>
                 </div>
             </div>
         </div>
@@ -186,8 +191,9 @@
 </div>
 
 @section scripts {
-    <!-- Chart.js Kütüphanesi -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js (sürüm sabit: kütüphane güncellenince grafikler habersiz bozulmasın) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="~/Library/scripts/lz-charts.js?v=@DateTime.Now.Ticks"></script>
     <script src="~/Library/scripts/delivery-channels.js?v=@DateTime.Now.Ticks"></script>
     <script src="~/Library/scripts/financial-reports.js?v=@DateTime.Now.Ticks"></script>
 }
