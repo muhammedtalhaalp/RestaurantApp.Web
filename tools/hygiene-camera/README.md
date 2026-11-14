@@ -104,7 +104,8 @@ Test bölümü, eğitimde hiç kullanılmayan 764 görüntüdür. Dizüstü işl
 dizüstü kamerasıyla yakından çekilmiş 19 fotoğrafta (kişi bonesiz ve önlüksüz, siyah atletli) model
 önlüksüzlüğü yalnızca 2/19, bonesizliği 5/19 yakaladı; siyah atleti önlük sandı. Daha önce kullanılan
 Roboflow modeli `chef-dataset/1` aynı fotoğraflarda 18/19 ve 17/19 bulmuştu. Kendi kamera açından
-önlüklü/önlüksüz, boneli/bonesiz görüntüler eklenip ek eğitim yapılması planlanıyor.
+önlüklü/önlüksüz, boneli/bonesiz görüntüler eklenip ek eğitim yapılması planlanıyor; kayıt, kutu
+onaylama ve veri setine ekleme araçları ile adımlar `training/README.md` içinde.
 
 ## Ayarlar (`config.json`)
 

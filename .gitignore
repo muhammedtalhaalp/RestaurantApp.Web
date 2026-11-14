@@ -389,3 +389,6 @@ tools/hygiene-camera/dataset-cache/
 tools/hygiene-camera/runs/
 tools/hygiene-camera/*.pt
 tools/hygiene-camera/*.zip
+# Kendi kamera karelerimiz (kişi görüntüsü); yalnızca yerelde kalır
+tools/hygiene-camera/kendi-veri/
+tools/hygiene-camera/training/*.pt
