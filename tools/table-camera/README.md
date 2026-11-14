@@ -185,7 +185,20 @@ için video yeniden işlenir. Seçilen değerler `config.json`'a yazılır. Niha
 
 ### Etiket dosyası
 
-Videoyu izleyerek her masanın gerçek durumu zaman aralıklarıyla yazılır (UTF-8 CSV). Süre saniye
+Etiket dosyasını elle yazmak yerine **`label_events.py`** ile video izlenirken tuşla girmek daha
+kolaydır (kalibrasyondan sonra):
+
+```
+.venv\Scripts\python label_events.py videolar\video1.mp4
+```
+
+Video oynatılırken masa seçilir (**1–9** ya da **Tab**) ve durum değiştiği anda **B** (Boş),
+**D** (Dolu), **T** (Toplanacak), **E** (etiketsiz, belirsiz kısım) tuşuna basılır. **G** masanın
+önünden geçişin başlangıcı, ikinci basış bitişidir. **Boşluk** oynat/duraklat, **← →** 2 sn,
+**↑ ↓** 10 sn, **, .** 0,5 sn atlar; **+ −** hız; **Z** geri al; **S** kaydet; **Q** kaydet ve çık.
+Dosya `videolar\video1_etiket.csv` olarak yazılır; yeniden açınca kaldığı yerden devam edilir.
+
+Elle yazmak isteyen için biçim: videoyu izleyerek her masanın gerçek durumu zaman aralıklarıyla yazılır (UTF-8 CSV). Süre saniye
 (`75`) ya da dakika:saniye (`1:15`) olabilir; `masa`, kalibrasyondaki masa numarasıdır.
 
 ```
@@ -213,6 +226,28 @@ M1,gecis,7:05,7:08,
 | Kare süresi | Karenin çözülmesi + tespit + takip + poz + sınıflandırma | ≤ 1 sn |
 
 Sonuçlar yalnızca o kayıtlar için geçerlidir; ardışık kareler bağımsız örnek sayılmaz.
+
+## 4. Masa kırpıntıları ("Toplanacak" sınıflandırıcısının verisi)
+
+Öneride "Toplanacak" kararı için iki yaklaşım karşılaştırılır: servis gereci (bardak, tabak…)
+tespiti ve masa görüntüsünün doğrudan **temiz / servis gereci var** diye sınıflandırılması.
+Sınıflandırıcının eğitim verisi yalnızca **geliştirme videolarından** çıkarılır; test videosundan
+kırpıntı alınmaz.
+
+```
+.venv\Scripts\python crop_tables.py videolar\video1.mp4 --every 5
+.venv\Scripts\python label_crops.py kirpintilar\video1
+```
+
+- `crop_tables.py`: kalibrasyondaki her masanın çevresini her `--every` saniyede kesip
+  `kirpintilar\<video>\<masa>\` altına kaydeder (`--margin` pay, `--max-side` en uzun kenar).
+- `label_crops.py`: kırpıntılar sırayla gösterilir; **1** temiz, **2** servis gereci, **0** atla
+  (kişi masayı örtüyor, bulanık). **← / Z** önceki, **→** sonraki, **Q** çık. Etiketler her tuşta
+  `etiketler.csv`'ye yazılır; yeniden açınca ilk etiketlenmemişten devam eder.
+
+**Gizlilik:** `videolar\` ve `kirpintilar\` kişi görüntüsü içerir; gitignore'dadır, bilgisayardan
+çıkmaz ve hiçbir yere (yapay zekâ araçları dahil) yüklenmez. Etiketleme kişinin kendisi tarafından
+yapılır. Eğitim betiği ve değerlendirmedeki sınıflandırıcı yöntemi etiketli veri oluşunca eklenecek.
 
 ## Ayarlar (`config.json`)
 

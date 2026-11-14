@@ -380,6 +380,10 @@ tools/table-camera/.venv/
 tools/table-camera/logs/
 tools/table-camera/degerlendirme/
 tools/table-camera/*.pt
+# Salon videoları, etiketleri ve masa kırpıntıları kişi görüntüsü içerir; yalnızca yerelde kalır
+tools/table-camera/videolar/
+tools/table-camera/kirpintilar/
+tools/table-camera/*.mp4
 tools/hygiene-camera/dataset/
 tools/hygiene-camera/dataset-cache/
 tools/hygiene-camera/runs/
