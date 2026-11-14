@@ -230,7 +230,7 @@ def classify_assigned(region, assigned, detections):
 #   - en az dwell_seconds boyunca aynı masada kalmış,
 #   - bu süre içinde yer değiştirmesi, kişinin boyuna oranla still_ratio'dan küçük (yürümüyor).
 # Ayak birden fazla masa bölgesine düşerse merkezi en yakın masa seçilir.
-# Oturma bilgisi (poz) sonraki adımda bu atamaya eklenecek; kalça konumu zemin konumu sayılmaz.
+# "poz" yönteminde ayrıca oturma bilgisi kullanılır (aşağıda): masa başında ayakta duran kişi atanmaz.
 
 DEFAULT_TRACKING = {"tracker": "bytetrack.yaml", "dwell_seconds": 2.0, "still_ratio": 0.35, "forget_seconds": 5.0}
 
@@ -247,11 +247,25 @@ def foot_point(box):
 
 
 class PersonAssigner:
-    def __init__(self, dwell_seconds=2.0, still_ratio=0.35, forget_seconds=5.0, **_):
+    """use_pose=True: masada kalma süresindeki güvenilir duruş gözlemlerinin en az standing_share kadarı
+    "ayakta" ise kişi masaya atanmaz (masayı kuran / silen garson). Duruşu belirsiz (eklemleri masa
+    tarafından örtülmüş) kişide poz karar vermez; ayak konumu ve masada kalma kuralı geçerlidir."""
+
+    def __init__(self, dwell_seconds=2.0, still_ratio=0.35, forget_seconds=5.0, use_pose=False, standing_share=0.6, **_):
         self.dwell = dwell_seconds
         self.still_ratio = still_ratio
         self.forget = forget_seconds
-        self.tracks = {}     # iz kimliği -> {table, since, history: deque[(t, x, y, boy)], last}
+        self.use_pose = use_pose
+        self.standing_share = standing_share
+        self.tracks = {}     # iz kimliği -> {table, since, history: deque[(t, x, y, boy, duruş)], last, assigned, posture}
+
+    def _posture_of(self, history):
+        """Penceredeki güvenilir duruş gözlemlerinin çoğunluğu (en az 2 gözlem); yoksa None."""
+        known = [p[4] for p in history if p[4]]
+        if len(known) < 2:
+            return None
+        standing = sum(1 for p in known if p == POSTURE_STANDING)
+        return POSTURE_STANDING if standing / len(known) >= self.standing_share else POSTURE_SITTING
 
     def _table_of(self, point, regions):
         inside = [r for r in regions if r.contains_point(point)]
@@ -267,9 +281,11 @@ class PersonAssigner:
         extent = ((max(xs) - min(xs)) ** 2 + (max(ys) - min(ys)) ** 2) ** 0.5
         return extent / height <= self.still_ratio
 
-    def update(self, now, persons, regions):
-        """persons: [(iz kimliği, kutu)]. {masa_id: [atanan iz kimlikleri]} döner."""
+    def update(self, now, persons, regions, postures=None):
+        """persons: [(iz kimliği, kutu)]; postures: {iz kimliği: "oturuyor"|"ayakta"|None} (poz yöntemi).
+        {masa_id: [atanan iz kimlikleri]} döner."""
         assigned = {}
+        postures = postures or {}
         for track_id, box in persons:
             point = foot_point(box)
             table = self._table_of(point, regions)
@@ -278,10 +294,12 @@ class PersonAssigner:
                 track = self.tracks[track_id] = {"table": table, "since": now, "history": deque()}
             track["last"] = now
             history = track["history"]
-            history.append((now, point[0], point[1], float(box[3] - box[1])))
+            history.append((now, point[0], point[1], float(box[3] - box[1]), postures.get(track_id)))
             while history and now - history[0][0] > self.dwell:
                 history.popleft()
-            track["assigned"] = (table is not None and now - track["since"] >= self.dwell and self._is_still(history))
+            track["posture"] = self._posture_of(history) if self.use_pose else None
+            track["assigned"] = (table is not None and now - track["since"] >= self.dwell and self._is_still(history)
+                                 and track["posture"] != POSTURE_STANDING)
             if track["assigned"]:
                 assigned.setdefault(table, []).append(track_id)
         for track_id in [k for k, t in self.tracks.items() if now - t["last"] > self.forget]:
@@ -289,8 +307,112 @@ class PersonAssigner:
         return assigned
 
 
-def make_assigner(config):
-    return PersonAssigner(**tracking_settings(config))
+def make_assigner(config, use_pose=False):
+    return PersonAssigner(use_pose=use_pose, standing_share=pose_settings(config)["standing_share"], **tracking_settings(config))
+
+
+# ---------------- Oturma bilgisi (poz) ----------------
+# Hazır YOLOv8n-pose modeli her kişide 17 eklem noktası (COCO) bulur. Oturma iki ölçüyle anlaşılır:
+#   - diz açısı (kalça–diz–ayak bileği): oturan kişide diz bükülüdür (küçük açı), ayaktakinde düzdür;
+#   - uyluk oranı: kalça ile diz arasındaki dikey mesafe / gövde boyu (omuz ortası–kalça ortası).
+#     Oturan kişide uyluk yataya yakındır, oran küçüktür.
+# Eklem güveni keypoint_confidence'ın altındaysa o eklem kullanılmaz. Gerekli eklemler görünmüyorsa
+# (masa / sandalye örtüyorsa) duruş None (belirsiz) olur ve tek başına karar oluşturmaz.
+# Kalça konumu zemin konumu olarak kullanılmaz; zemin konumu her zaman ayak noktasıdır.
+# Eşikler başlangıç değerleridir; tavan açısındaki doğrulama videosunda ayarlanacaktır.
+
+POSTURE_SITTING = "oturuyor"
+POSTURE_STANDING = "ayakta"
+DEFAULT_POSE = {"model": "yolov8n-pose.pt", "keypoint_confidence": 0.5, "match_iou": 0.5, "standing_share": 0.6,
+                "sit_knee_angle": 125, "stand_knee_angle": 155, "sit_thigh_ratio": 0.45, "stand_thigh_ratio": 0.7}
+KP_SHOULDERS, KP_HIPS, KP_KNEES, KP_ANKLES = (5, 6), (11, 12), (13, 14), (15, 16)
+
+
+def pose_settings(config):
+    settings = dict(DEFAULT_POSE)
+    settings.update(config.get("pose", {}))
+    return settings
+
+
+def _angle(a, b, c):
+    """b noktasındaki açı (derece)."""
+    v1, v2 = (a[0] - b[0], a[1] - b[1]), (c[0] - b[0], c[1] - b[1])
+    n1, n2 = (v1[0] ** 2 + v1[1] ** 2) ** 0.5, (v2[0] ** 2 + v2[1] ** 2) ** 0.5
+    if n1 < 1e-6 or n2 < 1e-6:
+        return None
+    cos = max(-1.0, min(1.0, (v1[0] * v2[0] + v1[1] * v2[1]) / (n1 * n2)))
+    return float(np.degrees(np.arccos(cos)))
+
+
+def posture_measures(keypoints, min_conf):
+    """keypoints: 17 x (x, y, güven). (en küçük diz açısı ya da None, uyluk oranı ya da None)."""
+    seen = lambda i: keypoints[i][2] >= min_conf
+    angles = []
+    for hip, knee, ankle in zip(KP_HIPS, KP_KNEES, KP_ANKLES):
+        if seen(hip) and seen(knee) and seen(ankle):
+            angle = _angle(keypoints[hip], keypoints[knee], keypoints[ankle])
+            if angle is not None:
+                angles.append(angle)
+    ratio = None
+    if all(seen(i) for i in KP_SHOULDERS + KP_HIPS):
+        shoulder_y = (keypoints[5][1] + keypoints[6][1]) / 2
+        hip_y = (keypoints[11][1] + keypoints[12][1]) / 2
+        torso = abs(hip_y - shoulder_y)
+        thighs = [abs(keypoints[k][1] - keypoints[h][1]) for h, k in zip(KP_HIPS, KP_KNEES) if seen(h) and seen(k)]
+        if torso > 1 and thighs:
+            ratio = (sum(thighs) / len(thighs)) / torso
+    return (min(angles) if angles else None), ratio
+
+
+def posture_from_keypoints(keypoints, settings):
+    """"oturuyor", "ayakta" ya da None (eklemler yetersiz / ölçüler kararsız)."""
+    angle, ratio = posture_measures(keypoints, settings["keypoint_confidence"])
+    if (angle is not None and angle < settings["sit_knee_angle"]) or (ratio is not None and ratio < settings["sit_thigh_ratio"]):
+        return POSTURE_SITTING
+    if angle is not None and angle > settings["stand_knee_angle"] and (ratio is None or ratio > settings["stand_thigh_ratio"]):
+        return POSTURE_STANDING
+    if angle is None and ratio is not None and ratio > settings["stand_thigh_ratio"] + 0.1:
+        return POSTURE_STANDING     # ayak bileği görünmüyor: yalnız uyluk oranıyla, daha temkinli eşik
+    return None
+
+
+def box_iou(a, b):
+    ix = max(0, min(a[2], b[2]) - max(a[0], b[0]))
+    iy = max(0, min(a[3], b[3]) - max(a[1], b[1]))
+    inter = ix * iy
+    union = (a[2] - a[0]) * (a[3] - a[1]) + (b[2] - b[0]) * (b[3] - b[1]) - inter
+    return inter / union if union > 0 else 0.0
+
+
+class PoseEstimator:
+    """Poz modelini çalıştırır, bulduğu kişileri takipteki kişi kutularıyla (IoU) eşleştirir."""
+
+    def __init__(self, config, confidence):
+        from ultralytics import YOLO
+
+        self.settings = pose_settings(config)
+        self.model = YOLO(self.settings["model"])
+        self.confidence = confidence
+
+    def postures(self, frame, persons):
+        """persons: [(iz kimliği, kutu)]. {iz kimliği: (duruş, eklemler)} döner; eşleşmeyen kişi yer almaz."""
+        if not persons:
+            return {}
+        result = self.model.predict(frame, conf=self.confidence, verbose=False)[0]
+        if result.keypoints is None or len(result.boxes) == 0:
+            return {}
+        boxes = result.boxes.xyxy.tolist()
+        keypoints = result.keypoints.data.tolist()
+        pairs = sorted(((box_iou(box, pb), tid, j) for tid, box in persons for j, pb in enumerate(boxes)), reverse=True)
+        out, used = {}, set()
+        for iou, tid, j in pairs:
+            if iou < self.settings["match_iou"]:
+                break
+            if tid in out or j in used:
+                continue
+            used.add(j)
+            out[tid] = (posture_from_keypoints(keypoints[j], self.settings), keypoints[j])
+        return out
 
 
 DEFAULT_HOLD = {STATUS_OCCUPIED: 3, STATUS_EMPTY: 8, STATUS_CLEARING: 8}
@@ -1084,31 +1206,40 @@ def evaluate(frame, regions, detector, config):
     return detections, raw
 
 
-def evaluate_tracked(frame, regions, detector, assigner, now, config):
-    """Takipli tespit; aynı tespitlerden hem referans hem takip yönteminin ham durumunu üretir.
-    (tespitler, iz kimlikleri, referans ham, takip ham, atamalar) döner."""
+def evaluate_tracked(frame, regions, detector, assigners, now, config, pose=None):
+    """Takipli tespit; aynı tespitlerden birden çok yöntemin ham durumunu üretir.
+
+    assigners: {"takip": PersonAssigner, "poz": PersonAssigner(use_pose=True)} (biri ya da ikisi).
+    pose: PoseEstimator; "poz" atayıcısı varsa gereklidir.
+    Dönüş: (tespitler, iz kimlikleri, {"kesisim"|"takip"|"poz": {masa_id: ham}}, {iz: (duruş, eklemler)})."""
     height, width = frame.shape[:2]
     for region in regions:
         region.prepare(width, height)
     detections, ids = detector.detect_tracked(frame, tracking_settings(config)["tracker"])
     persons = [(tid, box) for (name, _, box), tid in zip(detections, ids) if name == "person" and tid is not None]
-    assigned = assigner.update(now, persons, regions)
-    overlap = config.get("person_overlap", 0.2)
-    raw_ref = {r.table_id: classify(r, detections, overlap) for r in regions}
-    raw_track = {r.table_id: classify_assigned(r, assigned, detections) for r in regions}
-    return detections, ids, raw_ref, raw_track, assigned
+    postures = pose.postures(frame, persons) if pose is not None and "poz" in assigners else {}
+    raws = {"kesisim": {r.table_id: classify(r, detections, config.get("person_overlap", 0.2)) for r in regions}}
+    for name, assigner in assigners.items():
+        assigned = assigner.update(now, persons, regions, {tid: p[0] for tid, p in postures.items()} if assigner.use_pose else None)
+        raws[name] = {r.table_id: classify_assigned(r, assigned, detections) for r in regions}
+    return detections, ids, raws, postures
+
+
+POSTURE_MARKS = {POSTURE_SITTING: "O", POSTURE_STANDING: "A"}
 
 
 def draw_tracks(frame, detections, ids, assigner):
-    """Takip yönteminde ayak noktaları: yeşil = masaya atanmış, gri = atanmamış (yürüyor / yeni geldi)."""
+    """Ayak noktaları: yeşil = masaya atanmış, gri = atanmamış (yürüyor / yeni geldi / ayakta).
+    Poz yönteminde kimliğin yanında duruş: O = oturuyor, A = ayakta, ? = belirsiz."""
     for (name, _, box), tid in zip(detections, ids):
         if name != "person" or tid is None:
             continue
         x, y = (int(v) for v in foot_point(box))
-        assigned = assigner.tracks.get(tid, {}).get("assigned")
-        color = (60, 200, 60) if assigned else (170, 170, 170)
+        track = assigner.tracks.get(tid, {})
+        color = (60, 200, 60) if track.get("assigned") else (170, 170, 170)
+        label = f"#{tid}" + (f" {POSTURE_MARKS.get(track.get('posture'), '?')}" if assigner.use_pose else "")
         cv2.circle(frame, (x, y), 6, color, -1)
-        cv2.putText(frame, f"#{tid}", (x + 8, y - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 1, cv2.LINE_AA)
+        cv2.putText(frame, label, (x + 8, y - 4), cv2.FONT_HERSHEY_SIMPLEX, 0.45, color, 1, cv2.LINE_AA)
 
 
 def run_image(config, image_path):
@@ -1150,16 +1281,22 @@ def run_loop(config, client, show_window=True):
     heartbeat = config.get("heartbeat_seconds", 30)
     log_path = decision_log_path(config)
     log = DecisionLog(log_path) if log_path else None
-    # person_assignment: "kesisim" (kutu–masa kesişimi) ya da "takip" (kişi takibi + ayak konumu)
-    use_tracking = config.get("person_assignment", "kesisim") == "takip"
-    assigner = make_assigner(config) if use_tracking else None
-    method = "takip_zamansal" if use_tracking else "zamansal"
+    # person_assignment: "kesisim" (kutu–masa kesişimi), "takip" (kişi takibi + ayak konumu)
+    # ya da "poz" (takip + oturma bilgisi)
+    assignment = config.get("person_assignment", "kesisim")
+    if assignment not in ("kesisim", "takip", "poz"):
+        sys.exit(f"person_assignment 'kesisim', 'takip' ya da 'poz' olmalı ('{assignment}').")
+    use_tracking = assignment != "kesisim"
+    assigner = make_assigner(config, use_pose=assignment == "poz") if use_tracking else None
+    pose = PoseEstimator(config, config.get("confidence", 0.35)) if assignment == "poz" else None
+    method = f"{assignment}_zamansal" if use_tracking else "zamansal"
+    method_text = {"kesisim": "kutu–masa kesişimi", "takip": "kişi takibi + ayak konumu", "poz": "takip + ayak konumu + oturma bilgisi"}
     last_sent = 0.0
     last_error = ""
     last_frame_at = time.time()
     outage = False      # görüntü alınamıyor: yeni karar üretilmez, sunucuya da gönderilmez
 
-    print(f"{len(regions)} masa izleniyor ({'kişi takibi + ayak konumu' if use_tracking else 'kutu–masa kesişimi'})."
+    print(f"{len(regions)} masa izleniyor ({method_text[assignment]})."
           + (f" Kararlar: {log_path}" if log else "")
           + " Çıkmak için pencerede Q'ya basın (ya da Ctrl+C).")
     try:
@@ -1189,7 +1326,8 @@ def run_loop(config, client, show_window=True):
                     log.write(method, "devam")
 
             if use_tracking:
-                detections, ids, _, raw, _ = evaluate_tracked(frame, regions, detector, assigner, started, config)
+                detections, ids, raws, _ = evaluate_tracked(frame, regions, detector, {assignment: assigner}, started, config, pose)
+                raw = raws[assignment]
             else:
                 detections, raw = evaluate(frame, regions, detector, config)
 

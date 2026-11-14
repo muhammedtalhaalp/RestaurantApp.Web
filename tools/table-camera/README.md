@@ -30,8 +30,15 @@ Kamera **hiçbir şeyi otomatik kapatmaz**; siparişlere ve masa durumuna dokunm
   noktası** (kutunun alt kenarının ortası) masa bölgesindeyse, orada en az `dwell_seconds` (2 sn)
   kalmışsa ve bu sürede boyunun `still_ratio` (0,35) katından fazla yer değiştirmemişse atanır.
   Böylece yürüyerek geçen garson, art arda geçen kişiler ve kutusu yan masaya taşan oturan kişi
-  masayı dolu yapmaz. Varsayılan hâlâ `kesisim`dir; hangisinin kullanılacağı salon videosundaki
-  karşılaştırmayla seçilecektir. Oturma bilgisi (poz) sonraki adımda eklenecek.
+  masayı dolu yapmaz.
+- **Oturma bilgisi** (`person_assignment: "poz"`): Takibe ek olarak hazır **YOLOv8n-pose** modeli
+  (ilk çalıştırmada iner, ~6 MB) her kişinin eklemlerini bulur. Diz açısı (kalça–diz–bilek) küçükse
+  ya da uyluk yataya yakınsa (kalça–diz dikey mesafesi / gövde boyu küçük) kişi **oturuyor**, bacak
+  düzse **ayakta** sayılır. Masada kalma süresindeki güvenilir gözlemlerin çoğu ayaktaysa kişi
+  masaya atanmaz (masayı kuran ya da silen garson). Diz/kalça masa veya sandalye tarafından
+  örtülmüşse duruş **belirsiz** olur ve tek başına karar vermez; ayak konumu kuralı geçerlidir.
+  Kalça konumu zemin konumu olarak kullanılmaz.
+- Varsayılan hâlâ `kesisim`dir; hangisinin kullanılacağı salon videosundaki karşılaştırmayla seçilecektir.
 - **Zamansal doğrulama:** Yeni durum, kendi doğrulama süresi (`hold_seconds`; varsayılan Dolu 3 sn,
   Boş/Toplanacak 8 sn) boyunca sürerse kesinleşir. Önünden geçen garson masayı dolu yapmaz.
 - **Gözlem boşluğu toleransı** (`gap_tolerance_seconds`, varsayılan 2 sn): Bekleyen durum bu süreden
@@ -128,8 +135,9 @@ bilgisayar aynı Wi-Fi'a (ya da telefonun hotspot'una) bağlanır ve uygulamanı
 ```
 
 Pencerede masalar renklenir (yeşil boş, kırmızı dolu, turuncu toplanacak); bulunan insanlar ve
-nesneler kutu içinde gösterilir. Takip yönteminde her kişinin ayak noktası da `#iz` kimliğiyle
-çizilir: yeşil = masaya atanmış, gri = atanmamış (yürüyor ya da yeni geldi). **Q** ile çıkılır. Pencere istemezsen `--no-window`.
+nesneler kutu içinde gösterilir. Takip ve poz yöntemlerinde her kişinin ayak noktası da `#iz`
+kimliğiyle çizilir: yeşil = masaya atanmış, gri = atanmamış (yürüyor, yeni geldi ya da ayakta).
+Poz yönteminde kimliğin yanında duruş yazar: `O` oturuyor, `A` ayakta, `?` belirsiz. **Q** ile çıkılır. Pencere istemezsen `--no-window`.
 
 Kamera açmadan bir fotoğrafta denemek için (sunucuya bir şey göndermez):
 
@@ -140,8 +148,9 @@ Kamera açmadan bir fotoğrafta denemek için (sunucuya bir şey göndermez):
 ## 3. Video üzerinde değerlendirme (yöntem karşılaştırması)
 
 `evaluate_video.py`, kayıtlı bir salon videosunu gerçek zaman beklemeden baştan sona işler. Her
-örnekleme anında **aynı tespitlerden** iki ham gözlem çıkarır (kutu kesişimi ve takip + ayak
-konumu) ve bunları dört yönteme verir. Böylece her bileşenin katkısı ayrı görünür:
+örnekleme anında **aynı tespitlerden** üç ham gözlem çıkarır (kutu kesişimi, takip + ayak konumu,
+takip + ayak konumu + oturma bilgisi) ve bunları altı yönteme verir. Böylece her bileşenin
+katkısı ayrı görünür:
 
 | Yöntem | Kişi–masa ataması | Karar |
 |---|---|---|
@@ -149,8 +158,10 @@ konumu) ve bunları dört yönteme verir. Böylece her bileşenin katkısı ayr�
 | `zamansal` | Kutu kesişimi | Duruma özgü doğrulama süreleri + gözlem boşluğu toleransı |
 | `takip` | Takip + ayak konumu + masada kalma | Her kare kendi kararını verir |
 | `takip_zamansal` | Takip + ayak konumu + masada kalma | Aynı zamansal doğrulama |
+| `poz` | Takip + ayak konumu + masada kalma + oturma bilgisi | Her kare kendi kararını verir |
+| `poz_zamansal` | Takip + ayak konumu + masada kalma + oturma bilgisi | Aynı zamansal doğrulama |
 
-Oturma bilgisi (poz) eklendiğinde yeni yöntem aynı karşılaştırmaya eklenecek.
+Poz modelini çalıştırmamak için `--no-pose` (yalnız ilk dört yöntem).
 
 ```
 .venv/Scripts/python evaluate_video.py salon.mp4 --labels salon_etiket.csv
@@ -158,7 +169,7 @@ Oturma bilgisi (poz) eklendiğinde yeni yöntem aynı karşılaştırmaya eklene
 
 Çıktılar `degerlendirme/<video adı>/` klasörüne yazılır (gitignore'da; görüntü içermez):
 
-- `ham.csv`: her örnekleme anında masa başına ham durum (`ham_durum` kesişim, `ham_takip` takip) ve kare işlem süresi
+- `ham.csv`: her örnekleme anında masa başına ham durum (`ham_durum` kesişim, `ham_takip` takip, `ham_poz` poz) ve kare işlem süresi
 - `kararlar_<yontem>.csv`: kesinleşen durum değişiklikleri (video saniyesiyle)
 - `sonuc.md`, `sonuc.json`: etiket verildiyse ölçütler
 
@@ -169,7 +180,7 @@ farklı değerler denenebilir:
 .venv/Scripts/python evaluate_video.py --from-raw degerlendirme/salon/ham.csv --labels salon_etiket.csv --hold Dolu=3,Bos=8,Toplanacak=8 --gap 2
 ```
 
-`--from-raw` takip parametrelerini (`dwell_seconds`, `still_ratio`) değiştirmez; onları denemek
+`--from-raw` takip ve poz parametrelerini (`dwell_seconds`, `still_ratio`, `pose` eşikleri) değiştirmez; onları denemek
 için video yeniden işlenir. Seçilen değerler `config.json`'a yazılır. Nihai test videosu bu ayarı seçerken kullanılmaz; yalnızca en sonda bir kez değerlendirilir.
 
 ### Etiket dosyası
@@ -199,7 +210,7 @@ M1,gecis,7:05,7:08,
 | Yanlış boşaltma | Gerçek Dolu aralıklarından, içinde Boş/Toplanacak kararı görülenlerin oranı | < %5 |
 | Yanlış doluluk | Geçiş olaylarından Dolu kararı üretilenlerin oranı | < %5 |
 | Geçiş gecikmesi | Gerçek değişimden kararın yeni duruma ulaşmasına kadar geçen süre; ortalama, medyan, 95. yüzdelik ve geçiş türüne göre | ort. ≤ 60 sn |
-| Kare süresi | Karenin çözülmesi + tespit + takip + sınıflandırma | ≤ 1 sn |
+| Kare süresi | Karenin çözülmesi + tespit + takip + poz + sınıflandırma | ≤ 1 sn |
 
 Sonuçlar yalnızca o kayıtlar için geçerlidir; ardışık kareler bağımsız örnek sayılmaz.
 
@@ -212,8 +223,9 @@ Sonuçlar yalnızca o kayıtlar için geçerlidir; ardışık kareler bağımsı
 | `confidence` | Tespit eşiği (0–1). Yanlış tespit çoksa artır |
 | `seat_margin` | Krokiyle eşlemede masa alanının sandalye payı (kroki birimi; masa 75 birim civarındadır) |
 | `person_overlap` | İnsan kutusunun masa alanıyla kesişme oranı; bu oranın altındaki insan o masada sayılmaz (kesişim yöntemi) |
-| `person_assignment` | Canlı çalışmada kişi–masa ataması: `kesisim` (varsayılan) ya da `takip` |
+| `person_assignment` | Canlı çalışmada kişi–masa ataması: `kesisim` (varsayılan), `takip` ya da `poz` |
 | `tracking` | Takip ayarları: `tracker` (`bytetrack.yaml`), `dwell_seconds` (masada en az kalma, sn), `still_ratio` (bu sürede boyuna oranla en çok yer değiştirme), `forget_seconds` (görünmeyen izin unutulma süresi) |
+| `pose` | Poz ayarları: `model` (`yolov8n-pose.pt`), `keypoint_confidence` (eklem güveni alt sınırı), `sit_knee_angle` / `stand_knee_angle` (derece), `sit_thigh_ratio` / `stand_thigh_ratio` (uyluk dikeyi / gövde), `standing_share` (masada kalma süresinde "ayakta" gözlem payı), `match_iou` (poz kutusu ile takip kutusu eşleşmesi). Eşikler başlangıç değeridir; doğrulama videosunda ayarlanır |
 | `item_classes` | "Toplanacak" sayılan COCO nesneleri |
 | `hold_seconds` | Duruma özgü doğrulama süresi: yeni durumun kesinleşmesi için kaç saniye sürmesi gerektiği |
 | `gap_tolerance_seconds` | Gözlem boşluğu toleransı: bekleyen durumu sıfırlamayan en uzun kesinti |
@@ -231,5 +243,8 @@ Sonuçlar yalnızca o kayıtlar için geçerlidir; ardışık kareler bağımsı
   alt kenarı gerçek ayak konumu değildir; oturan kişide bu genellikle masa bölgesine düşer, ama
   tavan açısındaki gerçek videoda ölçülmelidir. Takip örnekleme aralığında (0,5 sn) yapılır;
   hızlı yürüyen kişinin kimliği değişebilir, bu da onun masaya atanmasını zorlaştırır (bilerek temkinli).
+- Poz eşikleri yandan/önden çekilmiş görüntülerle sınanmıştır; tavandan dik bakışta diz açısı ve
+  uyluk oranı kısalır. Oturan kişide dizler çoğu zaman masanın altında kalır, bu durumda duruş
+  belirsizdir. Eşikler ve poz yönteminin katkısı salon videosunda ölçülmelidir.
 - Bir kamera birden fazla masayı izleyebilir; birden fazla kamera için programı ayrı `--config`
   dosyalarıyla birden çok kez çalıştır.

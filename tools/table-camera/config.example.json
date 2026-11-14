@@ -10,6 +10,10 @@
   "person_overlap": 0.2,
   "person_assignment": "kesisim",
   "tracking": { "tracker": "bytetrack.yaml", "dwell_seconds": 2, "still_ratio": 0.35, "forget_seconds": 5 },
+  "pose": {
+    "model": "yolov8n-pose.pt", "keypoint_confidence": 0.5, "match_iou": 0.5, "standing_share": 0.6,
+    "sit_knee_angle": 125, "stand_knee_angle": 155, "sit_thigh_ratio": 0.45, "stand_thigh_ratio": 0.7
+  },
   "seat_margin": 35,
   "item_classes": [
     "cup", "bowl", "bottle", "wine glass", "fork", "knife", "spoon",
