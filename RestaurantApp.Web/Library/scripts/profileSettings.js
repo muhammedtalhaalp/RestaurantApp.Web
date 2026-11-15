@@ -1,7 +1,4 @@
-﻿var countdownTimer = null;
-var timeLeft = 60;
-
-$(document).ready(function () {
+﻿$(document).ready(function () {
     loadUserProfile();
 
     // 1. Profil Bilgilerini Kaydet
@@ -10,209 +7,86 @@ $(document).ready(function () {
         saveProfileInfo();
     });
 
-    // 2. Şifre Değiştir Butonuna Basınca Kodu Gönder ve Modalı Aç
+    // 2. Şifre Değiştir: e-postaya kod gönderilir, doğrulama penceresi açılır (Library/scripts/lz-otp.js)
     $("#btnOpenOtpModal").on("click", function () {
-        sendOtpCode();
-    });
-
-    // 3. Klavye ile Otomatik Kutucuk Geçişleri
-    setupOtpInputEvents();
-
-    // 4. Kodu Doğrula
-    $("#btnVerifyOtp").on("click", function () {
-        verifyOtpCode();
-    });
-
-    // 5. Yeniden Kod Gönder
-    $("#btnResendOtp").on("click", function () {
-        sendOtpCode();
-    });
-
-    // 6. Yeni Şifreyi Kaydet
-    $("#btnSaveNewPassword").on("click", function () {
-        submitNewPassword();
+        startPasswordChange();
     });
 });
 
-// Otomatik Klavye Geçişleri (4 Kutucuk)
-function setupOtpInputEvents() {
-    const inputs = document.querySelectorAll('.otp-field');
+// ŞİFRE DEĞİŞTİRME: kod gönder → 4 haneli kodu doğrula (animasyon) → yeni şifre → güncellendi
+function startPasswordChange() {
+    var $btn = $("#btnOpenOtpModal");
+    var original = $btn.html();
+    $btn.prop("disabled", true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i>Kod gönderiliyor...');
 
-    inputs.forEach((input, index) => {
-        input.addEventListener('keyup', (e) => {
-            const currentInput = input,
-                nextInput = input.nextElementSibling,
-                prevInput = input.previousElementSibling;
-
-            if (currentInput.value.length > 0) {
-                if (nextInput) {
-                    nextInput.focus();
-                }
-            }
-
-            if (e.key === "Backspace") {
-                if (prevInput) {
-                    prevInput.focus();
-                }
-            }
-        });
-    });
-}
-
-// 60 Saniyelik Sayaç
-function startTimer() {
-    clearInterval(countdownTimer);
-    timeLeft = 60;
-    $("#countdown").text(timeLeft);
-    $("#timerText").removeClass("d-none");
-    $("#btnResendOtp").addClass("d-none");
-
-    countdownTimer = setInterval(function () {
-        timeLeft--;
-        $("#countdown").text(timeLeft);
-
-        if (timeLeft <= 0) {
-            clearInterval(countdownTimer);
-            $("#timerText").addClass("d-none");
-            $("#btnResendOtp").removeClass("d-none");
+    LzOtp.post("/Auth/SendPasswordResetCode", {}).then(function (r) {
+        $btn.prop("disabled", false).html(original);
+        if (!r.success) {
+            Swal.fire("Hata", r.message || "Kod gönderilemedi.", "error");
+            return;
         }
-    }, 1000);
+        LzOtp.open(passwordCodeView());
+    });
 }
 
-// OTP Kodu Gönderme
-function sendOtpCode() {
-    Swal.fire({
-        title: 'Kod Gönderiliyor...',
-        text: 'Lütfen e-posta adresinizi kontrol edin',
-        allowOutsideClick: false,
-        didOpen: () => { Swal.showLoading(); }
-    });
-
-    $.ajax({
-        url: "/Auth/SendPasswordResetCode",
-        type: "POST",
-        success: function (response) {
-            Swal.close();
-            if (response.success) {
-                // Modalı ve alanları sıfırla
-                $("#otpStep1").removeClass("d-none");
-                $("#otpStep2").addClass("d-none");
-                $("#otpFormContent").removeClass("d-none");
-                $("#otpSuccessState").addClass("d-none");
-                $("#otpInputsContainer").removeClass("morph-out");
-                $(".otp-field").val('');
-                $("#txtNewPasswordInput").val('');
-
-                var myModal = new bootstrap.Modal(document.getElementById('otpModal'));
-                myModal.show();
-
-                startTimer();
-                setTimeout(() => { $(".otp-field").first().focus(); }, 400);
-            } else {
-                Swal.fire("Hata", response.message, "error");
-            }
+function passwordCodeView() {
+    var email = ($("#txtEmail").val() || "").trim();
+    return {
+        icon: "fa-lock",
+        title: "Kimlik doğrulama",
+        subtitle: "4 haneli güvenlik kodunu e-postanıza gönderdik" + (email ? ":" : "."),
+        subtitleStrong: email || null,
+        length: 4,
+        autoSubmit: true,
+        submitText: "Kodu doğrula",
+        onSubmit: function (code) {
+            return LzOtp.post("/Auth/VerifyOtpCode", { code: code }).then(function (r) {
+                if (!r.success) return r;
+                return {
+                    success: true,
+                    successTitle: "Kod doğrulandı",
+                    successText: "Şimdi yeni şifrenizi belirleyin.",
+                    continueText: "Devam et",
+                    onContinue: function (dialog) { dialog.setView(newPasswordView()); }
+                };
+            });
         },
-        error: function () {
-            Swal.close();
-            Swal.fire("Hata", "E-posta gönderilirken bir sunucu hatası oluştu.", "error");
+        resend: {
+            seconds: 60,
+            onResend: function () { return LzOtp.post("/Auth/SendPasswordResetCode", {}); }
         }
-    });
+    };
 }
 
-// Kodu Doğrulama ve Animasyonlu Geçiş Mantığı
-function verifyOtpCode() {
-    var code = "";
-    $(".otp-field").each(function () {
-        code += $(this).val();
-    });
-
-    if (code.length < 4) {
-        Swal.fire("Uyarı", "Lütfen 4 haneli doğrulama kodunu tam giriniz.", "warning");
-        return;
-    }
-
-    var $btn = $("#btnVerifyOtp");
-    $btn.prop("disabled", true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i>Doğrulanıyor...');
-
-    $.ajax({
-        url: "/Auth/VerifyOtpCode",
-        type: "POST",
-        data: { code: code },
-        success: function (response) {
-            $btn.prop("disabled", false).html('Kodu Doğrula');
-
-            if (response.success) {
-                // 1. Kutucukları birleştirip küçülten efekti tetikle
-                $("#otpInputsContainer").addClass("morph-out");
-
-                // 2. Kısa süre sonra form içeriğini gizle, "Kod Doğrulandı!" yeşil tik animasyonunu göster
-                setTimeout(function () {
-                    $("#otpFormContent").addClass("d-none");
-                    $("#otpSuccessState").removeClass("d-none");
-                }, 300);
-
-                // 3. Efekti izlettikten sonra Şifre Değiştirme adımına yumuşakça geç
-                setTimeout(function () {
-                    $("#otpStep1").addClass("d-none");
-                    $("#otpStep2").removeClass("d-none");
-
-                    // Bir sonraki açılış için sınıfları temizle
-                    $("#otpInputsContainer").removeClass("morph-out");
-                    $("#otpFormContent").removeClass("d-none");
-                    $("#otpSuccessState").addClass("d-none");
-
-                    $("#txtNewPasswordInput").focus();
-                }, 1600);
-            } else {
-                Swal.fire("Hata", response.message, "error");
-            }
+function newPasswordView() {
+    return {
+        icon: "fa-key",
+        title: "Yeni şifre belirle",
+        subtitle: "Doğrulama tamam. Yeni şifreniz en az 6 karakter olmalı.",
+        length: 0,
+        fields: [
+            { name: "pass", type: "password", placeholder: "Yeni şifre", autocomplete: "new-password" },
+            { name: "pass2", type: "password", placeholder: "Yeni şifre (tekrar)", autocomplete: "new-password" }
+        ],
+        validate: function (v) {
+            if (v.pass.length < 6) return "Yeni şifre en az 6 karakter olmalı.";
+            if (v.pass !== v.pass2) return "Şifreler birbirini tutmuyor.";
+            return null;
         },
-        error: function () {
-            $btn.prop("disabled", false).html('Kodu Doğrula');
-            Swal.fire("Hata", "Kod doğrulanırken hata oluştu.", "error");
+        submitText: "Şifreyi güncelle",
+        busyText: "Güncelleniyor…",
+        onSubmit: function (code, v) {
+            return LzOtp.post("/Auth/ConfirmNewPassword", { newPassword: v.pass }).then(function (r) {
+                if (!r.success) return r;
+                return {
+                    success: true,
+                    successTitle: "Şifreniz güncellendi",
+                    successText: "Bir sonraki girişte yeni şifrenizi kullanın.",
+                    continueText: "Tamam"
+                };
+            });
         }
-    });
-}
-
-// Yeni Şifreyi Kaydetme
-function submitNewPassword() {
-    var newPassword = $("#txtNewPasswordInput").val().trim();
-    if (!newPassword) {
-        Swal.fire("Uyarı", "Lütfen yeni şifrenizi giriniz.", "warning");
-        return;
-    }
-
-    var $btn = $("#btnSaveNewPassword");
-    $btn.prop("disabled", true).html('<i class="fa-solid fa-spinner fa-spin me-1"></i>Güncelleniyor...');
-
-    $.ajax({
-        url: "/Auth/ConfirmNewPassword",
-        type: "POST",
-        data: { newPassword: newPassword },
-        success: function (response) {
-            $btn.prop("disabled", false).html('Şifreyi Güncelle');
-
-            if (response.success) {
-                var modalEl = document.getElementById('otpModal');
-                var modal = bootstrap.Modal.getInstance(modalEl);
-                modal.hide();
-
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Tebrikler!',
-                    text: 'Şifreniz başarıyla güncellendi.',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            } else {
-                Swal.fire("Hata", response.message, "error");
-            }
-        },
-        error: function () {
-            $btn.prop("disabled", false).html('Şifreyi Güncelle');
-            Swal.fire("Hata", "Şifre güncellenirken sunucu hatası oluştu.", "error");
-        }
-    });
+    };
 }
 
 // Kullanıcı Bilgilerini Çekme

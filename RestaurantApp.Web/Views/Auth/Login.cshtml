@@ -11,6 +11,7 @@
 
     <!-- FontAwesome & Google Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link href="~/Library/styles/lz-otp.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
     <!-- SweetAlert2 -->
@@ -52,6 +53,28 @@
             position: relative;
             -webkit-font-smoothing: antialiased;
         }
+
+        /* Tanıtım sayfasına dönüş bağlantısı */
+        .home-link {
+            position: fixed;
+            top: 18px;
+            left: 20px;
+            z-index: 3;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--color-muted);
+            text-decoration: none;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            transition: color .15s, background .15s;
+        }
+
+            .home-link:hover { color: var(--color-text); background: rgba(255, 255, 255, 0.09); }
 
         /* Arka plan ışıkları */
         .glow {
@@ -461,6 +484,7 @@
 <body>
     <div class="glow glow-1"></div>
     <div class="glow glow-2"></div>
+    <a href="/" class="home-link"><i class="fa-solid fa-arrow-left"></i>Ana sayfa</a>
 
     <div class="card">
         <!-- DÜZELTME: .active-bar div'i ul etiketinin dışına çıkarıldı -->
@@ -578,6 +602,7 @@
 
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="~/Library/scripts/lz-otp.js?v=@DateTime.Now.Ticks"></script>
 
     <script>
         // Görünüm Değiştirme Animasyonu
@@ -604,6 +629,11 @@
                 cardHeroInner.style.top = "-100%";
             }
         };
+
+        // Tanıtım sayfasındaki "Ücretsiz dene" /Auth/Login?kayit=1 ile gelir: kayıt formu açık başlasın
+        if (new URLSearchParams(window.location.search).has("kayit")) {
+            selectView("signup");
+        }
 
         $(document).ready(function () {
             // GİRİŞ YAP AJAX (Siz istediğiniz gibi SweetAlert "Giriş Başarılı" POPUP'I KALDIRILDI)
@@ -646,85 +676,69 @@
                 });
             });
 
-            // ŞİFREMİ UNUTTUM: 1) e-posta → kod gönderilir, 2) kod + yeni şifre → şifre değişir
-            function forgotPasswordAskEmail() {
-                Swal.fire({
+            // ŞİFREMİ UNUTTUM (LzOtp penceresi): 1) e-posta → kod gönderilir, 2) 6 haneli kod + yeni şifre → şifre değişir
+            function forgotPasswordOpen() {
+                LzOtp.open({
+                    icon: "fa-envelope",
                     title: "Şifremi unuttum",
-                    text: "Hesabınızın e-posta adresini yazın; 6 haneli doğrulama kodu gönderelim.",
-                    input: "email",
-                    inputValue: $("#loginEmail").val().trim(),
-                    inputPlaceholder: "ornek@lezzetpos.com",
-                    validationMessage: "Geçerli bir e-posta adresi yazın.",
-                    showCancelButton: true,
-                    confirmButtonText: "Kod gönder",
-                    cancelButtonText: "Vazgeç",
-                    confirmButtonColor: "#7b2d7e",
-                    showLoaderOnConfirm: true,
-                    allowOutsideClick: function () { return !Swal.isLoading(); },
-                    preConfirm: function (email) {
-                        return forgotPasswordSendCode(email).then(function (r) {
-                            if (!r.success) Swal.showValidationMessage(r.message);
-                            return r.success ? { email: email.trim(), message: r.message } : false;
+                    subtitle: "Hesabınızın e-posta adresini yazın; 6 haneli doğrulama kodu gönderelim.",
+                    length: 0,
+                    fields: [{ name: "email", type: "email", placeholder: "ornek@lezzetpos.com", autocomplete: "email", value: $("#loginEmail").val().trim() }],
+                    validate: function (v) { return /^\S+@@\S+\.\S+$/.test(v.email.trim()) ? null : "Geçerli bir e-posta adresi yazın."; },
+                    submitText: "Kod gönder",
+                    busyText: "Gönderiliyor…",
+                    onSubmit: function (code, v) {
+                        var email = v.email.trim();
+                        return LzOtp.post("/Auth/ForgotPasswordSendCode", { email: email }).then(function (r) {
+                            return r.success ? { success: true, next: forgotPasswordCodeView(email) } : r;
                         });
                     }
-                }).then(function (result) {
-                    if (result.isConfirmed && result.value) forgotPasswordAskCode(result.value.email, result.value.message);
                 });
             }
 
-            function forgotPasswordSendCode(email) {
-                return $.post("/Auth/ForgotPasswordSendCode", { email: email.trim() })
-                    .then(function (r) { return r; }, function () { return { success: false, message: "Sunucuya bağlanırken bir sorun oluştu." }; });
-            }
-
-            function forgotPasswordAskCode(email, info) {
-                var safeInfo = $("<div>").text(info).html();
-                Swal.fire({
+            function forgotPasswordCodeView(email) {
+                return {
+                    icon: "fa-shield-halved",
                     title: "Yeni şifre belirle",
-                    html: `<p style="font-size:.9rem;margin-bottom:12px">${safeInfo}</p>
-                           <input id="fpCode" class="swal2-input" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="6 haneli kod" style="letter-spacing:4px;text-align:center">
-                           <input id="fpPass" class="swal2-input" type="password" autocomplete="new-password" placeholder="Yeni şifre (en az 6 karakter)">
-                           <input id="fpPass2" class="swal2-input" type="password" autocomplete="new-password" placeholder="Yeni şifre (tekrar)">`,
-                    showCancelButton: true,
-                    showDenyButton: true,
-                    confirmButtonText: "Şifreyi değiştir",
-                    denyButtonText: "Kodu tekrar gönder",
-                    cancelButtonText: "Vazgeç",
-                    confirmButtonColor: "#7b2d7e",
-                    denyButtonColor: "#6b6475",
-                    focusConfirm: false,
-                    showLoaderOnConfirm: true,
-                    allowOutsideClick: function () { return !Swal.isLoading(); },
-                    didOpen: function () { $("#fpCode").trigger("focus"); },
-                    preConfirm: function () {
-                        var code = $("#fpCode").val().trim(), pass = $("#fpPass").val(), pass2 = $("#fpPass2").val();
-                        if (!/^\d{6}$/.test(code)) return Swal.showValidationMessage("E-postadaki 6 haneli kodu yazın."), false;
-                        if (pass.length < 6) return Swal.showValidationMessage("Yeni şifre en az 6 karakter olmalı."), false;
-                        if (pass !== pass2) return Swal.showValidationMessage("Şifreler birbirini tutmuyor."), false;
-                        return $.post("/Auth/ForgotPasswordReset", { email: email, code: code, newPassword: pass })
-                            .then(function (r) { return r; }, function () { return { success: false, message: "Sunucuya bağlanırken bir sorun oluştu." }; })
-                            .then(function (r) {
-                                if (!r.success) Swal.showValidationMessage(r.message);
-                                return r.success ? r : false;
-                            });
-                    }
-                }).then(function (result) {
-                    if (result.isDenied) {
-                        forgotPasswordSendCode(email).then(function (r) {
-                            if (r.success) forgotPasswordAskCode(email, r.message);
-                            else Swal.fire("Kod gönderilemedi", r.message, "warning").then(function () { forgotPasswordAskCode(email, info); });
+                    subtitle: "Bu adres kayıtlıysa 6 haneli kod gönderildi:",
+                    subtitleStrong: email,
+                    length: 6,
+                    fields: [
+                        { name: "pass", type: "password", placeholder: "Yeni şifre (en az 6 karakter)", autocomplete: "new-password" },
+                        { name: "pass2", type: "password", placeholder: "Yeni şifre (tekrar)", autocomplete: "new-password" }
+                    ],
+                    validate: function (v) {
+                        if (v.pass.length < 6) return "Yeni şifre en az 6 karakter olmalı.";
+                        if (v.pass !== v.pass2) return "Şifreler birbirini tutmuyor.";
+                        return null;
+                    },
+                    submitText: "Şifreyi değiştir",
+                    onSubmit: function (code, v) {
+                        return LzOtp.post("/Auth/ForgotPasswordReset", { email: email, code: code, newPassword: v.pass }).then(function (r) {
+                            if (!r.success) return { success: false, message: r.message, clearCode: !/şifre en az/i.test(r.message || "") };
+                            return {
+                                success: true,
+                                successTitle: "Şifreniz değişti",
+                                successText: "Yeni şifrenizle giriş yapabilirsiniz.",
+                                continueText: "Giriş yap",
+                                onContinue: function (dialog) {
+                                    dialog.close();
+                                    $("#loginEmail").val(email);
+                                    $("#loginPassword").val("").trigger("focus");
+                                }
+                            };
                         });
-                    } else if (result.isConfirmed && result.value) {
-                        $("#loginEmail").val(email);
-                        $("#loginPassword").val("").trigger("focus");
-                        Swal.fire("Şifre değişti", result.value.message, "success");
+                    },
+                    resend: {
+                        seconds: 60,
+                        onResend: function () { return LzOtp.post("/Auth/ForgotPasswordSendCode", { email: email }); }
                     }
-                });
+                };
             }
 
             $("#lnkForgotPassword").on("click", function (e) {
                 e.preventDefault();
-                forgotPasswordAskEmail();
+                forgotPasswordOpen();
             });
 
             // KAYIT OL AJAX

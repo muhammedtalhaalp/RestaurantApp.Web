@@ -5,6 +5,7 @@
 
 @section styles {
     <link href="~/Library/styles/profile-settings.css" rel="stylesheet" />
+    <link href="~/Library/styles/lz-otp.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
 }
 
 <div class="container-fluid mt-2">
@@ -86,71 +87,8 @@
     </div>
 </div>
 
-<div class="modal fade" id="otpModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
-        <div class="modal-content border-0 rounded-4 shadow-lg">
-            <div class="modal-body p-4 text-center">
-                <button type="button" class="btn-close position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
-
-                <!-- ADIM 1: GİRDİ ALANI VE ANİMASYON KAPSAYICISI -->
-                <div id="otpStep1">
-                    <div id="otpFormContent">
-                        <div class="otp-icon-wrapper">
-                            <i class="fa-solid fa-lock"></i>
-                        </div>
-                        <h4 class="fw-bold text-dark mb-1">Kimlik Doğrulama</h4>
-                        <p class="text-muted small mb-4">Lütfen e-postanıza gönderilen 4 haneli güvenlik kodunu giriniz.</p>
-
-                        <div class="otp-inputs-container" id="otpInputsContainer">
-                            <input type="text" class="otp-field" maxlength="1" autofocus />
-                            <input type="text" class="otp-field" maxlength="1" />
-                            <input type="text" class="otp-field" maxlength="1" />
-                            <input type="text" class="otp-field" maxlength="1" />
-                        </div>
-
-                        <button type="button" class="btn-otp-verify" id="btnVerifyOtp">
-                            Kodu Doğrula
-                        </button>
-
-                        <p class="otp-resend-text mb-0 mt-3">
-                            Kod gelmedi mi? <span id="timerText">Yeniden Gönder (<strong id="countdown">60</strong>s)</span>
-                            <button type="button" class="otp-resend-btn d-none" id="btnResendOtp">Yeniden Gönder</button>
-                        </p>
-                    </div>
-
-                    <!-- ANİMASYONLU DOĞRULANDI ALANI -->
-                    <div id="otpSuccessState" class="otp-success-state d-none">
-                        <div class="otp-success-icon">
-                            <i class="fa-solid fa-check"></i>
-                        </div>
-                        <h4 class="fw-bold text-dark mb-1">Kod Doğrulandı!</h4>
-                        <p class="text-muted small mb-0">Şifre yenileme ekranına yönlendiriliyorsunuz...</p>
-                    </div>
-                </div>
-
-                <!-- ADIM 2: YENİ ŞİFRE ALANI -->
-                <div id="otpStep2" class="d-none">
-                    <div class="otp-icon-wrapper" style="background: #e6fffa; color: #319795;">
-                        <i class="fa-solid fa-key"></i>
-                    </div>
-                    <h4 class="fw-bold text-dark mb-1">Yeni Şifre Belirle</h4>
-                    <p class="text-muted small mb-3">Doğrulama başarılı! Lütfen yeni şifrenizi giriniz.</p>
-
-                    <div class="mb-3 text-start">
-                        <label class="fw-semibold text-secondary mb-1 small">Yeni Şifre</label>
-                        <input type="password" id="txtNewPasswordInput" class="form-control input-clean" placeholder="••••••••" required />
-                    </div>
-
-                    <button type="button" class="btn-otp-verify" id="btnSaveNewPassword">
-                        Şifreyi Güncelle
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
 @section scripts {
-    <script src="~/Library/scripts/profileSettings.js?v=1.1"></script>
+    <script src="~/Library/scripts/lz-otp.js?v=@DateTime.Now.Ticks"></script>
+    <script src="~/Library/scripts/profileSettings.js?v=@DateTime.Now.Ticks"></script>
 }
 
