@@ -25,6 +25,7 @@ namespace RestaurantApp.Web.Data
         public int Id { get; set; }
         public string Name { get; set; }
         public Nullable<System.DateTime> CreatedDate { get; set; }
+        public Nullable<System.DateTime> TrialEndsAt { get; set; }
     
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2227:CollectionPropertiesShouldBeReadOnly")]
         public virtual ICollection<AppUsers> AppUsers { get; set; }

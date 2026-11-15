@@ -56,10 +56,12 @@ namespace RestaurantApp.Web.Controllers
             }
 
 
+            // Yeni işletme 14 gün ücretsiz dener (Helpers/TrialStatus); süre dolunca Subscription/Expired
             var newCompany = new Companies
             {
                 Name = model.CompanyName,
-                CreatedDate = DateTime.Now
+                CreatedDate = DateTime.Now,
+                TrialEndsAt = DateTime.Now.AddDays(TrialStatus.TrialDays)
             };
 
             db.Companies.Add(newCompany);
@@ -82,7 +84,7 @@ namespace RestaurantApp.Web.Controllers
             db.AppUsers.Add(adminUser);
             db.SaveChanges();
 
-            return Json(new { success = true, message = "Kayıt başarılı! Giriş sayfasına yönlendiriliyorsunuz." });
+            return Json(new { success = true, message = $"Kayıt başarılı! {TrialStatus.TrialDays} günlük ücretsiz denemeniz başladı; şimdi giriş yapabilirsiniz." });
         }
 
         [HttpPost]
@@ -118,25 +120,8 @@ namespace RestaurantApp.Web.Controllers
             Session["UserRole"] = user.Role;
             Session["FullName"] = user.FullName;
 
-            string redirectUrl = "/Order/POS";
-
-            if (user.Role == "Admin")
-            {
-
-                redirectUrl = "/Admin/Index";
-            }
-            else if (user.Role == "Mutfak" || user.Role == "Mutfak Şefi")
-            {
-                redirectUrl = "/Kitchen/Index";
-            }
-            else if (user.Role == "Garson" || user.Role == "Kasiyer")
-            {
-                redirectUrl = "/Order/Index";
-            }
-            else if (user.Role == DeliveryOptions.CourierRole)
-            {
-                redirectUrl = "/Courier/Index";
-            }
+            // Deneme süresi dolmuşsa giriş yine yapılır (veriler silinmez) ama bilgi sayfasına gidilir
+            string redirectUrl = TrialStatus.IsExpired(user.CompanyId, DateTime.Now) ? "/Subscription/Expired" : RoleHome.For(user.Role);
 
             return Json(new
             {

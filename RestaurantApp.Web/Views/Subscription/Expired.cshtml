@@ -1,0 +1,110 @@
+﻿@using RestaurantApp.Web.Helpers
+@{
+    Layout = null;
+    bool isAdmin = ViewBag.IsAdmin == true;
+    DateTime endedAt = ViewBag.EndedAt;
+    string company = ViewBag.CompanyName as string;
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Deneme süreniz doldu – LezzetPOS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <link href="~/Library/styles/landing.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+</head>
+<body class="landing">
+    <div class="lp-glow lp-glow-1"></div>
+    <div class="lp-glow lp-glow-2"></div>
+
+    <header class="lp-nav is-scrolled">
+        <div class="lp-container lp-nav-inner">
+            <a href="/" class="lp-brand"><span class="lp-brand-mark"><i class="fa-solid fa-leaf"></i></span><span>LezzetPOS</span></a>
+            <div class="lp-nav-actions">
+                <a href="/Auth/Logout" class="lp-btn lp-btn-ghost" id="btnLogout"><i class="fa-solid fa-arrow-right-from-bracket"></i>Çıkış yap</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="lp-section lp-expired">
+        <div class="lp-container">
+            <div class="lp-expired-card">
+                <span class="lp-expired-icon"><i class="fa-solid fa-hourglass-end"></i></span>
+                <h1>Ücretsiz deneme süreniz doldu</h1>
+                <p class="lp-lead-sm">
+                    <b>@(company ?? "İşletmenizin")</b> deneme süresi @endedAt.ToString("d MMMM yyyy") tarihinde sona erdi.
+                    Verileriniz silinmedi: menünüz, masalarınız ve siparişleriniz olduğu gibi duruyor.
+                    Paketiniz başladığında kaldığınız yerden devam edersiniz.
+                </p>
+
+                @if (isAdmin)
+                {
+                    if (ProductInfo.HasContact)
+                    {
+                        <div class="lp-expired-contact">
+                            @if (ProductInfo.ContactWhatsApp != null)
+                            {
+                                <a class="lp-btn lp-btn-primary lp-btn-lg" href="https://wa.me/@ProductInfo.ContactWhatsApp?text=@Url.Encode("Merhaba, " + (company ?? "işletmem") + " için LezzetPOS paketi hakkında bilgi almak istiyorum.")" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i>WhatsApp'tan yazın</a>
+                            }
+                            @if (ProductInfo.ContactEmail != null)
+                            {
+                                <a class="lp-btn lp-btn-ghost lp-btn-lg" href="mailto:@ProductInfo.ContactEmail?subject=@Url.Encode("LezzetPOS paket talebi - " + (company ?? ""))"><i class="fa-regular fa-envelope"></i>E-posta gönderin</a>
+                            }
+                            @if (ProductInfo.ContactPhone != null)
+                            {
+                                <a class="lp-btn lp-btn-ghost lp-btn-lg" href="tel:@ProductInfo.ContactPhone.Replace(" ", "")"><i class="fa-solid fa-phone"></i>@ProductInfo.ContactPhone</a>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="lp-expired-note"><i class="fa-solid fa-circle-info"></i>Paket seçimi için LezzetPOS ekibiyle iletişime geçin.</p>
+                    }
+                }
+                else
+                {
+                    <p class="lp-expired-note"><i class="fa-solid fa-circle-info"></i>Sistemi yeniden açmak için işletme yöneticinizin paket seçmesi gerekiyor. Lütfen yöneticinizle görüşün.</p>
+                }
+            </div>
+
+            @if (isAdmin)
+            {
+                <div class="lp-head" style="margin-top: 56px;">
+                    <span class="lp-kicker">Paketler</span>
+                    <h2>Size uygun paketi seçin</h2>
+                    <p>@(ProductInfo.HasContact ? "Fiyat ve kurulum için yukarıdaki iletişim seçeneklerinden bize ulaşın." : "Fiyat ve kurulum için LezzetPOS ekibiyle iletişime geçin.")</p>
+                </div>
+                <div class="lp-plans">
+                    @foreach (var plan in ProductInfo.Plans)
+                    {
+                        <article class="lp-plan @(plan.Highlighted ? "is-featured" : "")">
+                            @if (plan.Badge != null)
+                            {
+                                <span class="lp-plan-badge">@plan.Badge</span>
+                            }
+                            <span class="ic"><i class="fa-solid @plan.Icon"></i></span>
+                            <h3>@plan.Name</h3>
+                            <p class="tag">@plan.Tagline</p>
+                            <ul>
+                                @foreach (var f in plan.Features)
+                                {
+                                    <li><i class="fa-solid fa-check"></i>@f</li>
+                                }
+                            </ul>
+                        </article>
+                    }
+                </div>
+            }
+        </div>
+    </main>
+
+    <script>
+        // Çıkışta tarayıcıda tutulan oturum bilgileri de temizlensin (layout'taki çıkışla aynı)
+        document.getElementById("btnLogout").addEventListener("click", function () {
+            try { localStorage.clear(); } catch (e) { }
+        });
+    </script>
+</body>
+</html>

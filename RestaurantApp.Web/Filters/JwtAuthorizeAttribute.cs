@@ -80,6 +80,37 @@ namespace RestaurantApp.Web.Filters
 
             // Her şey yolundaysa kullanıcıyı sisteme tanıt
             filterContext.HttpContext.User = principal;
+
+            // 4. Ücretsiz deneme süresi (Helpers/TrialStatus): dolmuşsa yalnızca [AllowExpiredTrial] işaretli
+            //    sayfalar açılır (bilgi sayfası). Tarayıcı oraya yönlendirilir, API istemcisi 403 + JSON alır.
+            int companyId;
+            if (!IsMarked<AllowExpiredTrialAttribute>(filterContext) &&
+                int.TryParse(principal.FindFirst(JwtHelper.CompanyIdClaim)?.Value, out companyId) &&
+                TrialStatus.IsExpired(companyId, DateTime.Now))
+            {
+                if (isApiClient)
+                {
+                    var response = filterContext.HttpContext.Response;
+                    response.StatusCode = (int)HttpStatusCode.Forbidden;
+                    response.TrySkipIisCustomErrors = true;
+                    filterContext.Result = new JsonResult
+                    {
+                        Data = new { success = false, code = "trial_expired", message = "İşletmenizin ücretsiz deneme süresi doldu. Devam etmek için işletme yöneticinizle iletişime geçin." },
+                        JsonRequestBehavior = JsonRequestBehavior.AllowGet
+                    };
+                }
+                else
+                {
+                    filterContext.Result = new RedirectToRouteResult(
+                        new System.Web.Routing.RouteValueDictionary { { "controller", "Subscription" }, { "action", "Expired" } });
+                }
+            }
+        }
+
+        private static bool IsMarked<T>(AuthorizationContext filterContext) where T : Attribute
+        {
+            return filterContext.ActionDescriptor.IsDefined(typeof(T), true) ||
+                   filterContext.ActionDescriptor.ControllerDescriptor.IsDefined(typeof(T), true);
         }
 
         private static void Deny(AuthorizationContext filterContext, bool isApiClient, HttpStatusCode status, string message)
@@ -102,5 +133,11 @@ namespace RestaurantApp.Web.Filters
             filterContext.Result = new RedirectToRouteResult(
                 new System.Web.Routing.RouteValueDictionary { { "controller", controller }, { "action", action } });
         }
+    }
+
+    // Deneme süresi dolmuş işletmenin kullanıcısının da açabileceği sayfalar (deneme bitti bilgi sayfası)
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
+    public class AllowExpiredTrialAttribute : Attribute
+    {
     }
 }

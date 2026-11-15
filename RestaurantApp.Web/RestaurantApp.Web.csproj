@@ -171,6 +171,8 @@
     <Compile Include="Controllers\FloorPlanController.cs" />
     <Compile Include="Controllers\TableCameraController.cs" />
     <Compile Include="Helpers\TableCameraStatus.cs" />
+    <Compile Include="Helpers\TrialStatus.cs" />
+    <Compile Include="Helpers\ProductInfo.cs" />
     <Compile Include="Controllers\ErrorController.cs" />
     <Compile Include="Controllers\KitchenController.cs" />
     <Compile Include="Controllers\MenuController.cs" />
@@ -199,6 +201,8 @@
     <Compile Include="Helpers\EmailHelper.cs" />
     <Compile Include="Helpers\JwtHelper.cs" />
     <Compile Include="Controllers\TenantController.cs" />
+    <Compile Include="Controllers\HomeController.cs" />
+    <Compile Include="Controllers\SubscriptionController.cs" />
     <Compile Include="Helpers\DeliveryOptions.cs" />
     <Compile Include="Helpers\DeliveryWorkflow.cs" />
     <Compile Include="Helpers\PushNotifier.cs" />
@@ -289,6 +293,8 @@
     <Content Include="Library\scripts\floor-plan-management.js" />
     <Content Include="Library\scripts\kitchen-performance.js" />
     <Content Include="Library\scripts\lz-charts.js" />
+    <Content Include="Library\scripts\lz-otp.js" />
+    <Content Include="Library\scripts\landing.js" />
     <Content Include="Library\scripts\kitchen-recipes.js" />
     <Content Include="Library\scripts\order-index.js" />
     <Content Include="Library\scripts\kitchen-report.js" />
@@ -317,6 +323,8 @@
     <Content Include="Library\styles\login.css" />
     <Content Include="Library\styles\my-site.css" />
     <Content Include="Library\styles\lezzet-ui.css" />
+    <Content Include="Library\styles\lz-otp.css" />
+    <Content Include="Library\styles\landing.css" />
     <Content Include="Library\scripts\floor-plan-view.js" />
     <Content Include="Library\styles\floor-plan.css" />
     <Content Include="Library\scripts\qr-menu-admin.js" />
@@ -369,6 +377,8 @@
     <Content Include="Views\Shared\_Layout.cshtml" />
     <Content Include="Views\Order\Pos.cshtml" />
     <Content Include="Views\Auth\Login.cshtml" />
+    <Content Include="Views\Home\Index.cshtml" />
+    <Content Include="Views\Subscription\Expired.cshtml" />
     <Content Include="Views\Admin\Dashboard.cshtml" />
     <Content Include="Views\Admin\Index.cshtml" />
     <Content Include="Views\Admin\StaffManagement.cshtml" />

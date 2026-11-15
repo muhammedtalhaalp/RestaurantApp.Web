@@ -13,7 +13,7 @@ namespace RestaurantApp.Web
             routes.MapRoute(
                 name: "Default",
                 url: "{controller}/{action}/{id}",
-                defaults: new { controller = "Auth", action = "Login", id = UrlParameter.Optional }
+                defaults: new { controller = "Home", action = "Index", id = UrlParameter.Optional }   // tanıtım sayfası; giriş: /Auth/Login
             );
         }
     }

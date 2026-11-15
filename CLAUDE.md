@@ -10,7 +10,7 @@ The real project lives in `RestaurantApp.Web/`.
 
 ## Build & Run
 
-- Open `RestaurantApp.Web.sln` in Visual Studio and run with IIS Express (`https://localhost:44309/`). The default route goes to `Auth/Login`.
+- Open `RestaurantApp.Web.sln` in Visual Studio and run with IIS Express (`https://localhost:44309/`). The default route goes to the public landing page `Home/Index`; login is `/Auth/Login`.
 - Command-line build (NuGet packages are restored into `packages/`):
   ```
   "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe" RestaurantApp.Web.sln /p:Configuration=Debug
@@ -55,6 +55,14 @@ The real project lives in `RestaurantApp.Web/`.
   - **Always pass `-I`** (QUOTED_IDENTIFIER ON). `AppOrders` has a filtered index (`IX_AppOrders_CourierId`), so without `-I` both its creation and any later ad-hoc `sqlcmd` UPDATE or DELETE on `AppOrders`/`AppUsers` fail. EF connections already have the setting on.
   - Make each step of a script check its own existence, so that a half-failed run can simply be re-run. After each script, update the EDMX by hand: SSDL, CSDL and mapping must all change together, along with the matching generated entity class. Alternatively, run "Update Model from Database" in Visual Studio.
 
+### Public site and free trial
+- The default route is `Home/Index`, the public landing page (`HomeController`, `[AllowAnonymous]`, no layout, `Library/styles/landing.css` + `landing.js`, the same dark purple look as Login). It shows features, the AI modules (marked as pilot), how it works, packages without prices, an FAQ and the contact details. A logged-in user sees "Uygulamaya git" (`RoleHome.For(role)`). "Ücretsiz dene" opens `/Auth/Login?kayit=1`, which starts on the sign-up form; Login has an "Ana sayfa" link back.
+- Packages and contact details live in `Helpers/ProductInfo` (`Plans`; `ContactEmail`/`ContactPhone`/`ContactWhatsApp` appSettings; empty ones are hidden). The repo is public, so the real values go in the gitignored `Secrets.config` (it overrides the empty keys in `Web.config`).
+- **Free trial:** `ApiRegister` sets `Companies.TrialEndsAt = now + TrialStatus.TrialDays` (14; `Database/012`). `NULL` means no limit, which covers existing restaurants and paid ones. `Helpers/TrialStatus` caches the end date for 1 minute.
+  - `JwtAuthorizeAttribute` checks it after the role check. An expired company's browser requests redirect to `/Subscription/Expired`, and API clients get 403 `{code:"trial_expired"}`. Only actions/controllers marked `[AllowExpiredTrial]` (the `SubscriptionController`) stay open; `Auth/Logout` has no filter.
+  - `ApiLogin` sends an expired company straight to `/Subscription/Expired`. Data is never deleted. To extend or activate: `UPDATE dbo.Companies SET TrialEndsAt = NULL` (or a new date). There is no payment integration yet.
+  - `_Layout` shows Admins a "X gün kaldı" bar (`.lz-trial-bar`, amber when 3 days or fewer) while a trial runs.
+
 ### Auth
 - Custom JWT, not ASP.NET Identity. `AuthController.ApiLogin` issues the token with `Helpers/JwtHelper` and stores `JWToken`, `UserId`, `UserRole` and `FullName` in **Session**. The client also keeps the token in `localStorage`, and every page JS sends it through `$.ajaxSetup`.
 - `Filters/JwtAuthorizeAttribute` reads the token from Session, or from an `Authorization: Bearer` header, validates it with `JwtHelper.ValidateToken` (signature, expiry, and presence of the `CompanyId` claim) and checks `Roles`.
@@ -81,6 +89,7 @@ The real project lives in `RestaurantApp.Web/`.
   - Loading states use the brand loader `.lz-loader` (the purple leaf logo pulsing inside a rotating gradient ring; `.lz-loader-sm` is the small side-by-side form for table rows and modals). Page JS builds it with `lzLoader(text, small)` from `_Layout`; static views write the markup directly. The same CSS restyles SweetAlert2's `Swal.showLoading()` ring (`.swal2-loader`; never give it a `display`, Swal toggles that). Small in-button "Kaydediliyor…" spinners stay `fa-spinner`.
   - Charts use Chart.js **pinned to 4.4.1** plus `Library/scripts/lz-charts.js` (`LzCharts`), which sets the theme (font, recessive solid grid, tooltip with the value first) and provides Turkish money formatting (`money` → 1.234,50 ₺, `moneyAxis(v, this.max)` one style per axis: 5.000 ₺ / 15 bin ₺ / 1,2 Mn ₺), `emphasis` (single-series charts: the key bar in accent `#7b2d7e`, the rest muted `#c4a6c7`), the `referenceLine` and `valueLabels` plugins, and stat-tile `delta` and `sparkline`. Label selectively (the emphasised bar, or the tips of a few ranked bars); never a number on every point. Used by Ciro ve Grafikler (`financial-reports.js`) and Mutfak Performans.
   - `GetFinancialData` also returns `comparison` (yesterday up to the same time of day) and a 12-day `trend` (revenue, order count, average ticket) for the stat tiles. Buckets that haven't started yet are `null`, so they render empty rather than as zero.
+  - Verification-code entry uses the dark dialog component `Library/scripts/lz-otp.js` + `Library/styles/lz-otp.css` (`LzOtp.open(view)`, `dialog.setView`, `LzOtp.post` = form-encoded fetch with the session cookie). Digit boxes with a border light trace per digit, shimmer when complete, paste/autofill typed in one by one; on success the card glows teal, the boxes merge into a check badge and a "Devam et" button appears. A view's `onSubmit` returns `{success:false,message,clearCode}`, `{success:true,next:view}` or `{success:true,successTitle,…,onContinue}`. Used by the login "Şifremi unuttum" flow (e-mail → 6-digit code + new password) and Profil Ayarları password change (4-digit code → new password). The component carries its own colors because the login page doesn't load `lezzet-ui.css`.
   - Use its `--lz-*` tokens instead of new hard-coded colors. Page CSS should only hold page-specific pieces, styled with more specific selectors.
   - The sidebar is a dark purple gradient, and the top bar is a floating frosted-glass strip.
 - `Views/Auth/Login.cshtml` uses the dark, premium style of the mobile app.

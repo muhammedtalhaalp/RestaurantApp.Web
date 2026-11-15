@@ -1,0 +1,294 @@
+﻿@using RestaurantApp.Web.Helpers
+@{
+    Layout = null;
+    string appUrl = ViewBag.AppUrl as string;
+    int trialDays = TrialStatus.TrialDays;
+}
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LezzetPOS – Restoran adisyon ve yönetim sistemi</title>
+    <meta name="description" content="LezzetPOS ile siparişten mutfağa, paket servisten raporlara restoranınızı tek ekrandan yönetin. @trialDays gün ücretsiz deneyin." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <link href="~/Library/styles/landing.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
+</head>
+<body class="landing">
+    <div class="lp-glow lp-glow-1"></div>
+    <div class="lp-glow lp-glow-2"></div>
+
+    <!-- ÜST MENÜ -->
+    <header class="lp-nav" id="lpNav">
+        <div class="lp-container lp-nav-inner">
+            <a href="/" class="lp-brand" aria-label="LezzetPOS ana sayfa">
+                <span class="lp-brand-mark"><i class="fa-solid fa-leaf"></i></span>
+                <span>LezzetPOS</span>
+            </a>
+            <nav class="lp-links" id="lpLinks" aria-label="Sayfa bölümleri">
+                <a href="#ozellikler">Özellikler</a>
+                <a href="#yapay-zeka">Yapay Zekâ</a>
+                <a href="#nasil">Nasıl Çalışır</a>
+                <a href="#paketler">Paketler</a>
+                <a href="#sss">SSS</a>
+            </nav>
+            <div class="lp-nav-actions">
+                @if (appUrl != null)
+                {
+                    <a href="@appUrl" class="lp-btn lp-btn-primary">Uygulamaya git <i class="fa-solid fa-arrow-right"></i></a>
+                }
+                else
+                {
+                    <a href="/Auth/Login" class="lp-btn lp-btn-ghost">Giriş yap</a>
+                    <a href="/Auth/Login?kayit=1" class="lp-btn lp-btn-primary">Ücretsiz dene</a>
+                }
+                <button type="button" class="lp-menu-btn" id="lpMenuBtn" aria-label="Menüyü aç" aria-expanded="false" aria-controls="lpLinks">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- KARŞILAMA -->
+        <section class="lp-hero">
+            <div class="lp-container lp-hero-grid">
+                <div class="lp-hero-text lp-reveal">
+                    <span class="lp-pill"><i class="fa-solid fa-gift"></i>@trialDays gün ücretsiz · kredi kartı gerekmez</span>
+                    <h1>Restoranınızın tamamı, <span class="lp-grad">tek ekranda.</span></h1>
+                    <p class="lp-lead">
+                        Masadan mutfağa, paket servisten gün sonu raporuna kadar her adımı LezzetPOS ile
+                        hızlı ve düzenli yönetin. Garson ve kuryeniz cebinden, mutfağınız ekrandan, siz
+                        her yerden takip edin.
+                    </p>
+                    <div class="lp-cta-row">
+                        <a href="@(appUrl ?? "/Auth/Login?kayit=1")" class="lp-btn lp-btn-primary lp-btn-lg">
+                            @(appUrl != null ? "Uygulamaya git" : "Ücretsiz denemeye başla") <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                        <a href="#ozellikler" class="lp-btn lp-btn-ghost lp-btn-lg">Özellikleri incele</a>
+                    </div>
+                    <ul class="lp-checks">
+                        <li><i class="fa-solid fa-check"></i>Tarayıcıdan çalışır, kurulum yok</li>
+                        <li><i class="fa-solid fa-check"></i>Garson ve kurye için mobil uygulama</li>
+                        <li><i class="fa-solid fa-check"></i>Deneme bitince verileriniz silinmez</li>
+                    </ul>
+                </div>
+
+                <!-- Uygulama görünümü (temsili) -->
+                <div class="lp-hero-visual lp-reveal" aria-hidden="true">
+                    <div class="lp-mock">
+                        <div class="lp-mock-bar"><span></span><span></span><span></span><b>Masa Seçimi · Salon</b></div>
+                        <div class="lp-mock-body">
+                            <div class="lp-mock-tables">
+                                <div class="t is-busy"><b>M1</b><small>1.245 ₺</small></div>
+                                <div class="t"><b>M2</b><small>Boş</small></div>
+                                <div class="t is-busy"><b>M3</b><small>380 ₺</small></div>
+                                <div class="t is-ready"><b>M4</b><small>Hazır</small></div>
+                                <div class="t"><b>M5</b><small>Boş</small></div>
+                                <div class="t is-busy"><b>M6</b><small>760 ₺</small></div>
+                                <div class="t"><b>B1</b><small>Boş</small></div>
+                                <div class="t is-busy"><b>B2</b><small>215 ₺</small></div>
+                                <div class="t"><b>B3</b><small>Boş</small></div>
+                            </div>
+                            <div class="lp-mock-ticket">
+                                <div class="h">Masa 1 · Adisyon</div>
+                                <div class="r"><span>2× Izgara Köfte</span><b>640 ₺</b></div>
+                                <div class="r"><span>1× Mercimek Çorbası</span><b>120 ₺</b></div>
+                                <div class="r"><span>2× Ayran</span><b>90 ₺</b></div>
+                                <div class="r"><span>1× Künefe</span><b>395 ₺</b></div>
+                                <div class="tot"><span>Toplam</span><b>1.245 ₺</b></div>
+                                <div class="btns"><span>Nakit</span><span>Kart</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="lp-float lp-float-1"><i class="fa-solid fa-fire-burner"></i><div><b>Mutfağa iletildi</b><small>Masa 3 · 2 ürün</small></div></div>
+                    <div class="lp-float lp-float-2"><i class="fa-solid fa-motorcycle"></i><div><b>Kurye yolda</b><small>Paket #128</small></div></div>
+                    <div class="lp-float lp-float-3"><i class="fa-solid fa-bell"></i><div><b>Sipariş hazır</b><small>Garsona bildirim gitti</small></div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ÖZELLİKLER -->
+        <section class="lp-section" id="ozellikler">
+            <div class="lp-container">
+                <div class="lp-head lp-reveal">
+                    <span class="lp-kicker">Özellikler</span>
+                    <h2>Restoranın her köşesi için bir araç</h2>
+                    <p>Salon, mutfak, paket servis ve yönetim aynı sistemde; bilgi elden ele değil, anında akar.</p>
+                </div>
+                <div class="lp-features">
+                    <article class="lp-feature lp-reveal"><span class="ic"><i class="fa-solid fa-cash-register"></i></span><h3>Hızlı POS ve adisyon</h3><p>Birkaç dokunuşla sipariş, ürün bazında ya da bölerek ödeme, nakit ve kart takibi.</p></article>
+                    <article class="lp-feature lp-reveal"><span class="ic"><i class="fa-solid fa-map"></i></span><h3>Salon krokisi</h3><p>Salonunuzu katlarıyla çizin; dolu, boş ve hesabı açık masaları planda görün.</p></article>
+                    <article class="lp-feature lp-reveal"><span class="ic"><i class="fa-solid fa-fire-burner"></i></span><h3>Mutfak ekranı</h3><p>Siparişler mutfağa anında düşer, bekleme süresi görünür; hazır olan garsona bildirilir.</p></article>
+                    <article class="lp-feature lp-reveal"><span class="ic"><i class="fa-solid fa-qrcode"></i></span><h3>QR menü</h3><p>Her masaya kendi QR kodu; misafir menüyü telefonundan, güncel fiyatlarla görür.</p></article>
+                    <article class="lp-feature lp-reveal"><span class="ic"><i class="fa-solid fa-motorcycle"></i></span><h3>Paket servis</h3><p>Telefon, gel-al ve platform siparişleri tek panoda; kurye ataması ve kapıda ödeme.</p></article>
+                    <article class="lp-feature lp-reveal"><span class="ic"><i class="fa-solid fa-mobile-screen-button"></i></span><h3>Garson ve kurye uygulaması</h3><p>Garson masadan sipariş girer, kurye teslimatlarını görür; ikisine de anlık bildirim.</p></article>
+                    <article class="lp-feature lp-reveal"><span class="ic"><i class="fa-solid fa-chart-line"></i></span><h3>Raporlar</h3><p>Ciro, saatlik yoğunluk, en çok satanlar, platform komisyonu ve kanal bazında net kazanç.</p></article>
+                    <article class="lp-feature lp-reveal"><span class="ic"><i class="fa-solid fa-user-shield"></i></span><h3>Personel ve yetkiler</h3><p>Garson, kasiyer, mutfak ve kurye rolleri; herkes yalnızca kendi ekranını görür.</p></article>
+                </div>
+            </div>
+        </section>
+
+        <!-- YAPAY ZEKÂ -->
+        <section class="lp-section lp-ai" id="yapay-zeka">
+            <div class="lp-container lp-ai-grid">
+                <div class="lp-reveal">
+                    <span class="lp-kicker">Yapay Zekâ · Pilot</span>
+                    <h2>Salonunuzu ve mutfağınızı gören bir yardımcı</h2>
+                    <p class="lp-lead-sm">
+                        İşletmenizdeki kamerayla çalışan iki modülü pilot olarak sunuyoruz. Görüntü işletmenizdeki
+                        bilgisayarda işlenir; sunucuya yalnızca masa durumu ya da uyarı gider, görüntü kaydedilmez.
+                    </p>
+                    <ul class="lp-ai-list">
+                        <li><span class="ic"><i class="fa-solid fa-chair"></i></span><div><b>Masa doluluk takibi</b><small>Masanın boş, dolu ya da toplanacak olduğunu krokide gösterir; "müşteri oturdu ama sipariş yok" gibi durumlarda kasayı uyarır.</small></div></li>
+                        <li><span class="ic"><i class="fa-solid fa-shield-heart"></i></span><div><b>Mutfak hijyen kontrolü</b><small>Bone ve önlük kullanılmadığında mutfak ekranına uyarı düşer.</small></div></li>
+                    </ul>
+                </div>
+                <div class="lp-ai-visual lp-reveal" aria-hidden="true">
+                    <div class="lp-cam">
+                        <div class="lp-cam-head"><i class="fa-solid fa-video"></i> Salon kamerası <span class="live">canlı</span></div>
+                        <div class="lp-cam-grid">
+                            <div class="z is-busy">M1<small>Dolu</small></div>
+                            <div class="z">M2<small>Boş</small></div>
+                            <div class="z is-clear">M3<small>Toplanacak</small></div>
+                            <div class="z is-busy">M4<small>Dolu</small></div>
+                        </div>
+                        <div class="lp-cam-alert"><i class="fa-solid fa-triangle-exclamation"></i>M4: müşteri oturdu, sipariş açılmadı</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- NASIL ÇALIŞIR -->
+        <section class="lp-section" id="nasil">
+            <div class="lp-container">
+                <div class="lp-head lp-reveal">
+                    <span class="lp-kicker">Nasıl çalışır</span>
+                    <h2>Üç adımda sipariş almaya başlayın</h2>
+                    <p>@trialDays gün boyunca bütün özellikleri ücretsiz deneyin; beğenirseniz paketinizi seçip devam edin.</p>
+                </div>
+                <ol class="lp-steps">
+                    <li class="lp-reveal"><span class="n">1</span><h3>Hesabınızı açın</h3><p>İşletme adınız ve e-postanızla bir dakikada kayıt olun. Kredi kartı istemiyoruz.</p></li>
+                    <li class="lp-reveal"><span class="n">2</span><h3>Menünüzü ve masalarınızı ekleyin</h3><p>Kategoriler, ürünler, masalar ve personelinizi tanımlayın; isterseniz salon krokinizi çizin.</p></li>
+                    <li class="lp-reveal"><span class="n">3</span><h3>Sipariş almaya başlayın</h3><p>POS'tan ya da garson uygulamasından sipariş girin; mutfak ekranında anında görün.</p></li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- PAKETLER -->
+        <section class="lp-section" id="paketler">
+            <div class="lp-container">
+                <div class="lp-head lp-reveal">
+                    <span class="lp-kicker">Paketler</span>
+                    <h2>İşletmenize uygun paketi seçin</h2>
+                    <p>Deneme süresince bütün özellikler açıktır. Fiyat ve kurulum için bizimle iletişime geçin.</p>
+                </div>
+                <div class="lp-plans">
+                    @foreach (var plan in ProductInfo.Plans)
+                    {
+                        <article class="lp-plan lp-reveal @(plan.Highlighted ? "is-featured" : "")">
+                            @if (plan.Badge != null)
+                            {
+                                <span class="lp-plan-badge">@plan.Badge</span>
+                            }
+                            <span class="ic"><i class="fa-solid @plan.Icon"></i></span>
+                            <h3>@plan.Name</h3>
+                            <p class="tag">@plan.Tagline</p>
+                            <div class="price">Teklif alın</div>
+                            <ul>
+                                @foreach (var f in plan.Features)
+                                {
+                                    <li><i class="fa-solid fa-check"></i>@f</li>
+                                }
+                            </ul>
+                            <a href="@(appUrl ?? "/Auth/Login?kayit=1")" class="lp-btn @(plan.Highlighted ? "lp-btn-primary" : "lp-btn-ghost") lp-btn-block">
+                                @(appUrl != null ? "Uygulamaya git" : "Ücretsiz dene")
+                            </a>
+                        </article>
+                    }
+                </div>
+            </div>
+        </section>
+
+        <!-- SSS -->
+        <section class="lp-section" id="sss">
+            <div class="lp-container lp-faq-wrap">
+                <div class="lp-head lp-reveal">
+                    <span class="lp-kicker">Sık sorulan sorular</span>
+                    <h2>Aklınıza takılanlar</h2>
+                </div>
+                <div class="lp-faq">
+                    <details class="lp-reveal"><summary>Deneme gerçekten ücretsiz mi?</summary><p>Evet. Kayıt olduğunuz andan itibaren @trialDays gün boyunca bütün özellikleri ücret ödemeden kullanırsınız; kredi kartı bilgisi istemiyoruz.</p></details>
+                    <details class="lp-reveal"><summary>Deneme bitince verilerime ne olur?</summary><p>Hiçbir veri silinmez. Süre dolunca sisteme giriş yaptığınızda paket seçimi için bilgilendirme sayfası açılır; paketiniz başladığında kaldığınız yerden devam edersiniz.</p></details>
+                    <details class="lp-reveal"><summary>Bir şey kurmam gerekiyor mu?</summary><p>Hayır. LezzetPOS tarayıcıdan çalışır; kasada bilgisayar ya da tablet, mutfakta bir ekran yeterli. Garson ve kurye uygulaması Android telefonlarda çalışır.</p></details>
+                    <details class="lp-reveal"><summary>Platform siparişleri (Yemeksepeti, Getir, Trendyol) ne olacak?</summary><p>Platform siparişlerini paket servis panosuna kanalıyla birlikte girersiniz; komisyon oranlarınızı tanımlarsanız raporlarda brüt, komisyon ve net cironuzu ayrı görürsünüz.</p></details>
+                    <details class="lp-reveal"><summary>Yapay zekâ modülleri nasıl çalışıyor?</summary><p>Masa doluluk ve hijyen modülleri işletmenizdeki kamerayla, işletmenizdeki bilgisayarda çalışır. Görüntü kaydedilmez ve sunucuya gönderilmez; yalnızca masa durumu ya da uyarı iletilir. Şu an pilot kullanımdadır.</p></details>
+                    <details class="lp-reveal"><summary>Kaç personel ekleyebilirim?</summary><p>Garson, kasiyer, mutfak ve kurye hesaplarını ihtiyacınız kadar ekleyebilir, her birine kendi rolünü verebilirsiniz.</p></details>
+                </div>
+            </div>
+        </section>
+
+        <!-- SON ÇAĞRI -->
+        <section class="lp-section">
+            <div class="lp-container">
+                <div class="lp-final lp-reveal">
+                    <h2>Bugün başlayın, @trialDays gün sonra karar verin.</h2>
+                    <p>Kurulum yok, kart yok, taahhüt yok.</p>
+                    <a href="@(appUrl ?? "/Auth/Login?kayit=1")" class="lp-btn lp-btn-light lp-btn-lg">
+                        @(appUrl != null ? "Uygulamaya git" : "Ücretsiz denemeye başla") <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="lp-footer">
+        <div class="lp-container lp-footer-grid">
+            <div>
+                <a href="/" class="lp-brand"><span class="lp-brand-mark"><i class="fa-solid fa-leaf"></i></span><span>LezzetPOS</span></a>
+                <p class="lp-footer-text">Restoran, kafe ve paket servis işletmeleri için adisyon ve yönetim sistemi.</p>
+            </div>
+            <div>
+                <h4>Ürün</h4>
+                <a href="#ozellikler">Özellikler</a>
+                <a href="#yapay-zeka">Yapay Zekâ</a>
+                <a href="#paketler">Paketler</a>
+                <a href="#sss">SSS</a>
+            </div>
+            <div>
+                <h4>Hesap</h4>
+                <a href="/Auth/Login">Giriş yap</a>
+                <a href="/Auth/Login?kayit=1">Ücretsiz dene</a>
+            </div>
+            @if (ProductInfo.HasContact)
+            {
+                <div>
+                    <h4>İletişim</h4>
+                    @if (ProductInfo.ContactEmail != null)
+                    {
+                        <a href="mailto:@ProductInfo.ContactEmail"><i class="fa-regular fa-envelope"></i>@ProductInfo.ContactEmail</a>
+                    }
+                    @if (ProductInfo.ContactPhone != null)
+                    {
+                        <a href="tel:@ProductInfo.ContactPhone.Replace(" ", "")"><i class="fa-solid fa-phone"></i>@ProductInfo.ContactPhone</a>
+                    }
+                    @if (ProductInfo.ContactWhatsApp != null)
+                    {
+                        <a href="https://wa.me/@ProductInfo.ContactWhatsApp" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i>WhatsApp</a>
+                    }
+                </div>
+            }
+        </div>
+        <div class="lp-container lp-copy">© @DateTime.Now.Year LezzetPOS. Tüm hakları saklıdır.</div>
+    </footer>
+
+    @if (ProductInfo.ContactWhatsApp != null)
+    {
+        <a class="lp-wa" href="https://wa.me/@ProductInfo.ContactWhatsApp" target="_blank" rel="noopener" aria-label="WhatsApp ile yazın"><i class="fa-brands fa-whatsapp"></i></a>
+    }
+
+    <script src="~/Library/scripts/landing.js?v=@DateTime.Now.Ticks"></script>
+</body>
+</html>

@@ -537,6 +537,21 @@
                 </div>
             </header>
 
+            @{
+                // Ücretsiz deneme: yöneticiye kalan gün bandı (süre sınırı olmayan işletmede görünmez)
+                int? trialCompanyId = RestaurantApp.Web.Helpers.TrialStatus.CurrentCompanyId(Context);
+                int? trialDaysLeft = trialCompanyId.HasValue && (Session["UserRole"] as string) == "Admin"
+                    ? RestaurantApp.Web.Helpers.TrialStatus.DaysLeft(trialCompanyId.Value, DateTime.Now) : null;
+            }
+            @if (trialDaysLeft.HasValue && trialDaysLeft.Value > 0)
+            {
+                <div class="lz-trial-bar @(trialDaysLeft.Value <= 3 ? "is-urgent" : "")" role="status">
+                    <i class="fa-solid fa-gift"></i>
+                    <span>Ücretsiz deneme sürümü: <b>@trialDaysLeft.Value gün</b> kaldı.</span>
+                    <a href="/#paketler">Paketleri incele <i class="fa-solid fa-arrow-right"></i></a>
+                </div>
+            }
+
             <main class="p-4">
                 @RenderBody()
             </main>
