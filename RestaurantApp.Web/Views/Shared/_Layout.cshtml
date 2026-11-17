@@ -4,6 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@ViewBag.Title - LezzetPOS</title>
+    <link rel="icon" type="image/svg+xml" href="/Content/images/brand/lezzet-mark.svg" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -363,7 +364,7 @@
         <nav id="sidebar">
             <div>
                 <a href="javascript:void(0);" class="brand-logo">
-                    <i class="fa-solid fa-leaf"></i>
+                    <i class="brand-tile"><span class="lz-logo"></span></i>
                     <span class="brand-text">LezzetPOS</span>
                 </a>
 
@@ -576,7 +577,7 @@
         function lzLoader(text, small) {
             var safe = $("<span>").text(text || "Yükleniyor…").html();
             return '<div class="lz-loader' + (small ? ' lz-loader-sm' : '') + '" role="status">'
-                + '<span class="lz-loader-mark"><i class="fa-solid fa-leaf"></i></span>'
+                + '<span class="lz-loader-mark"><i><span class="lz-logo"></span></i></span>'
                 + '<span class="lz-loader-text">' + safe + '</span></div>';
         }
 

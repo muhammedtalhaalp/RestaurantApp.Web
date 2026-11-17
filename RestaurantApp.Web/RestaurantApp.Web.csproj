@@ -325,6 +325,8 @@
     <Content Include="Library\styles\lezzet-ui.css" />
     <Content Include="Library\styles\lz-otp.css" />
     <Content Include="Library\styles\landing.css" />
+    <Content Include="Content\images\brand\lezzet-glyph.svg" />
+    <Content Include="Content\images\brand\lezzet-mark.svg" />
     <Content Include="Library\scripts\floor-plan-view.js" />
     <Content Include="Library\styles\floor-plan.css" />
     <Content Include="Library\scripts\qr-menu-admin.js" />

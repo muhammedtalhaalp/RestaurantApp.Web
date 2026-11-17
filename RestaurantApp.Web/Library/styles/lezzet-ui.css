@@ -278,8 +278,18 @@ h1, h2, h3, h4, h5, h6, .h4, .h5 {
 .swal2-input:focus, .swal2-textarea:focus { border-color: var(--lz-accent) !important; box-shadow: 0 0 0 4px var(--lz-brand-ring) !important; }
 .swal2-toast { border-radius: 16px !important; }
 
-/* ---------- Marka yükleme simgesi: mor yaprak logosu nabız atar, çevresinde gradyan halka döner ----------
-   Kullanım: <div class="lz-loader" role="status"><span class="lz-loader-mark"><i class="fa-solid fa-leaf"></i></span>
+/* ---------- LezzetPOS logosu (Content/images/brand): servis kapağı + yaprak, her yerde aynı ----------
+   Mor zeminli bir kutunun içine konur: <span class="lz-logo"></span> kutuyu tamamen doldurur.
+   Zemin dahil tek dosya: lezzet-mark.svg (sekme simgesi). */
+.lz-logo {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: url("/Content/images/brand/lezzet-glyph.svg") center / contain no-repeat;
+}
+
+/* ---------- Marka yükleme simgesi: mor logo nabız atar, çevresinde gradyan halka döner ----------
+   Kullanım: <div class="lz-loader" role="status"><span class="lz-loader-mark"><i><span class="lz-logo"></span></i></span>
              <span class="lz-loader-text">Siparişler yükleniyor…</span></div>
    Sayfa JS'inde: lzLoader("Siparişler yükleniyor…")  (küçük, yan yana: lzLoader(metin, true) → .lz-loader-sm)
    SweetAlert2'nin Swal.showLoading() halkası da aynı görünüme çevrilir (.swal2-loader). */
@@ -364,10 +374,9 @@ h1, h2, h3, h4, h5, h6, .h4, .h5 {
 }
 
     .swal2-loader::after {
-        content: "\f06c";   /* Font Awesome yaprak (fa-leaf) */
+        content: "";
         position: relative;
-        font-family: "Font Awesome 6 Free";
-        font-weight: 900;
+        background: url("/Content/images/brand/lezzet-glyph.svg") center / 100% no-repeat, linear-gradient(135deg, #b06ab3, #7b2d7e);
     }
 
 @keyframes lz-loader-spin {

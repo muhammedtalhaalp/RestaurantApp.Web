@@ -243,19 +243,16 @@ class _Logo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // LezzetPOS logosu (web ile ortak): mor yuvarlak kare içinde servis kapağı ve yaprak
     return Container(
       width: 96,
       height: 96,
-      padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const SweepGradient(colors: [AppColors.accent, AppColors.brandBright, AppColors.accent]),
+        borderRadius: BorderRadius.circular(28),
+        gradient: AppColors.brandGradient,
         boxShadow: [BoxShadow(color: AppColors.tint(AppColors.brandBright, 0.6), blurRadius: 40, spreadRadius: 2)],
       ),
-      child: Container(
-        decoration: const BoxDecoration(shape: BoxShape.circle, gradient: AppColors.brandGradient),
-        child: const Icon(Icons.restaurant_menu_rounded, color: Colors.white, size: 42),
-      ),
+      child: Image.asset('assets/brand/logo_glyph.png', fit: BoxFit.contain, semanticLabel: 'LezzetPOS'),
     );
   }
 }

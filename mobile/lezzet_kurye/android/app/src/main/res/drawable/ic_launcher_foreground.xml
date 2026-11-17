@@ -1,22 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Uygulama simgesi: giriş sayfasındaki logo gibi lavanta halka içinde beyaz çatal-bıçak (Material restaurant_menu) -->
+<!-- Uygulama simgesi: LezzetPOS logosu (web ile ortak, RestaurantApp.Web/Content/images/brand):
+     servis kapağı ve tepesinde yaprak. 64 birimlik çizim, 108dp'lik alanın güvenli bölgesine ortalanır. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:pathData="M54,23a31,31 0,1 1,0 62a31,31 0,1 1,0 -62"
-        android:strokeWidth="2.2"
-        android:strokeColor="#8CD9A6E3"
-        android:fillColor="#00000000" />
     <group
-        android:translateX="30"
-        android:translateY="30"
-        android:scaleX="2"
-        android:scaleY="2">
+        android:translateX="17.2"
+        android:translateY="18.9"
+        android:scaleX="1.15"
+        android:scaleY="1.15">
         <path
             android:fillColor="#FFFFFFFF"
-            android:pathData="M8.1,13.34l2.83,-2.83L3.91,3.5c-1.56,1.56 -1.56,4.09 0,5.66l4.19,4.18zM14.88,11.53c1.53,0.71 3.68,0.21 5.27,-1.38 1.91,-1.91 2.28,-4.65 0.81,-6.12 -1.46,-1.46 -4.2,-1.1 -6.12,0.81 -1.59,1.59 -2.09,3.74 -1.38,5.27L3.7,19.87l1.41,1.41L12,14.41l6.88,6.88 1.41,-1.41L13.41,13l1.47,-1.47z" />
+            android:pathData="M14,42a18,18 0,0 1,36 0Z" />
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M13.5,44h37a2.5,2.5 0,0 1,0 5h-37a2.5,2.5 0,0 1,0 -5Z" />
+        <path
+            android:fillColor="#FFF3D9F5"
+            android:pathData="M32,23C32,16 37,12 43,12C43,18 39,23 32,23Z" />
+        <path
+            android:fillColor="#BFF3D9F5"
+            android:pathData="M32,24C30,20 27,18 23,18C24,22 27,24 32,24Z" />
     </group>
 </vector>

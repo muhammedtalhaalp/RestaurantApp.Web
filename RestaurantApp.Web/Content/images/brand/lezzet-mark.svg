@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- LezzetPOS logosu: mor geçişli yuvarlak kare + servis kapağı ve yaprak (sekme simgesi, paylaşım) -->
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b06ab3"/>
+      <stop offset=".55" stop-color="#7b2d7e"/>
+      <stop offset="1" stop-color="#4a154b"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="url(#g)"/>
+  <path d="M14 42a18 18 0 0 1 36 0Z" fill="#fff"/>
+  <rect x="11" y="44" width="42" height="5" rx="2.5" fill="#fff"/>
+  <path d="M32 23C32 16 37 12 43 12C43 18 39 23 32 23Z" fill="#f3d9f5"/>
+  <path d="M32 24C30 20 27 18 23 18C24 22 27 24 32 24Z" fill="#f3d9f5" opacity=".75"/>
+</svg>

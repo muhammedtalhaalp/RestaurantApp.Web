@@ -11,6 +11,7 @@
 
     <!-- FontAwesome & Google Fonts -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="icon" type="image/svg+xml" href="/Content/images/brand/lezzet-mark.svg" />
     <link href="~/Library/styles/lz-otp.css?v=@DateTime.Now.Ticks" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
@@ -142,16 +143,40 @@
                 place-items: center;
             }
 
+            /* Logo: tıklanan bir düğme değil, marka işareti (çerçevesiz, altında ad, altında ayırıcı çizgi) */
+            .card-nav .nav-brand {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 8px;
+                padding-bottom: 18px;
+                border-bottom: 1px solid var(--color-border);
+                cursor: default;
+                user-select: none;
+            }
+
             .card-nav .nav-logo {
-                width: 52px;
-                height: 52px;
-                border-radius: 16px;
+                width: 46px;
+                height: 46px;
+                border-radius: 14px;
                 display: grid;
                 place-items: center;
-                color: #fff;
-                font-size: 1.35rem;
                 background: linear-gradient(135deg, #b06ab3, #7b2d7e 55%, #4a154b);
-                box-shadow: 0 0 0 3px rgba(217, 166, 227, 0.25), 0 10px 30px rgba(123, 45, 126, 0.55);
+                box-shadow: 0 8px 22px rgba(123, 45, 126, 0.45);
+            }
+
+            .card-nav .nav-brand-text {
+                font-size: 0.72rem;
+                font-weight: 800;
+                letter-spacing: 0.04em;
+                color: var(--color-muted);
+            }
+
+            .lz-logo {
+                display: block;
+                width: 100%;
+                height: 100%;
+                background: url("/Content/images/brand/lezzet-glyph.svg") center / contain no-repeat;
             }
 
             .card-nav button {
@@ -490,7 +515,10 @@
         <!-- DÜZELTME: .active-bar div'i ul etiketinin dışına çıkarıldı -->
         <ul class="card-nav">
             <li>
-                <span class="nav-logo" title="LezzetPOS"><i class="fa-solid fa-utensils"></i></span>
+                <div class="nav-brand" aria-label="LezzetPOS">
+                    <span class="nav-logo" aria-hidden="true"><span class="lz-logo"></span></span>
+                    <span class="nav-brand-text">LezzetPOS</span>
+                </div>
             </li>
             <li>
                 <button type="button" class="signin active" onclick="selectView('signin')">
