@@ -20,6 +20,7 @@
 <body class="landing">
     <div class="lp-glow lp-glow-1"></div>
     <div class="lp-glow lp-glow-2"></div>
+    <div class="lp-glow lp-glow-3"></div>
 
     <!-- ÜST MENÜ -->
     <header class="lp-nav" id="lpNav">
@@ -58,7 +59,15 @@
             <div class="lp-container lp-hero-grid">
                 <div class="lp-hero-text lp-reveal">
                     <span class="lp-pill"><i class="fa-solid fa-gift"></i>@trialDays gün ücretsiz · kredi kartı gerekmez</span>
-                    <h1>Restoranınızın tamamı, <span class="lp-grad">tek ekranda.</span></h1>
+                    <h1>
+                        Restoranınızın tamamı,
+                        <span class="lp-sr">tek ekranda.</span>
+                        <span class="lp-rotator" aria-hidden="true">
+                            <span class="lp-grad is-active">tek ekranda.</span>
+                            <span class="lp-grad">masadan mutfağa.</span>
+                            <span class="lp-grad">her an elinizde.</span>
+                        </span>
+                    </h1>
                     <p class="lp-lead">
                         Masadan mutfağa, paket servisten gün sonu raporuna kadar her adımı LezzetPOS ile
                         hızlı ve düzenli yönetin. Garson ve kuryeniz cebinden, mutfağınız ekrandan, siz
@@ -78,12 +87,12 @@
                 </div>
 
                 <!-- Uygulama görünümü (temsili) -->
-                <div class="lp-hero-visual lp-reveal" aria-hidden="true">
-                    <div class="lp-mock">
+                <div class="lp-hero-visual lp-reveal" id="lpHeroVisual" aria-hidden="true">
+                    <div class="lp-mock" id="lpMock">
                         <div class="lp-mock-bar"><span></span><span></span><span></span><b>Masa Seçimi · Salon</b></div>
                         <div class="lp-mock-body">
-                            <div class="lp-mock-tables">
-                                <div class="t is-busy"><b>M1</b><small>1.245 ₺</small></div>
+                            <div class="lp-mock-tables" id="lpMockTables">
+                                <div class="t is-busy" data-main="1"><b>M1</b><small>1.245 ₺</small></div>
                                 <div class="t"><b>M2</b><small>Boş</small></div>
                                 <div class="t is-busy"><b>M3</b><small>380 ₺</small></div>
                                 <div class="t is-ready"><b>M4</b><small>Hazır</small></div>
@@ -93,21 +102,33 @@
                                 <div class="t is-busy"><b>B2</b><small>215 ₺</small></div>
                                 <div class="t"><b>B3</b><small>Boş</small></div>
                             </div>
-                            <div class="lp-mock-ticket">
+                            <div class="lp-mock-ticket" id="lpMockTicket">
                                 <div class="h">Masa 1 · Adisyon</div>
-                                <div class="r"><span>2× Izgara Köfte</span><b>640 ₺</b></div>
-                                <div class="r"><span>1× Mercimek Çorbası</span><b>120 ₺</b></div>
-                                <div class="r"><span>2× Ayran</span><b>90 ₺</b></div>
-                                <div class="r"><span>1× Künefe</span><b>395 ₺</b></div>
+                                <div class="rows">
+                                    <div class="r"><span>2× Izgara Köfte</span><b>640 ₺</b></div>
+                                    <div class="r"><span>1× Mercimek Çorbası</span><b>120 ₺</b></div>
+                                    <div class="r"><span>2× Ayran</span><b>90 ₺</b></div>
+                                    <div class="r"><span>1× Künefe</span><b>395 ₺</b></div>
+                                </div>
                                 <div class="tot"><span>Toplam</span><b>1.245 ₺</b></div>
-                                <div class="btns"><span>Nakit</span><span>Kart</span></div>
+                                <div class="btns"><span>Nakit</span><span class="pay">Kart</span></div>
                             </div>
                         </div>
                     </div>
-                    <div class="lp-float lp-float-1"><i class="fa-solid fa-fire-burner"></i><div><b>Mutfağa iletildi</b><small>Masa 3 · 2 ürün</small></div></div>
-                    <div class="lp-float lp-float-2"><i class="fa-solid fa-motorcycle"></i><div><b>Kurye yolda</b><small>Paket #128</small></div></div>
-                    <div class="lp-float lp-float-3"><i class="fa-solid fa-bell"></i><div><b>Sipariş hazır</b><small>Garsona bildirim gitti</small></div></div>
+                    <div class="lp-float lp-float-1" id="lpFloatKitchen"><i class="fa-solid fa-fire-burner"></i><div><b>Mutfağa iletildi</b><small>Masa 1 · 2 ürün</small></div></div>
+                    <div class="lp-float lp-float-2" id="lpFloatCourier"><i class="fa-solid fa-motorcycle"></i><div><b>Kurye yolda</b><small>Paket #128</small></div></div>
+                    <div class="lp-float lp-float-3" id="lpFloatReady"><i class="fa-solid fa-bell"></i><div><b>Sipariş hazır</b><small>Garsona bildirim gitti</small></div></div>
                 </div>
+            </div>
+
+            <!-- Rakam bandı: yalnızca gerçek, doğrulanabilir sayılar -->
+            <div class="lp-container">
+                <ul class="lp-stats lp-reveal">
+                    <li><b data-count="8">8</b><span>modül tek sistemde</span></li>
+                    <li><b data-count="6">6</b><span>personel rolü</span></li>
+                    <li><b data-count="2">2</b><span>yapay zekâ modülü (pilot)</span></li>
+                    <li><b data-count="@trialDays">@trialDays</b><span>gün ücretsiz deneme</span></li>
+                </ul>
             </div>
         </section>
 
@@ -148,7 +169,7 @@
                     </ul>
                 </div>
                 <div class="lp-ai-visual lp-reveal" aria-hidden="true">
-                    <div class="lp-cam">
+                    <div class="lp-cam" id="lpCam">
                         <div class="lp-cam-head"><i class="fa-solid fa-video"></i> Salon kamerası <span class="live">canlı</span></div>
                         <div class="lp-cam-grid">
                             <div class="z is-busy">M1<small>Dolu</small></div>
@@ -156,7 +177,7 @@
                             <div class="z is-clear">M3<small>Toplanacak</small></div>
                             <div class="z is-busy">M4<small>Dolu</small></div>
                         </div>
-                        <div class="lp-cam-alert"><i class="fa-solid fa-triangle-exclamation"></i>M4: müşteri oturdu, sipariş açılmadı</div>
+                        <div class="lp-cam-alert"><i class="fa-solid fa-triangle-exclamation"></i><span>M4: müşteri oturdu, sipariş açılmadı</span></div>
                     </div>
                 </div>
             </div>
@@ -170,7 +191,8 @@
                     <h2>Üç adımda sipariş almaya başlayın</h2>
                     <p>@trialDays gün boyunca bütün özellikleri ücretsiz deneyin; beğenirseniz paketinizi seçip devam edin.</p>
                 </div>
-                <ol class="lp-steps">
+                <ol class="lp-steps" id="lpSteps">
+                    <li class="lp-steps-track" aria-hidden="true"><span></span></li>
                     <li class="lp-reveal"><span class="n">1</span><h3>Hesabınızı açın</h3><p>İşletme adınız ve e-postanızla bir dakikada kayıt olun. Kredi kartı istemiyoruz.</p></li>
                     <li class="lp-reveal"><span class="n">2</span><h3>Menünüzü ve masalarınızı ekleyin</h3><p>Kategoriler, ürünler, masalar ve personelinizi tanımlayın; isterseniz salon krokinizi çizin.</p></li>
                     <li class="lp-reveal"><span class="n">3</span><h3>Sipariş almaya başlayın</h3><p>POS'tan ya da garson uygulamasından sipariş girin; mutfak ekranında anında görün.</p></li>

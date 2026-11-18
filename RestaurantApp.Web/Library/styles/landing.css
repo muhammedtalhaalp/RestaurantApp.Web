@@ -228,7 +228,8 @@ main, .lp-nav, .lp-footer { position: relative; z-index: 1; }
 .lp-float-1 { top: -14px; left: -22px; }
 .lp-float-2 { bottom: 6px; left: 28px; animation-delay: -2s; }
     .lp-float-2 > i { background: linear-gradient(135deg, #5eead4, #14b8a6); }
-.lp-float-3 { top: 64%; right: -26px; animation-delay: -4s; }
+/* Adisyonun toplam tutarını örtmesin: görselin alt sağ köşesinde, kenardan taşarak durur */
+.lp-float-3 { bottom: -30px; right: 8px; animation-delay: -4s; }
     .lp-float-3 > i { background: linear-gradient(135deg, #fcd34d, #f59e0b); color: #3b2300; }
 
 /* ---------- Bölümler ---------- */
@@ -355,6 +356,195 @@ main, .lp-nav, .lp-footer { position: relative; z-index: 1; }
 @keyframes lp-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 @keyframes lp-blink { 50% { opacity: .25; } }
 
+/* =====================================================================
+   Görsel efektler (landing.js). Hepsi "hareketi azalt" tercihinde kapanır;
+   JS çalışmazsa sayfa eski, durağan hâliyle görünür.
+   ===================================================================== */
+
+/* Ekran okuyucuya kalan, görünmeyen metin */
+.lp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* --- Hareketli arka plan ışığı (aurora) --- */
+.lp-glow { will-change: transform; }
+.lp-glow-1 { animation: lp-drift-1 26s ease-in-out infinite alternate; }
+.lp-glow-2 { animation: lp-drift-2 32s ease-in-out infinite alternate; }
+.lp-glow-3 {
+    width: 560px; height: 560px; top: 55vh; left: 30vw;
+    background: radial-gradient(circle, rgba(45, 212, 191, 0.10), transparent 65%);
+    animation: lp-drift-3 38s ease-in-out infinite alternate;
+}
+@keyframes lp-drift-1 { to { transform: translate(140px, 90px) scale(1.12); } }
+@keyframes lp-drift-2 { to { transform: translate(-160px, 120px) scale(0.9); } }
+@keyframes lp-drift-3 { to { transform: translate(-220px, -140px) scale(1.15); } }
+
+/* --- Başlıkta değişen kelime: hepsi aynı hücrede durur, genişlik en uzun kelimeye göre sabit kalır --- */
+.lp-rotator { display: inline-grid; vertical-align: top; }
+    .lp-rotator > span {
+        grid-area: 1 / 1;
+        opacity: 0;
+        transform: translateY(0.35em);
+        filter: blur(6px);
+        transition: opacity .55s ease, transform .55s cubic-bezier(.2, .8, .2, 1), filter .55s ease;
+        white-space: nowrap;
+        padding-bottom: 0.08em;   /* g, ğ gibi harflerin alt kısmı kesilmesin */
+    }
+    .lp-rotator > span.is-active { opacity: 1; transform: none; filter: none; }
+    .lp-rotator > span.is-leaving { opacity: 0; transform: translateY(-0.35em); filter: blur(6px); }
+
+/* --- Fareyle eğilen uygulama görseli + üzerinde gezen parlama --- */
+.lp-mock {
+    --rx: 0deg;
+    --ry: 0deg;
+    --gx: 50%;
+    --gy: 0%;
+    position: relative;
+    transform: perspective(1400px) rotateY(calc(-6deg + var(--ry))) rotateX(calc(3deg + var(--rx)));
+    transition: transform .5s cubic-bezier(.2, .8, .2, 1);
+}
+    .lp-mock.is-tilting { transition: transform .08s linear; }
+    .lp-mock::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        background: radial-gradient(420px circle at var(--gx) var(--gy), rgba(255, 255, 255, 0.10), transparent 55%);
+        opacity: 0;
+        transition: opacity .4s;
+    }
+    .lp-mock.is-tilting::after { opacity: 1; }
+
+/* --- Canlı uygulama görseli --- */
+.lp-mock-tables .t { transition: background .45s, border-color .45s, transform .35s; }
+    .lp-mock-tables .t.is-flash { animation: lp-table-flash .9s ease; }
+@keyframes lp-table-flash {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(217, 166, 227, 0.5); }
+    35% { transform: scale(1.06); box-shadow: 0 0 0 6px rgba(217, 166, 227, 0.18); }
+    100% { transform: scale(1); box-shadow: 0 0 0 10px rgba(217, 166, 227, 0); }
+}
+
+.lp-mock-ticket .r.is-new { animation: lp-row-in .45s cubic-bezier(.2, .8, .2, 1); }
+@keyframes lp-row-in { from { opacity: 0; transform: translateX(-10px); background: rgba(217, 166, 227, 0.12); } }
+.lp-mock-ticket .tot b { transition: color .3s; font-variant-numeric: tabular-nums; }
+    .lp-mock-ticket .tot b.is-paid { color: var(--lp-teal); }
+.lp-mock-ticket .btns .pay { transition: transform .15s, background .3s, box-shadow .3s; }
+    .lp-mock-ticket .btns .pay.is-press { transform: scale(0.94); background: rgba(45, 212, 191, 0.25); box-shadow: 0 0 0 4px rgba(45, 212, 191, 0.15); }
+
+/* Olayla ilgili bildirim kutusu kısaca parlar */
+.lp-float.is-ping > i { animation: lp-ping .9s ease; }
+@keyframes lp-ping {
+    0% { box-shadow: 0 0 0 0 rgba(217, 166, 227, 0.6); transform: scale(1); }
+    40% { transform: scale(1.12); }
+    100% { box-shadow: 0 0 0 14px rgba(217, 166, 227, 0); transform: scale(1); }
+}
+
+/* --- Rakam bandı --- */
+.lp-stats {
+    list-style: none;
+    margin: 56px 0 0;
+    padding: 22px 12px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-radius: var(--lp-radius);
+    background: var(--lp-surface);
+    border: 1px solid var(--lp-line);
+}
+    .lp-stats li { text-align: center; padding: 4px 10px; }
+        .lp-stats li + li { border-left: 1px solid var(--lp-line); }
+    .lp-stats b {
+        display: block;
+        font-size: clamp(1.8rem, 3.4vw, 2.5rem);
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums;
+        background: linear-gradient(120deg, #f0c9f5, #b06ab3);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    .lp-stats span { font-size: .86rem; color: var(--lp-muted); }
+
+/* --- Özellik kartlarında imleci izleyen ışık ve kenar parlaması --- */
+.lp-feature { position: relative; isolation: isolate; --mx: 50%; --my: 50%; }
+    .lp-feature::before,
+    .lp-feature::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity .35s;
+    }
+    .lp-feature::before { z-index: -1; background: radial-gradient(280px circle at var(--mx) var(--my), rgba(217, 166, 227, 0.13), transparent 60%); }
+    .lp-feature::after {
+        padding: 1px;
+        background: radial-gradient(220px circle at var(--mx) var(--my), rgba(217, 166, 227, 0.75), transparent 60%);
+        -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+    }
+    .lp-feature:hover::before, .lp-feature:hover::after { opacity: 1; }
+    .lp-feature .ic { transition: transform .35s cubic-bezier(.2, .8, .2, 1), background .3s, color .3s; }
+    .lp-feature:hover .ic { transform: translateY(-3px) rotate(-6deg) scale(1.06); background: rgba(176, 106, 179, 0.24); color: #f0c9f5; }
+
+/* --- Canlı kamera kutusu --- */
+.lp-cam-grid { position: relative; }
+    .lp-cam-grid::after {
+        content: "";
+        position: absolute;
+        left: -6px;
+        right: -6px;
+        top: 0;
+        height: 2px;
+        border-radius: 2px;
+        background: linear-gradient(90deg, transparent, rgba(45, 212, 191, 0.9), transparent);
+        box-shadow: 0 0 14px rgba(45, 212, 191, 0.6);
+        animation: lp-scan 3.6s ease-in-out infinite;
+        pointer-events: none;
+    }
+@keyframes lp-scan {
+    0% { top: 0; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+}
+.lp-cam-grid .z { transition: border-color .5s, background .5s, color .5s; }
+    .lp-cam-grid .z.is-detect { animation: lp-detect 1s ease; }
+@keyframes lp-detect {
+    0% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.55); }
+    100% { box-shadow: 0 0 0 12px rgba(45, 212, 191, 0); }
+}
+.lp-cam-alert { transition: opacity .4s, transform .4s; }
+    .lp-cam-alert.is-hidden { opacity: 0; transform: translateY(6px); }
+
+/* --- Kaydırdıkça dolan adım çizgisi (konumu landing.js ölçer) --- */
+.lp-steps { position: relative; }
+    .lp-steps .lp-steps-track {
+        position: absolute;
+        padding: 0;
+        border: 0;
+        border-radius: 2px;
+        background: rgba(255, 255, 255, 0.08);
+        z-index: 1;
+        pointer-events: none;
+        display: none;
+    }
+        .lp-steps .lp-steps-track.is-ready { display: block; }
+        .lp-steps .lp-steps-track span {
+            position: absolute;
+            inset: 0;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #b06ab3, #d9a6e3);
+            box-shadow: 0 0 12px rgba(217, 166, 227, 0.5);
+            transform-origin: left center;
+            transform: scaleX(var(--p, 0));
+        }
+    .lp-steps .n { position: relative; z-index: 2; transition: box-shadow .4s, transform .4s, filter .4s; filter: saturate(0.55) brightness(0.8); }
+    .lp-steps li.is-lit .n { filter: none; transform: scale(1.08); box-shadow: 0 0 0 6px rgba(217, 166, 227, 0.14), 0 10px 26px rgba(123, 45, 126, 0.55); }
+    .no-js .lp-steps .n, .lp-steps.no-track .n { filter: none; }
+
 /* ---------- Duyarlı ---------- */
 @media (max-width: 1080px) {
     .lp-features { grid-template-columns: repeat(2, 1fr); }
@@ -383,6 +573,9 @@ main, .lp-nav, .lp-footer { position: relative; z-index: 1; }
     .lp-mock { transform: none; }
     .lp-plans, .lp-steps { grid-template-columns: 1fr; }
     .lp-footer-grid { grid-template-columns: 1fr 1fr; }
+    .lp-mock { transform: none; }
+    .lp-stats { grid-template-columns: repeat(2, 1fr); row-gap: 18px; }
+        .lp-stats li:nth-child(3) { border-left: 0; }
 }
 
 @media (max-width: 560px) {
@@ -392,6 +585,7 @@ main, .lp-nav, .lp-footer { position: relative; z-index: 1; }
     .lp-mock-body { grid-template-columns: 1fr; }
     .lp-float-3 { display: none; }
     .lp-float-1 { left: 0; }
+    .lp-float-2 { bottom: -34px; left: 16px; }   /* Nakit düğmesini örtmesin */
     .lp-section { padding: 64px 0; }
     .lp-footer-grid { grid-template-columns: 1fr; }
     .lp-cta-row .lp-btn { width: 100%; }
@@ -402,6 +596,10 @@ main, .lp-nav, .lp-footer { position: relative; z-index: 1; }
     .lp-float, .lp-cam-head .live::before { animation: none; }
     .lp-reveal { opacity: 1; transform: none; transition: none; }
     .lp-btn:hover, .lp-feature:hover { transform: none; }
+    .lp-glow, .lp-cam-grid::after { animation: none; }
+    .lp-cam-grid::after { display: none; }
+    .lp-feature:hover .ic { transform: none; }
+    .lp-steps .n { filter: none; }
 }
 
 /* ---------- Deneme süresi doldu (Views/Subscription/Expired.cshtml) ---------- */

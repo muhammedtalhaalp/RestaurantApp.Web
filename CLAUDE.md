@@ -57,6 +57,17 @@ The real project lives in `RestaurantApp.Web/`.
 
 ### Public site and free trial
 - The default route is `Home/Index`, the public landing page (`HomeController`, `[AllowAnonymous]`, no layout, `Library/styles/landing.css` + `landing.js`, the same dark purple look as Login). It shows features, the AI modules (marked as pilot), how it works, packages without prices, an FAQ and the contact details. A logged-in user sees "Uygulamaya git" (`RoleHome.For(role)`). "Ücretsiz dene" opens `/Auth/Login?kayit=1`, which starts on the sign-up form; Login has an "Ana sayfa" link back.
+- Landing effects, all in `landing.js` + `landing.css`:
+  - The hero heading has a rotating phrase (`.lp-rotator`; every phrase sits in the same grid cell, so the layout never shifts).
+  - The app mock is live: tables change state, the bill for Masa 1 fills line by line and gets paid, and the floats ping. The rows box has a reserved `min-height`.
+  - The mock tilts toward the mouse and a glare follows it (fine pointer only, above 900px).
+  - The background has an aurora drift.
+  - A stats band shows real numbers only (8 modules, 6 roles, 2 AI modules, trial days).
+  - Feature cards have a cursor spotlight and a border glow.
+  - The camera box has a scan line, scripted table states and the alert appearing and disappearing.
+  - The "Nasıl çalışır" line fills on scroll. It is horizontal only; when the steps stack on phones there is no line, but the numbers still light up.
+  - Loops run only while their element is on screen and the tab is visible (`visibleLoop`).
+  - `prefers-reduced-motion` turns everything off, and without JS the page stays static.
 - Packages and contact details live in `Helpers/ProductInfo` (`Plans`; `ContactEmail`/`ContactPhone`/`ContactWhatsApp` appSettings; empty ones are hidden). The repo is public, so the real values go in the gitignored `Secrets.config` (it overrides the empty keys in `Web.config`).
 - **Free trial:** `ApiRegister` sets `Companies.TrialEndsAt = now + TrialStatus.TrialDays` (14; `Database/012`). `NULL` means no limit, which covers existing restaurants and paid ones. `Helpers/TrialStatus` caches the end date for 1 minute.
   - `JwtAuthorizeAttribute` checks it after the role check. An expired company's browser requests redirect to `/Subscription/Expired`, and API clients get 403 `{code:"trial_expired"}`. Only actions/controllers marked `[AllowExpiredTrial]` (the `SubscriptionController`) stay open; `Auth/Logout` has no filter.
