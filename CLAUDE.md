@@ -260,7 +260,10 @@ The real project lives in `RestaurantApp.Web/`.
     - "seated but no order";
     - "looks empty but the bill is open";
     - "needs clearing".
-  - The POS Kroki view shows a badge on each table, a pulsing ring on conflicts and an alert strip, and it refreshes every 5 s while open.
+  - The POS Kroki view shows a badge on each table, a pulsing ring on conflicts and an alert strip.
+  - While it is open it stays current through SignalR (`pos.js`, `initPosSignalR`): `onTableCameraStatus` and `onNewOrderCreated` refresh it at once (debounced).
+  - A 30 s fallback poll remains, because payments and closed tables send no push.
+  - Without a live connection it polls every 5 s and retries the connection (5 s after a drop, then every 10 s). After reconnecting it refreshes once.
 
 ### Helpers
 - `CacheHelper` is a `MemoryCache` wrapper. Cached keys such as `Company_Products_{companyId}` and `AllCategories` must be invalidated with `CacheHelper.Remove(...)` after any write to products or categories. Existing write actions already do this.

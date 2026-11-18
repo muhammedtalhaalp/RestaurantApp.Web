@@ -1162,18 +1162,87 @@ var posTableView = readPosTableView();
 var posTableSection = "Hepsi";
 var posFloorPlanData = null;
 var posPlanTimer = null;
+var posPlanOpen = false;
+var posHubLive = false;
+var posPlanPushTimer = null;
 
-// Kroki açıkken masa durumları (sipariş + masa doluluk kamerası) birkaç saniyede bir yenilenir
+// Kroki açıkken masa durumları güncel tutulur:
+// - Canlı bağlantı (SignalR) varken kamera durumu değişince (onTableCameraStatus) ve yeni sipariş gelince
+//   (onNewOrderCreated) kroki hemen yenilenir. Ödeme / masa kapatma için bildirim olmadığından ayrıca
+//   30 sn'de bir yedek yenileme yapılır.
+// - Canlı bağlantı yoksa (kurulamadı / koptu) eskisi gibi 5 sn'de bir yenilenir.
+var POS_PLAN_POLL_LIVE_MS = 30000;
+var POS_PLAN_POLL_OFFLINE_MS = 5000;
+
 $(function () {
     $("#posTableMapModal")
         .on("shown.bs.modal", function () {
-            clearInterval(posPlanTimer);
-            posPlanTimer = setInterval(function () {
-                if (posTableView === "plan") renderPosTableSelection(true);
-            }, 5000);
+            posPlanOpen = true;
+            restartPosPlanPolling();
         })
-        .on("hidden.bs.modal", function () { clearInterval(posPlanTimer); });
+        .on("hidden.bs.modal", function () {
+            posPlanOpen = false;
+            clearInterval(posPlanTimer);
+            clearTimeout(posPlanPushTimer);
+        });
+    initPosSignalR();
 });
+
+function restartPosPlanPolling() {
+    clearInterval(posPlanTimer);
+    if (!posPlanOpen) return;
+    posPlanTimer = setInterval(function () {
+        if (posTableView === "plan") renderPosTableSelection(true);
+    }, posHubLive ? POS_PLAN_POLL_LIVE_MS : POS_PLAN_POLL_OFFLINE_MS);
+}
+
+// Art arda gelen bildirimler tek yenilemede birleşir
+function refreshPosPlanSoon() {
+    if (!posPlanOpen || posTableView !== "plan") return;
+    clearTimeout(posPlanPushTimer);
+    posPlanPushTimer = setTimeout(function () { renderPosTableSelection(true); }, 300);
+}
+
+function setPosHubLive(live) {
+    if (posHubLive === live) return;
+    posHubLive = live;
+    restartPosPlanPolling();
+    if (live) refreshPosPlanSoon();   // kopukken kaçan değişiklikler gelsin
+}
+
+function initPosSignalR() {
+    if (!($.connection && $.connection.orderHub)) return;
+    var hub = $.connection.orderHub;
+
+    hub.client.onTableCameraStatus = function () { refreshPosPlanSoon(); };
+    hub.client.onNewOrderCreated = function () { refreshPosPlanSoon(); };
+
+    $.connection.hub.qs = { access_token: getAuthToken() };
+    $.connection.hub.reconnecting(function () { setPosHubLive(false); });
+    $.connection.hub.reconnected(function () { setPosHubLive(true); });
+    $.connection.hub.disconnected(function () {
+        setPosHubLive(false);
+        schedulePosHubConnect(5000);   // kalıcı kopma: kendimiz yeniden bağlanırız
+    });
+    connectPosHub();
+}
+
+var posHubRetryTimer = null;
+
+function connectPosHub() {
+    posHubRetryTimer = null;
+    $.connection.hub.start()
+        .done(function () { setPosHubLive(true); })
+        .fail(function () {
+            setPosHubLive(false);
+            schedulePosHubConnect(10000);   // sunucuya ulaşılamıyor: aralıklı tekrar dene
+        });
+}
+
+function schedulePosHubConnect(delayMs) {
+    if (posHubRetryTimer) return;   // zaten bekleyen bir deneme var
+    posHubRetryTimer = setTimeout(connectPosHub, delayMs);
+}
 
 function readPosTableView() {
     try { return localStorage.getItem("posTableView") === "plan" ? "plan" : "cards"; } catch (e) { return "cards"; }
