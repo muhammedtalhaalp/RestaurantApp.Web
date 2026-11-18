@@ -1,19 +1,27 @@
 ﻿$(document).ready(function () {
     var allTablesData = [];
     var currentSectionFilter = "Hepsi";
-    var customSections = ["Salon", "Bahçe", "Balkon", "Teras", "Üst Kat"];
+    // Alanlar sunucuda (FloorPlanSections) tutulur; kroki ile aynı liste. [{section, tableCount, elementCount, isPublished}]
+    var sectionList = [];
+    var customSections = [];
     var currentAdminTableTotal = 0;
     var rawAdminTableItems = [];
     var selectedAdminItemsForPay = {};
     var currentAdminPayTargetAmount = 0;
 
-    var storedSections = localStorage.getItem("custom_restaurant_sections");
-    if (storedSections) {
-        try {
-            customSections = JSON.parse(storedSections);
-        } catch (e) {
-            console.error("Custom sections parse hatası", e);
-        }
+    // Eskiden alanlar yalnızca bu tarayıcıda (localStorage) tutuluyordu. O listede olup sunucuda olmayan,
+    // admin'in kendi eklediği alanlar bir kez sunucuya taşınır; sabit varsayılan liste taşınmaz.
+    var LEGACY_SECTIONS_KEY = "custom_restaurant_sections";
+    var LEGACY_DEFAULTS = ["salon", "bahçe", "balkon", "teras", "üst kat"];
+
+    function escapeHtml(value) {
+        return String(value == null ? "" : value)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+    }
+
+    function sameSection(a, b) {
+        return (a || "").toLocaleLowerCase("tr-TR") === (b || "").toLocaleLowerCase("tr-TR");
     }
 
     loadTables();
@@ -52,7 +60,7 @@
     $(document).on("click", "#sectionTabs .nav-link", function () {
         $("#sectionTabs .nav-link").removeClass("active");
         $(this).addClass("active");
-        currentSectionFilter = $(this).data("section");
+        currentSectionFilter = $(this).attr("data-section");
         this.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         renderTableCards();
     });
@@ -76,29 +84,133 @@
         }
     }
 
+    var urlModalChecked = false;
+
     function loadTables() {
-        $.get("/Admin/GetTables", function (res) {
+        $.when($.get("/Admin/GetTables"), loadSections()).done(function (tablesRes) {
+            var res = tablesRes[0];
             if (res.success) {
                 allTablesData = res.data;
-                $.each(allTablesData, function (i, t) {
-                    if (t.section && !customSections.some(s => s.toLowerCase() === t.section.toLowerCase())) {
-                        customSections.push(t.section);
-                    }
-                });
-                saveCustomSections();
-                renderSectionTabs();
-                renderSectionSelectOptions();
                 renderTableCards();
-                checkUrlModalTrigger();
+                if (!urlModalChecked) {
+                    urlModalChecked = true;
+                    checkUrlModalTrigger();
+                }
             } else {
                 Swal.fire("Hata", "Masalar yüklenirken sorun oluştu: " + res.message, "error");
             }
         });
     }
 
-    function saveCustomSections() {
-        localStorage.setItem("custom_restaurant_sections", JSON.stringify(customSections));
+    // Alan listesini sunucudan alır, sekmeleri / masa ekleme listesini / Alan Yönet listesini yeniler
+    function loadSections() {
+        return $.get("/FloorPlan/GetSections").then(function (res) {
+            if (!res.success) {
+                Swal.fire("Hata", res.message || "Alanlar yüklenemedi.", "error");
+                return;
+            }
+            sectionList = res.data;
+            customSections = sectionList.map(function (s) { return s.section; });
+            if (currentSectionFilter !== "Hepsi" && !customSections.some(function (s) { return sameSection(s, currentSectionFilter); })) {
+                currentSectionFilter = "Hepsi";
+            }
+            renderSectionTabs();
+            renderSectionSelectOptions();
+            renderSectionManageList();
+            return migrateLegacySections();
+        });
     }
+
+    function migrateLegacySections() {
+        var stored;
+        try { stored = JSON.parse(localStorage.getItem(LEGACY_SECTIONS_KEY) || "null"); } catch (e) { stored = null; }
+        try { localStorage.removeItem(LEGACY_SECTIONS_KEY); } catch (e) { }
+        if (!Array.isArray(stored)) return;
+
+        var missing = stored.filter(function (name) {
+            name = (name || "").trim();
+            return name && name.length <= 50
+                && LEGACY_DEFAULTS.indexOf(name.toLocaleLowerCase("tr-TR")) === -1
+                && !customSections.some(function (s) { return sameSection(s, name); });
+        });
+        if (!missing.length) return;
+
+        var posts = missing.map(function (name) { return $.post("/FloorPlan/AddSection", { section: name.trim() }); });
+        return $.when.apply($, posts).always(function () { return loadSections(); });
+    }
+
+    function addSection() {
+        var $input = $("#txtNewSectionName");
+        var name = ($input.val() || "").trim();
+        if (!name) {
+            Swal.fire("Uyarı", "Lütfen alan adı yazın.", "warning");
+            return;
+        }
+        if (name.length > 50) {
+            Swal.fire("Uyarı", "Alan adı en fazla 50 karakter olabilir.", "warning");
+            return;
+        }
+        if (customSections.some(function (s) { return sameSection(s, name); })) {
+            Swal.fire("Uyarı", "“" + name + "” alanı zaten var.", "warning");
+            return;
+        }
+
+        var $btn = $("#btnAddSectionCustom").prop("disabled", true);
+        $.post("/FloorPlan/AddSection", { section: name }, function (res) {
+            if (res.success) {
+                $input.val("");
+                loadSections();
+            } else {
+                Swal.fire("Hata", res.message, "error");
+            }
+        }).fail(function () {
+            Swal.fire("Hata", "Alan eklenemedi.", "error");
+        }).always(function () {
+            $btn.prop("disabled", false);
+        });
+    }
+
+    function deleteSection(name) {
+        var info = sectionList.find(function (s) { return sameSection(s.section, name); }) || {};
+        if (info.tableCount > 0) {
+            Swal.fire("Silinemez", "“" + name + "” alanında " + info.tableCount + " masa var. Önce masaları başka alana taşıyın ya da silin.", "warning");
+            return;
+        }
+
+        var text = "Alan listeden kaldırılacak.";
+        if (info.elementCount > 0) text = "Bu alanın krokisindeki " + info.elementCount + " çizim öğesi (zemin, duvar vb.) de silinecek.";
+        if (info.isPublished) text += " Alan yayındaki krokiden de kalkar.";
+
+        Swal.fire({
+            title: "“" + name + "” silinsin mi?",
+            text: text,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            confirmButtonText: "Evet, Sil",
+            cancelButtonText: "Vazgeç"
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            $.post("/FloorPlan/DeleteSection", { section: name }, function (res) {
+                if (res.success) {
+                    loadSections();
+                } else {
+                    Swal.fire("Hata", res.message, "error");
+                }
+            }).fail(function () {
+                Swal.fire("Hata", "Alan silinemedi.", "error");
+            });
+        });
+    }
+
+    $("#btnAddSectionCustom").on("click", addSection);
+    $("#txtNewSectionName").on("keydown", function (e) {
+        if (e.key === "Enter") { e.preventDefault(); addSection(); }
+    });
+    $(document).on("click", ".btn-delete-section", function () {
+        deleteSection($(this).attr("data-name"));
+    });
+    $("#addTableModal").on("show.bs.modal", renderSectionSelectOptions);
 
     function renderSectionTabs() {
         var $tabs = $("#sectionTabs");
@@ -111,10 +223,10 @@
         `;
 
         $.each(customSections, function (i, secName) {
-            var isActive = activeSection.toLowerCase() === secName.toLowerCase() ? "active" : "";
+            var isActive = sameSection(activeSection, secName) ? "active" : "";
             html += `
                 <li class="nav-item">
-                    <button class="nav-link ${isActive} fw-bold py-2 px-3 rounded-3" data-section="${secName}">${secName}</button>
+                    <button class="nav-link ${isActive} fw-bold py-2 px-3 rounded-3" data-section="${escapeHtml(secName)}">${escapeHtml(secName)}</button>
                 </li>
             `;
         });
@@ -129,10 +241,15 @@
     function renderSectionSelectOptions() {
         var $select = $("#selectSection");
         var html = "";
+        var previous = $select.val();
         $.each(customSections, function (i, secName) {
-            html += `<option value="${secName}">${secName}</option>`;
+            html += `<option value="${escapeHtml(secName)}">${escapeHtml(secName)}</option>`;
         });
         $select.html(html);
+        // Açık sekme bir alansa yeni masa varsayılan olarak o alana eklensin
+        var preferred = currentSectionFilter !== "Hepsi" ? currentSectionFilter : previous;
+        var match = customSections.find(function (s) { return sameSection(s, preferred); });
+        if (match) $select.val(match);
     }
 
     function renderSectionManageList() {
@@ -144,18 +261,20 @@
             return;
         }
 
-        $.each(customSections, function (i, secName) {
-            var countTables = allTablesData.filter(t => (t.section || "").toLowerCase() === secName.toLowerCase()).length;
+        $.each(sectionList, function (i, info) {
+            var secName = info.section;
+            var countTables = info.tableCount || 0;
             var badgeText = countTables > 0 ? `${countTables} Masa Var` : 'Masa Yok';
             var badgeClass = countTables > 0 ? 'bg-primary-subtle text-primary' : 'bg-light text-muted border';
+            var deleteTitle = countTables > 0 ? "Masası olan alan silinemez" : "Alanı Sil";
 
             var itemHtml = `
                 <li class="list-group-item d-flex justify-content-between align-items-center py-2 px-3">
                     <div>
-                        <span class="fw-semibold text-dark">${secName}</span>
+                        <span class="fw-semibold text-dark">${escapeHtml(secName)}</span>
                         <span class="badge ${badgeClass} ms-2 extra-small">${badgeText}</span>
                     </div>
-                    <button class="btn btn-sm btn-outline-danger border-0 rounded-circle py-1 px-2 btn-delete-section" data-name="${secName}" title="Alanı Sil">
+                    <button class="btn btn-sm btn-outline-danger border-0 rounded-circle py-1 px-2 btn-delete-section" data-name="${escapeHtml(secName)}" title="${deleteTitle}">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
                 </li>
@@ -170,11 +289,11 @@
 
         var filteredTables = allTablesData.filter(function (t) {
             if (currentSectionFilter === "Hepsi") return true;
-            return (t.section || "Salon").toLowerCase() === currentSectionFilter.toLowerCase();
+            return sameSection(t.section || "Salon", currentSectionFilter);
         });
 
         if (filteredTables.length === 0) {
-            $container.html(`<div class="col-12 text-center py-5"><p class="text-muted fw-semibold">Bu alanda (${currentSectionFilter}) henüz kayıtlı bir masa bulunmuyor.</p></div>`);
+            $container.html(`<div class="col-12 text-center py-5"><p class="text-muted fw-semibold">Bu alanda (${escapeHtml(currentSectionFilter)}) henüz kayıtlı bir masa bulunmuyor.</p></div>`);
             return;
         }
 

@@ -128,6 +128,59 @@ namespace RestaurantApp.Web.Controllers
             return Json(new { success = true });
         }
 
+        // Masa Yönetimi "Alan Yönet" listesi: kayıtlı alanlar + masası/öğesi olan alanlar, masa ve öğe sayısıyla.
+        // Hiç alan yoksa varsayılan "Salon" döner (kaydedilmez; ilk masa eklenince kendiliğinden oluşur).
+        [HttpGet]
+        [JwtAuthorize(Roles = "Admin")]
+        public JsonResult GetSections()
+        {
+            int companyId = CurrentCompanyId;
+            var tables = ActiveTables(companyId);
+            var elements = db.FloorPlanElements.Where(e => e.CompanyId == companyId).Select(e => e.Section).ToList();
+            var rows = db.FloorPlanSections.Where(s => s.CompanyId == companyId).OrderBy(s => s.SortOrder).ThenBy(s => s.Id).ToList();
+
+            var names = rows.Select(r => r.Section)
+                .Concat(tables.Select(t => SectionName(t.Section)))
+                .Concat(elements)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (names.Count == 0) names.Add("Salon");
+
+            var data = names.Select(name => new
+            {
+                section = name,
+                tableCount = tables.Count(t => SameSection(SectionName(t.Section), name)),
+                elementCount = elements.Count(e => SameSection(e, name)),
+                isPublished = rows.Any(r => SameSection(r.Section, name) && r.IsPublished)
+            }).ToList();
+
+            return Json(new { success = true, data = data }, JsonRequestBehavior.AllowGet);
+        }
+
+        // Alanı siler. İçinde aktif masa varsa reddeder (masalar önce taşınmalı ya da silinmeli);
+        // alana ait kroki öğeleri ve yayın kaydı da silinir.
+        [HttpPost]
+        [JwtAuthorize(Roles = "Admin")]
+        public JsonResult DeleteSection(string section)
+        {
+            section = CleanSection(section);
+            if (section == null)
+                return Json(new { success = false, message = "Alan bulunamadı." });
+
+            int companyId = CurrentCompanyId;
+            int tableCount = ActiveTables(companyId).Count(t => SameSection(SectionName(t.Section), section));
+            if (tableCount > 0)
+                return Json(new { success = false, message = $"“{section}” alanında {tableCount} masa var. Önce masaları başka alana taşıyın ya da silin." });
+
+            var elements = db.FloorPlanElements.Where(e => e.CompanyId == companyId && e.Section == section).ToList();
+            db.FloorPlanElements.RemoveRange(elements);
+            var rows = db.FloorPlanSections.Where(s => s.CompanyId == companyId && s.Section == section).ToList();
+            db.FloorPlanSections.RemoveRange(rows);
+            db.SaveChanges();
+
+            return Json(new { success = true, message = $"“{section}” alanı silindi." });
+        }
+
         // Yeni öğe ekler (id boş) ya da mevcut öğeyi günceller
         [HttpPost]
         [JwtAuthorize(Roles = "Admin")]

@@ -128,7 +128,10 @@ The real project lives in `RestaurantApp.Web/`.
   - the POS table picker: the "Kartlar | Kroki" toggle, remembered in `localStorage.posTableView`. Clicking a table calls `selectPosTable`, shared with the cards.
 - The editor is linked from the sidebar (Masa Yönetimi → Kroki Yönetimi) and from the "Kroki" button on Masa Yönetimi.
 - New tables start at the same default spot. `FloorPlan.stackedTableCount` warns about this in the editor, and publishing refuses overlapping tables.
-- Areas created on Masa Yönetimi ("Alan Yönet") are still only a `localStorage` list. The plan's sections come from `FloorPlanSections`, the tables and the elements.
+- Areas are one list per company, shared by Masa Yönetimi ("Alan Yönet", `table-management.js`) and the kroki editor. The list is `FloorPlanSections` plus any section used by an active table or an element (`FloorPlanController.GetSections`, Admin; "Salon" when empty, not saved).
+  - `AddSection` adds an area.
+  - `DeleteSection` refuses while active tables are in the area, and otherwise deletes the area's elements and its publish row as well.
+  - The old browser-only list (`localStorage.custom_restaurant_sections`) is migrated once on page load (only names outside the old default list) and then removed.
 
 ### Delivery orders (Paket Servis)
 - A delivery order is an `AppOrders` row with `OrderType = "PaketServis"`.
